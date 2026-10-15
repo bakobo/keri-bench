@@ -254,6 +254,7 @@ class SyntheticVerifier(_Synthetic, VerifierAdapter):
                       "status", credential).json()
 
     async def sync_cold(self) -> None:
-        self.ctx.emit("sync_full_started", credentials=["sync"])
-        _check(await self.client.post(f"{self.api(Role.VERIFIER)}/sync/cold"), "sync", "sync")
-        self.ctx.emit("sync_full_done", credentials=["sync"])
+        self.ctx.emit("sync_full_started", credentials=["sync-cold"])
+        _check(await self.client.post(f"{self.api(Role.VERIFIER)}/sync/cold"), "sync",
+               "sync-cold")
+        self.ctx.emit("sync_full_done", credentials=["sync-cold"])

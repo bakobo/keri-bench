@@ -63,7 +63,8 @@ async def test_the_verifier_runs_a_cold_sync_and_refuses_an_error_answer(tmp_pat
     peers[Role.VERIFIER] = await verifier.start()
     try:
         await verifier.sync_cold()
-        assert [e.name for e in sink] == ["sync_full_started", "sync_full_done"]
+        assert [(e.name, e.credentials) for e in sink] == [
+            ("sync_full_started", ("sync-cold",)), ("sync_full_done", ("sync-cold",))]
         assert await verifier.identity() == {"aid": "Vsynthetic"}
         peers[Role.VERIFIER] = {"api": peers[Role.VERIFIER]["api"] + "/nowhere"}
         with pytest.raises(BenchError) as refused:

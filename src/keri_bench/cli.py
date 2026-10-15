@@ -10,6 +10,7 @@ from pathlib import Path
 
 from . import provenance, report
 from .calibration import calibrate
+from .contract import contract
 from .errors import BenchError
 from .run import run_once, sweep
 from .scenario import load_scenario
@@ -34,6 +35,11 @@ def _calibrate(args) -> dict:
     return asyncio.run(calibrate(args.scenarios, args.out, harness_commit=_commit()))
 
 
+def _contract(args) -> dict:
+    return asyncio.run(contract(load_scenario(args.scenario), args.out,
+                                harness_commit=_commit()))
+
+
 def _report(args) -> dict:
     return report.write_report(args.run_dir, generator_commit=_commit())
 
@@ -55,6 +61,11 @@ def main(argv=None) -> int:
     cal.add_argument("--scenarios", type=Path, default=REPO / "scenarios")
     cal.add_argument("--out", type=Path, required=True)
     cal.set_defaults(handler=_calibrate)
+    check = commands.add_parser("contract", help="Run the adapter contract suite with the "
+                                "adapters a scenario names (Part B #10).")
+    check.add_argument("scenario", type=Path)
+    check.add_argument("--out", type=Path, required=True)
+    check.set_defaults(handler=_contract)
     rebuild = commands.add_parser("report", help="Rebuild a run's report from its timeline and "
                                   "provenance.")
     rebuild.add_argument("run_dir", type=Path)
@@ -65,7 +76,8 @@ def main(argv=None) -> int:
     except BenchError as refused:
         print(str(refused), file=sys.stderr)
         return 2
-    print(json.dumps({k: result[k] for k in ("ok", "refused", "saturation") if k in result}))
+    print(json.dumps({k: result[k] for k in ("ok", "refused", "saturation", "problems")
+                      if k in result}))
     return 1 if result.get("ok") is False or result.get("refused") else 0
 
 

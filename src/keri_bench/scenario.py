@@ -21,9 +21,10 @@ from .vocabulary import MILESTONES, Role
 SCENARIO_SCHEMA = 1
 MAX_BYTES = 1 << 20
 
-STAGES = ("issue", "deliver", "present", "verify", "revoke")
-"""What happens to each credential, in this order; a scenario names a prefix-free subset that
-starts with issue."""
+STAGES = ("issue", "deliver", "present", "verify", "revoke", "sync")
+"""What happens to each credential, in this order; a scenario names a subset that starts with
+issue. ``sync`` is the exception: once the drain ends, a cold verifier synchronizes once against
+everything issued, which is pair 5's initial synchronization."""
 
 FAULT_KINDS = ("crash", "partition", "delay", "duplicate")
 

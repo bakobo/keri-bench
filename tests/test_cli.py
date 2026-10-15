@@ -60,3 +60,11 @@ def test_calibrate_reports_failure_with_exit_1(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(cli, "calibrate", fake)
     assert cli.main(["calibrate", "--scenarios", str(tmp_path), "--out", str(tmp_path)]) == 1
     assert json.loads(capsys.readouterr().out) == {"ok": False}
+
+
+def test_the_contract_command_prints_each_adapters_problems(tmp_path, capsys):
+    scenarios = Path(__file__).parent.parent / "scenarios"
+    code = cli.main(["contract", str(scenarios / "contract-synthetic.toml"), "--out",
+                     str(tmp_path)])
+    printed = json.loads(capsys.readouterr().out)
+    assert code == 0 and printed["ok"] and "synthetic.issuer" in printed["problems"]

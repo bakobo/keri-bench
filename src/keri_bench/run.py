@@ -41,7 +41,7 @@ circular parts of real wiring happen in ``connect``, after every role has starte
 
 STAGE_ROLES = {"issue": {Role.ISSUER}, "deliver": {Role.HOLDER},
                "present": {Role.HOLDER, Role.VERIFIER}, "verify": {Role.VERIFIER},
-               "revoke": {Role.VERIFIER}}
+               "revoke": {Role.VERIFIER}, "sync": {Role.VERIFIER}}
 
 E_ROLE_MISSING = "e.input.missing.scenario.role.f"
 E_ROLE_MISMATCH = "e.input.range.scenario.adapter.role.f"
@@ -130,6 +130,7 @@ class Run:
     peers: dict[Role, Endpoints] = field(default_factory=dict)
     watchers: dict[str, list] = field(default_factory=lambda: defaultdict(list))
     tasks: set = field(default_factory=set)
+    exchanges: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     credentials: list[str] = field(default_factory=list)
 
     # --- events ---
@@ -150,6 +151,7 @@ class Run:
         self.watchers[link].append(callback)
 
     def _exchange(self, exchange) -> None:
+        self.exchanges[exchange.link] += 1
         for callback in self.watchers.get(exchange.link, ()):
             callback(exchange)
 
@@ -341,6 +343,8 @@ class Run:
             except TimeoutError:
                 pass
             await asyncio.gather(*faults, return_exceptions=True)
+            if "sync" in self.plan.scenario.stages:
+                await self.adapters[Role.VERIFIER].sync_cold()
             await self._offsets()
             reconciliation = await self._reconcile()
             components = {role.value: await adapter.versions()
@@ -382,6 +386,8 @@ class Run:
     async def _cost(self, before) -> dict:
         after = resource.getrusage(resource.RUSAGE_SELF)
         links = {name: await measure_pass_through(samples=200) for name in self.links}
+        for name, measured in links.items():
+            measured["exchanges"] = self.exchanges.get(name, 0)
         return {"links": links, "harness_cpu_s": (after.ru_utime - before.ru_utime)
                 + (after.ru_stime - before.ru_stime)}
 

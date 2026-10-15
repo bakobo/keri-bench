@@ -156,10 +156,14 @@ def _intervals(run: _Run) -> dict:
         if name != "requested" and name in run.observed:
             specs.setdefault(_key("requested", name), [])
     out = {}
+    # A cold sync is one per verifier, not one per credential, so its events name the sync rather
+    # than any requested credential (pair 5, initial synchronization).
+    syncs = sorted({c for c, names in run.first.items() if "sync_full_started" in names})
     for key, pairs in specs.items():
         start, end = key.split("->")
         entry = {"start": start, "end": end, "pairs": pairs}
-        entry.update(_summarise(*run.samples(run.window, start, end)))
+        entry.update(_summarise(*run.samples(syncs if start == "sync_full_started"
+                                             else run.window, start, end)))
         out[key] = entry
     return out
 
