@@ -11,6 +11,7 @@ import importlib
 from ..errors import BenchError
 from .base import Adapter
 
+# A KERIA adapter (signifypy) is not built yet (~6vqa).
 ADAPTERS = {
     "synthetic.issuer": "keri_bench.synthetic.adapters:SyntheticIssuer",
     "synthetic.state_distribution": "keri_bench.synthetic.adapters:SyntheticStateDistribution",

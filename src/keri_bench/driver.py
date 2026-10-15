@@ -26,6 +26,8 @@ GROWTH_WINDOWS = 3
 
 
 class OpenLoopDriver:
+    # One event loop drives every lifecycle; on kelun that tops out near 60 full lifecycles per
+    # second, beyond which the self-check refuses the run (~2eud).
     def __init__(self, rate: float, duration_s: float, *,
                  clock: Callable[[], int] = time.monotonic_ns) -> None:
         if not rate > 0 or not duration_s > 0:

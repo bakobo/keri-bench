@@ -253,7 +253,7 @@ class Run:
         """Poll the verifier until ``stable_polls`` polls in a row say revoked; the milestone is
         the first poll of that final streak, with the first revoked poll kept beside it."""
         rule = self.plan.scenario.recognition
-        verifier = self.adapters[Role.VERIFIER]
+        verifier = self.adapters[Role.VERIFIER]  # one verifier; the plan says every one (~4jcn)
         first_seen, streak_start, streak = None, None, 0
         while streak < rule.stable_polls:
             polled = self.clock()

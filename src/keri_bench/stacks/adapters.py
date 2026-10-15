@@ -75,7 +75,9 @@ def _check(answer: Answer, stage: str, credential: str) -> Answer:
 
 
 class HetiWitnessPool(WitnessPoolAdapter):
-    """Real keripy witnesses, each advertising the harness's proxy in front of it."""
+    """Real keripy witnesses, each advertising the harness's proxy in front of it. It cannot
+    yet count the KEL events anchoring a credential, so reconciliation's double-anchor check
+    reads not measured here (~6j5i)."""
 
     declaration = Declaration(
         adapter="heti.witness_pool", role=Role.WITNESS_POOL, version=VERSION, milestones={},
@@ -98,7 +100,10 @@ class HetiWitnessPool(WitnessPoolAdapter):
 
 
 class RegistrarObserver(StateDistributionAdapter):
-    """bakobo/witness's Registrar, and heti's Observer subscribed to it: what verifiers read."""
+    """bakobo/witness's Registrar, and heti's Observer subscribed to it: what verifiers read.
+
+    The Registrar's batches go to the callback the Observer registers itself, past the proxy
+    (~3zja)."""
 
     declaration = Declaration(
         adapter="registrar.state_distribution", role=Role.STATE_DISTRIBUTION, version=VERSION,
@@ -217,6 +222,7 @@ class HetiHolder(_Party, HolderAdapter):
 
 
 class HetiVerifier(_Party, VerifierAdapter):
+    # sync_increment_applied is not observed: pair 5's incremental half is a named gap (~6ayr).
     module, process_name = "keri_bench.stacks.verifier", "verifier"
     declaration = Declaration(
         adapter="heti.verifier", role=Role.VERIFIER, version=VERSION,
