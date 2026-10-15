@@ -1,0 +1,56 @@
+{
+  "provenance_schema": 1,
+  "harness_commit": "golden-harness",
+  "scenario": "# golden: three single credentials, one delay fault on the witness pool\n",
+  "scenario_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "adapters": {
+    "issuer": {
+      "adapter": "golden.issuer",
+      "role": "issuer",
+      "version": "1",
+      "milestones": {
+        "accepted": {"method": "observed", "clock": "harness", "resolution_ns": 1},
+        "constructed": {"method": "observed", "clock": "harness", "resolution_ns": 1},
+        "registry_updated": {"method": "observed", "clock": "harness", "resolution_ns": 1},
+        "anchored": {"method": "reported", "clock": "stack:imbu", "resolution_ns": 100},
+        "witnessed": {"method": "reported", "clock": "stack:imbu", "resolution_ns": 100}
+      },
+      "knobs": {"version": 1, "knobs": {}},
+      "tested_against": {"golden-stack": "1.0"}
+    },
+    "verifier": {
+      "adapter": "golden.verifier",
+      "role": "verifier",
+      "version": "1",
+      "milestones": {
+        "verified": {"method": "polled", "clock": "harness", "resolution_ns": 500}
+      },
+      "knobs": {"version": 1, "knobs": {}},
+      "tested_against": {"heti": "0.9"}
+    }
+  },
+  "knobs": {"issuer": {}, "verifier": {}},
+  "components": {"issuer": {"golden-stack": "1.0"}, "verifier": {"heti": "0.9.1"}},
+  "host": {"hostname": "golden"},
+  "clocks": {"harness": "monotonic@golden-boot"},
+  "run": {
+    "rate": 1000.0,
+    "repetition": 1,
+    "warmup_s": 0.000001,
+    "lag_limit_ms": 5.0,
+    "measure": ["requested", "verified"],
+    "stages": ["steady"]
+  },
+  "reconciliation": {
+    "verifier": {
+      "c1": {"status": "valid", "said": "Ec1"},
+      "c2": {"status": "valid", "said": "Ec2"},
+      "c3": {"status": "unknown", "said": null}
+    },
+    "anchors": {"c1": 1, "c2": 1, "c3": 1}
+  },
+  "measurement_cost": {
+    "links": {"issuer": {"p50_ns": 210000, "p99_ns": 640000}},
+    "harness_cpu_s": 0.25
+  }
+}

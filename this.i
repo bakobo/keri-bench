@@ -36,6 +36,15 @@ Measure end-to-end KERI+ACDC issuance on any implementation, well enough to buy 
             delay (coordinated omission), which is exactly what a saturated issuance lock produces.
             A run whose driver was the bottleneck is refused rather than reported. Tradeoff: a more
             complex driver than a simple request loop.
+          children:
+            The calibration stack is real processes behind the proxy, with injected delays logged as ground truth = decision:
+              nid: 6he49n0k
+              why: >-
+                Part B #1 must show the harness measures correctly, so the synthetic stack is four small HTTP processes (issuer, state distribution, holder, verifier) started through process control, reached only through the fault proxy, and driven by synthetic adapters that use every observation path a real adapter uses: observed at an API boundary and at the proxy, polled, and reported on a stack clock deliberately skewed from wall time so the offset measurement is exercised. Each process draws every injected delay from a seeded log-normal, logs it to a truth file, and serializes construction behind a fixed service rate, so the throughput cap is known. The calibration compares the harness's report against the truth files. Rejected fake adapters that emit their injected delays directly into the timeline, because that would test arithmetic on numbers the harness never measured. Rejected a sleep-only in-process fake, because it would skip process control, the proxy and the clock offsets, which are where measurement error comes from. Tradeoff: the calibration takes tens of seconds in CI, and its tolerances must absorb loopback round trips (about 0.2 ms through the proxy), so injected delays are tens of milliseconds.
+            'The driver holds a core: it yields to the event loop continuously instead of sleeping between sends = decision':
+              nid: 0pqdn6ne
+              why: >-
+                Measured on kelun, 2026-10-15, at 20 sends per second against the calibration stack: sleeping until each send gave a p99 send lag of 5 to 22 ms, because a thread that blocks in epoll is woken late by the OS on a shared box (and asyncio rounds epoll timeouts to whole milliseconds); sleeping until 10 ms before each send and then yielding gave 2 to 5 ms, still refused now and then; yielding throughout gave 0.2 to 0.35 ms, even under nice 19. A run whose driver lags is refused (808tr3fn), so an imprecise driver throws away runs the stack did nothing to deserve. Rejected a driver thread with its own loop: it would timestamp sends precisely while the requests themselves still left late from the busy main loop, hiding exactly the lag the self-check exists to catch. Tradeoff: the harness uses one core for the whole window, which the report states as harness CPU, and on a small host that core is taken from the stack under test.
         Every number is re-derivable from a raw timeline and carries full provenance = decision:
           nid: 8q4myzru
           why: >
@@ -76,12 +85,26 @@ Measure end-to-end KERI+ACDC issuance on any implementation, well enough to buy 
             clock domains with no measured offset is not measured. Rejected a two-way outside/inside
             label (the first draft), because it let stack-written timestamps pass as harness-measured
             (maintainability review MNT-3, testability review TST-2, 2026-10-15).
+          children:
+            The harness clock is the host's CLOCK_MONOTONIC, named by boot id; wall clocks are offset-measured = decision:
+              nid: 98rxw488
+              why: >-
+                Harness events use time.monotonic_ns(), whose clock domain is named monotonic@<boot_id>. On Linux CLOCK_MONOTONIC is one clock for every process on the host since boot, so a stack process on the same box that stamps with it (the summit harness's Registrar publisher does) shares the harness's domain exactly, with zero offset and nothing to measure. A stack that stamps wall time is in domain realtime@<host>; the harness measures that domain's offset by bracketing a realtime read between two monotonic reads at the start and the end of every run, and the bound carried into each interval is the wider bracket plus the change in offset between the two samples, so an NTP step during the run widens the bound instead of hiding in it. A stack on another host needs its own offset source (a time route sampled the same way) and is not measured without one. Rejected wall time as the harness clock, because it steps and slews under NTP and an interval across a step is wrong by the step. Rejected assuming same-host wall clocks agree with zero bound, because that is exactly the unmeasured offset 7vsky4sk forbids.
         Independent verification means a verifier that is not the issuer's code path = decision:
           nid: 27mjdj7q
           why: >
             Utah's pair 3 separates generating a proof from independently verifying it. The verifier
             role is configured separately and the report names it. For imbu that is a separate heti
             process, and ideally also a keripy-based one, since heti is imbu's own substrate.
+        Adapters are in-process Python classes per role, declaring before they emit = decision:
+          nid: 2vu4969q
+          why: >-
+            Each role adapter is a Python class with a static declaration (role, the milestones it emits with each one's method, clock and resolution, a versioned knob schema, the stack versions it was contract-tested against), an async start that receives the harness's run context and configured peer endpoints and returns the endpoints it serves, an async stop, and the role's operations (issue, revoke, present, verify, status, sync) as async methods. Every event goes through the context's emit, which refuses a milestone, method or clock the declaration does not name, so the contract suite can check an adapter by running it rather than by reading it. Rejected out-of-process adapters behind a wire protocol: they would let a KERIA team write theirs in TypeScript, but they put one more process and one more clock boundary inside every measured interval and add a protocol to version, while every stack under test is reached over HTTP anyway, so a Python adapter can drive any of them. Rejected post-hoc adapters that scrape a stack's logs into a timeline after the run: an undeclared or misclocked event would be found only after the run, and the open-loop driver needs a live call to schedule. Tradeoff: adapter authors write Python, and an adapter's own overhead sits inside observed intervals; the proxy's pass-through cost is reported, the adapter's is bounded by the calibration stack using the same code paths.
+          children:
+            An adapter may report another role's milestone it can see, under the owning role = decision:
+              nid: 0ys878gy
+              why: >-
+                imbu's async operation resource reports witnessed and published, which belong to the witness-pool and state-distribution roles, and the issuer adapter is the only one that can read it. So a declaration may name any milestone, but every event is filed under the milestone's owning role and names the adapter that reported it, and the report's observability matrix says which adapter observed each milestone and how. Rejected forcing each role's adapter to observe its own milestones directly: on imbu the witness pool would have to poll witnesses for receipts and correlate them to credentials, a second and coarser measurement of a time imbu already records where it happens. Rejected filing the event under the reporting adapter's role: a timeline whose 'witnessed' sometimes belongs to the issuer cannot be compared across stacks. Tradeoff: two adapters may both declare one milestone; the run refuses that, so each milestone has exactly one source per run.
     It measures a configured deployment, not the software in the abstract = goal:
       nid: 6f6he77q
       why: >
@@ -107,6 +130,16 @@ Measure end-to-end KERI+ACDC issuance on any implementation, well enough to buy 
         Rejected container networking with tc/netem as the base, because it adds a dependency Utah
         must reproduce and cannot duplicate a message. Multi-host is a later deployment of the same
         design. Consequence: adapters must accept configured endpoints. Daniel agreed, 2026-10-15 (Q4).
+      children:
+        The fault proxy is an HTTP/1.1-aware reverse proxy per endpoint that never rewrites bytes = decision:
+          nid: 6wlc25pz
+          why: >-
+            Every link between roles on the stacks under test is HTTP/1.1 (witnesses, the Registrar, the Observer, imbu's control plane), and the duplicate fault must replay one whole message, which a byte-level TCP proxy cannot delimit. So the harness puts one asyncio reverse proxy in front of every endpoint an adapter announces, reads each message whole within size limits, and applies delay, partition (requests are swallowed and their clients get no answer until the partition heals) and duplicate (an identical copy on a fresh upstream connection, its answer discarded). It rewrites nothing, not even Host, because clients sign @authority under RFC 9421 and the upstream checks it against the Host it receives. Rejected a TCP proxy with byte-offset faults, because it cannot duplicate a message. Rejected an off-the-shelf proxy (toxiproxy), because it adds a binary Utah must reproduce and still works at the byte level. Tradeoff: buffering adds about 0.2 ms at p50 and under 1 ms at p99 per hop on one host, which every report states per link; upgrades, 100-continue and HTTP/2 are not carried.
+          children:
+            The proxy ends a client's connection when the upstream ends it, not when a header says it will = decision:
+              nid: 2q4mw7cs
+              why: >-
+                Found running real keripy witnesses behind the proxy, 2026-10-15: a witness answers Connection: close and keeps the socket open, and keripy's client sends its next request, the other witnesses' receipts, down that same socket. A proxy that honoured the header closed the connection, the receipts never arrived, every witness held the issuer's inception in escrow, and the issuer's OOBI answered 404, so nothing downstream could start. The proxy now watches the upstream between requests and closes the client's side only when the upstream closes or speaks unasked, which is what a client talking to the server directly would see. Rejected reconnecting upstream and retrying the next request, because that would hide a real close from the client and change the failure behaviour under test. Tradeoff: one extra pending read per idle connection.
     The HSM question is answered by sensitivity, through a real signer seam = decision:
       nid: 4jlx9k8q
       why: >

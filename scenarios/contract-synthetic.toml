@@ -1,0 +1,63 @@
+# The adapter contract suite against the synthetic adapters (test plan, Part B #10); CI runs it on
+# every change. Every stage runs, so every declared milestone has a chance to appear.
+scenario_schema = 1
+name = "contract-synthetic"
+description = "One short run that exercises every synthetic adapter."
+stages = ["issue", "deliver", "present", "verify", "revoke", "sync"]
+
+[recognition]
+poll_ms = 5.0
+stable_polls = 2
+
+[load]
+rates = [10.0]
+duration_s = 1.0
+warmup_s = 0.0
+drain_s = 10.0
+repetitions = 3
+measure = ["requested", "constructed"]
+
+[roles.witness_pool]
+adapter = "synthetic.witness_pool"
+[roles.witness_pool.knobs]
+knob_schema = 1
+
+[roles.state_distribution]
+adapter = "synthetic.state_distribution"
+[roles.state_distribution.knobs]
+knob_schema = 1
+seed = 1
+delays = ""
+clock_skew_ms = 0.0
+
+[roles.issuer]
+adapter = "synthetic.issuer"
+[roles.issuer.knobs]
+knob_schema = 1
+seed = 2
+clock_skew_ms = 2500.0
+service_rate = 200.0
+stall_after = "n/a"
+stall_ms = "n/a"
+delays = """
+constructed>registry_updated=3/0.2, registry_updated>anchored=3/0.2,
+anchored>witnessed=3/0.2, witnessed>published=3/0.2,
+revocation_requested>revocation_anchored=3/0.2,
+revocation_anchored>revocation_witnessed=3/0.2,
+revocation_witnessed>revocation_published=3/0.2"""
+
+[roles.holder]
+adapter = "synthetic.holder"
+[roles.holder.knobs]
+knob_schema = 1
+seed = 3
+clock_skew_ms = 0.0
+delays = "delivered>stored=3/0.2, stored>proof_generated=3/0.2"
+
+[roles.verifier]
+adapter = "synthetic.verifier"
+[roles.verifier.knobs]
+knob_schema = 1
+seed = 4
+clock_skew_ms = 0.0
+delays = "proof_generated>verified=3/0.2, sync_full_started>sync_full_done=5/0.2"

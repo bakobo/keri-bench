@@ -1,0 +1,26 @@
+{"timeline_schema": 1, "vocabulary_version": 1, "harness_commit": "golden-harness", "harness_clock": "monotonic@golden-boot"}
+{"name":"run_started","t":0,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":[],"role":"harness"}
+{"name":"clock_offset","t":0,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":[],"role":"harness","attrs":{"domain":"realtime@golden-host","offset_ns":-2000,"bracket_ns":20}}
+{"name":"requested","t":1000,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":["b1"],"role":"issuer"}
+{"name":"dispatched","t":1001,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":["b1"],"role":"harness"}
+{"name":"requested","t":1100,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":["b2"],"role":"issuer"}
+{"name":"dispatched","t":1101,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":["b2"],"role":"harness"}
+{"name":"requested","t":1200,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":["b3"],"role":"issuer"}
+{"name":"dispatched","t":1201,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":["b3"],"role":"harness"}
+{"name":"constructed","t":1300,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":["b1"],"role":"issuer","attrs":{"adapter":"golden.issuer","said":"Eb1"}}
+{"name":"registry_updated","t":1350,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":["b1"],"role":"issuer","attrs":{"adapter":"golden.issuer"}}
+{"name":"constructed","t":1400,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":["b2"],"role":"issuer","attrs":{"adapter":"golden.issuer","said":"Eb2"}}
+{"name":"registry_updated","t":1450,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":["b2"],"role":"issuer","attrs":{"adapter":"golden.issuer"}}
+{"name":"constructed","t":1500,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":["b3"],"role":"issuer","attrs":{"adapter":"golden.issuer","said":"Eb3"}}
+{"name":"registry_updated","t":1550,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":["b3"],"role":"issuer","attrs":{"adapter":"golden.issuer"}}
+{"name":"anchored","t":3800,"method":"reported","clock":"realtime@golden-host","resolution":1000,"credentials":["b1","b2","b3"],"role":"issuer","batch_id":"batch-1","attrs":{"adapter":"golden.issuer"}}
+{"name":"witnessed","t":4600,"method":"reported","clock":"realtime@golden-host","resolution":1000,"credentials":["b1","b2","b3"],"role":"witness_pool","batch_id":"batch-1","attrs":{"adapter":"golden.issuer"}}
+{"name":"verified","t":2750,"method":"polled","clock":"monotonic@golden-boot","resolution":250,"credentials":["b1"],"role":"verifier","attrs":{"adapter":"golden.verifier"}}
+{"name":"fault_started","t":3000,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":[],"role":"harness","attrs":{"kind":"crash","target":"issuer"}}
+{"name":"process_killed","t":3010,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":[],"role":"harness","attrs":{"process":"issuer"}}
+{"name":"process_ready","t":3510,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":[],"role":"harness","attrs":{"process":"issuer"}}
+{"name":"fault_ended","t":3510,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":[],"role":"harness","attrs":{"kind":"crash","target":"issuer"}}
+{"name":"verified","t":4000,"method":"polled","clock":"monotonic@golden-boot","resolution":250,"credentials":["b2"],"role":"verifier","attrs":{"adapter":"golden.verifier"}}
+{"name":"verified","t":4300,"method":"polled","clock":"monotonic@golden-boot","resolution":250,"credentials":["b3"],"role":"verifier","attrs":{"adapter":"golden.verifier"}}
+{"name":"clock_offset","t":11000,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":[],"role":"harness","attrs":{"domain":"realtime@golden-host","offset_ns":-2000,"bracket_ns":20}}
+{"name":"run_ended","t":11000,"method":"observed","clock":"monotonic@golden-boot","resolution":1,"credentials":[],"role":"harness"}

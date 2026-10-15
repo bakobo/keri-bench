@@ -1,0 +1,63 @@
+# The calibration stack (test plan, Part B #1; this.i 6he49n0k). Every delay is injected with a
+# seeded log-normal and logged as truth; construction is capped at service_rate per second.
+scenario_schema = 1
+name = "calibration-intervals"
+description = "Every transition's injected delay, recovered through the full lifecycle."
+stages = ["issue", "deliver", "present", "verify", "revoke"]
+
+[recognition]
+poll_ms = 25.0
+stable_polls = 3
+
+[load]
+rates = [15.0]
+duration_s = 7.0
+warmup_s = 0.0
+drain_s = 15.0
+repetitions = 3
+measure = ["requested", "constructed"]
+
+[roles.witness_pool]
+adapter = "synthetic.witness_pool"
+[roles.witness_pool.knobs]
+knob_schema = 1
+
+[roles.state_distribution]
+adapter = "synthetic.state_distribution"
+[roles.state_distribution.knobs]
+knob_schema = 1
+seed = 11
+delays = ""
+clock_skew_ms = 0.0
+
+[roles.issuer]
+adapter = "synthetic.issuer"
+[roles.issuer.knobs]
+knob_schema = 1
+seed = 12
+clock_skew_ms = 7300.0
+service_rate = 100.0
+stall_after = "n/a"
+stall_ms = "n/a"
+delays = """
+constructed>registry_updated=60/0.3, registry_updated>anchored=80/0.3,
+anchored>witnessed=100/0.3, witnessed>published=60/0.3,
+revocation_requested>revocation_anchored=80/0.3,
+revocation_anchored>revocation_witnessed=100/0.3,
+revocation_witnessed>revocation_published=60/0.3"""
+
+[roles.holder]
+adapter = "synthetic.holder"
+[roles.holder.knobs]
+knob_schema = 1
+seed = 13
+clock_skew_ms = 0.0
+delays = "delivered>stored=60/0.3, stored>proof_generated=80/0.3"
+
+[roles.verifier]
+adapter = "synthetic.verifier"
+[roles.verifier.knobs]
+knob_schema = 1
+seed = 14
+clock_skew_ms = 0.0
+delays = "proof_generated>verified=60/0.3, sync_full_started>sync_full_done=100/0.2"

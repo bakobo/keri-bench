@@ -1,0 +1,59 @@
+[project]
+name = "keri-bench"
+version = "0.1.0"
+description = "A stack-agnostic instrument that measures end-to-end KERI+ACDC issuance (Utah KERI-006)."
+requires-python = ">=3.14"
+dependencies = [
+    "aiohttp>=3.10",
+    "httpx>=0.27",
+    # httpcore imports sniffio on every request and, when it is absent, pays a failed import
+    # (a filesystem search) each time: measured at over a second of CPU per 20-request-per-second
+    # run, which showed up as driver lag.
+    "sniffio>=1.3",
+]
+
+[project.optional-dependencies]
+# The real stack's adapters (imbu issuer; heti witness pool, Observer, holder and verifier). Kept
+# out of the core so the harness, the synthetic stack and CI's calibration need no private repo.
+# Pinned to commits: imbu main as of 2026-10-15, and the heti that imbu pins. The Registrar
+# (bakobo/witness) runs in its own uvx environment, as the summit harness runs it, because it pins
+# a different keripy.
+stacks = [
+    "imbu @ git+ssh://git@github.com/bakobo/imbu@6c0cfc71e1a68f793cb9656b6d85b64dd4cd64d2",
+    "heti @ git+ssh://git@github.com/bakobo/heti@ed519a21c76554a1a345f0dc02a1a0bdf5623618",
+]
+
+[project.scripts]
+keri-bench = "keri_bench.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-cov>=6", "pytest-asyncio>=1.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/keri_bench"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["src/keri_bench"]
+# Synthetic-stack and fake-peer processes are this package's code too.
+patch = ["subprocess"]
+parallel = true
+sigterm = true
+# The real stacks' code needs private repositories, so it has its own coverage run and
+# configuration (tests/stacks/coveragerc), in its own CI job.
+omit = ["src/keri_bench/stacks/*"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = ['if __name__ == .__main__.:']

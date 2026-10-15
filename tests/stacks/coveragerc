@@ -1,0 +1,13 @@
+# Coverage for the real stacks' code, run by CI's stacks job:
+#   uv run pytest tests/stacks --cov --cov-config=tests/stacks/coveragerc --cov-fail-under=100
+[run]
+branch = true
+source = src/keri_bench/stacks
+patch = subprocess
+parallel = true
+sigterm = true
+
+[report]
+show_missing = true
+exclude_also =
+    if __name__ == .__main__.:

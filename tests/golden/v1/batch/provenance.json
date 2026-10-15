@@ -1,0 +1,51 @@
+{
+  "provenance_schema": 1,
+  "harness_commit": "golden-harness",
+  "scenario": "# golden: a 3-credential batch under one anchor, one issuer crash\n",
+  "scenario_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "adapters": {
+    "issuer": {
+      "adapter": "golden.issuer",
+      "role": "issuer",
+      "version": "1",
+      "milestones": {
+        "constructed": {"method": "observed", "clock": "harness", "resolution_ns": 1},
+        "registry_updated": {"method": "observed", "clock": "harness", "resolution_ns": 1},
+        "anchored": {"method": "reported", "clock": "realtime", "resolution_ns": 1000},
+        "witnessed": {"method": "reported", "clock": "realtime", "resolution_ns": 1000}
+      },
+      "knobs": {"version": 1, "knobs": {}},
+      "tested_against": {"golden-stack": "1.0"}
+    },
+    "verifier": {
+      "adapter": "golden.verifier",
+      "role": "verifier",
+      "version": "1",
+      "milestones": {
+        "verified": {"method": "polled", "clock": "harness", "resolution_ns": 250}
+      },
+      "knobs": {"version": 1, "knobs": {}},
+      "tested_against": {"heti": "0.9"}
+    }
+  },
+  "knobs": {"issuer": {}, "verifier": {}},
+  "components": {"issuer": {"golden-stack": "1.0"}, "verifier": {"heti": "0.9"}},
+  "host": {"hostname": "golden"},
+  "clocks": {"harness": "monotonic@golden-boot", "realtime": "realtime@golden-host"},
+  "run": {
+    "rate": 1000.0,
+    "repetition": 2,
+    "warmup_s": 0.000001,
+    "lag_limit_ms": 5.0,
+    "measure": ["requested", "verified"],
+    "stages": ["steady"]
+  },
+  "reconciliation": {
+    "verifier": {
+      "b1": {"status": "valid", "said": "Eb1"},
+      "b2": {"status": "valid", "said": "Eb2"},
+      "b3": {"status": "revoked", "said": "Eb3-dup"}
+    },
+    "anchors": {"b1": 1, "b2": 2, "b3": null}
+  }
+}
