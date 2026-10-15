@@ -4,3 +4,11 @@
 # See dev/standards/repo-layout.md, "Rendered doc artifacts".
 docs/**/*.pdf
 docs/**/*.html
+
+# Build and test by-products.
+__pycache__/
+.coverage
+.coverage.*
+.venv/
+.pytest_cache/
+runs/
