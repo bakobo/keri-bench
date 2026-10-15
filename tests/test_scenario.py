@@ -1,0 +1,136 @@
+"""Scenario files: every policy knob set, every number recorded (this.i 4q4540c4; Part B #6)."""
+
+import pytest
+
+from keri_bench.errors import BenchError
+from keri_bench.scenario import SCENARIO_SCHEMA, Scenario, load_scenario
+
+GOOD = """
+scenario_schema = 1
+name = "issue-steady"
+description = "Steady issuance."
+stages = ["issue", "deliver", "present", "verify", "revoke"]
+
+[load]
+rates = [10, 20, 40]
+duration_s = 5.0
+warmup_s = 1.0
+drain_s = 10.0
+repetitions = 3
+measure = ["requested", "registry_updated"]
+
+[statistics]
+epsilon = 0.05
+
+[roles.issuer]
+adapter = "synthetic.issuer"
+[roles.issuer.knobs]
+knob_schema = 1
+service_ms = 5
+
+[roles.verifier]
+adapter = "synthetic.verifier"
+[roles.verifier.knobs]
+knob_schema = 1
+
+[[faults]]
+kind = "crash"
+target = "issuer"
+at_s = 2.0
+
+[[faults]]
+kind = "delay"
+target = "issuer.control"
+at_s = 1.0
+duration_s = 1.0
+delay_ms = 20.0
+"""
+
+
+def write(tmp_path, text):
+    path = tmp_path / "scenario.toml"
+    path.write_text(text)
+    return path
+
+
+def test_a_complete_scenario_loads_with_plan_defaults_for_the_statistics(tmp_path):
+    scenario = load_scenario(write(tmp_path, GOOD))
+    assert isinstance(scenario, Scenario)
+    assert scenario.name == "issue-steady"
+    assert scenario.load.rates == (10.0, 20.0, 40.0)
+    assert scenario.load.repetitions == 3
+    assert scenario.load.measure == ("requested", "registry_updated")
+    assert scenario.statistics.epsilon == 0.05
+    assert scenario.statistics.k == 5.0 and scenario.statistics.lag_limit_ms == 5.0
+    assert scenario.roles["issuer"].adapter == "synthetic.issuer"
+    assert scenario.roles["issuer"].knobs == {"knob_schema": 1, "service_ms": 5}
+    crash, delay = scenario.faults
+    assert (crash.kind, crash.target, crash.at_s, crash.duration_s) == ("crash", "issuer", 2.0, 0.0)
+    assert (delay.delay_ms, delay.duration_s) == (20.0, 1.0)
+    assert scenario.stages == ("issue", "deliver", "present", "verify", "revoke")
+    assert len(scenario.sha256) == 64
+    assert scenario.text == GOOD
+    assert SCENARIO_SCHEMA == 1
+
+
+def replace(old, new):
+    assert old in GOOD
+    return GOOD.replace(old, new)
+
+
+@pytest.mark.parametrize("text, code", [
+    ("not = [toml", "e.input.format.scenario.toml.f"),
+    (replace("scenario_schema = 1", "scenario_schema = 9"),
+     "e.feature.unsupported.scenario.schema.f"),
+    (replace("scenario_schema = 1", ""), "e.input.missing.scenario.field.f"),
+    (replace('name = "issue-steady"', ""), "e.input.missing.scenario.field.f"),
+    (replace("rates = [10, 20, 40]", "rates = []"), "e.input.range.scenario.load.f"),
+    (replace("rates = [10, 20, 40]", "rates = [10, 5]"), "e.input.range.scenario.load.f"),
+    (replace("rates = [10, 20, 40]", "rates = [0, 5]"), "e.input.range.scenario.load.f"),
+    (replace("repetitions = 3", "repetitions = 2"), "e.input.range.scenario.load.f"),
+    (replace("duration_s = 5.0\nwarmup", "duration_s = -1\nwarmup"),
+     "e.input.range.scenario.load.f"),
+    (replace('measure = ["requested", "registry_updated"]', 'measure = ["requested"]'),
+     "e.input.format.scenario.load.f"),
+    (replace('measure = ["requested", "registry_updated"]', 'measure = ["a", "b"]'),
+     "e.input.range.scenario.load.f"),
+    (replace("[statistics]\nepsilon = 0.05", "[statistics]\nepsilon = -1"),
+     "e.input.range.scenario.statistics.f"),
+    (replace("[statistics]\nepsilon = 0.05", "[statistics]\nwhimsy = 1"),
+     "e.input.range.scenario.field.f"),
+    (replace('adapter = "synthetic.issuer"', ""), "e.input.missing.scenario.field.f"),
+    (replace("[roles.issuer]", "[roles.bystander]").replace("[roles.issuer.knobs]",
+                                                           "[roles.bystander.knobs]"),
+     "e.input.range.scenario.role.f"),
+    (replace('stages = ["issue", "deliver", "present", "verify", "revoke"]',
+             'stages = ["deliver"]'), "e.input.range.scenario.stages.f"),
+    (replace('stages = ["issue", "deliver", "present", "verify", "revoke"]',
+             'stages = ["issue", "dance"]'), "e.input.range.scenario.stages.f"),
+    (replace('kind = "crash"', 'kind = "flood"'), "e.input.range.scenario.fault.f"),
+    (replace("at_s = 2.0", "at_s = -2.0"), "e.input.range.scenario.fault.f"),
+    (replace("delay_ms = 20.0", ""), "e.input.missing.scenario.fault.f"),
+    (replace("at_s = 1.0\nduration_s = 1.0", "at_s = 1.0"), "e.input.missing.scenario.fault.f"),
+    (replace("[roles.issuer.knobs]\nknob_schema = 1\nservice_ms = 5", ""),
+     "e.input.missing.scenario.field.f"),
+    (replace('target = "issuer"\nat_s = 2.0', 'target = ""\nat_s = 2.0'),
+     "e.input.missing.scenario.fault.f"),
+])
+def test_a_bad_scenario_is_refused_with_a_code(tmp_path, text, code):
+    with pytest.raises(BenchError) as refused:
+        load_scenario(write(tmp_path, text))
+    assert refused.value.code == code
+
+
+def test_an_oversized_scenario_is_refused_before_it_is_parsed(tmp_path, monkeypatch):
+    import keri_bench.scenario as scenario
+    monkeypatch.setattr(scenario, "MAX_BYTES", 10)
+    with pytest.raises(BenchError) as refused:
+        load_scenario(write(tmp_path, GOOD))
+    assert refused.value.code == "e.input.range.scenario.size.f"
+
+
+def test_a_soak_stop_rule_is_read_when_present(tmp_path):
+    scenario = load_scenario(write(tmp_path, GOOD + "\n[stop]\ncredentials = 1000\n"
+                                   "duration_s = 60.0\n"))
+    assert (scenario.stop.credentials, scenario.stop.duration_s) == (1000, 60.0)
+    assert load_scenario(write(tmp_path, GOOD)).stop is None
