@@ -72,7 +72,7 @@ async def test_a_credential_goes_through_issue_publish_and_revoke(stack):
     c2 = {(line["start"], line["end"]) for line in lines if line["credential"] == "c2"}
     assert ("anchored", "witnessed") in c2 and ("revocation_witnessed",
                                                 "revocation_published") in c2
-    assert all(line["injected_ns"] > 0 for line in lines)
+    assert all(line["elapsed_ns"] >= line["injected_ns"] > 0 for line in lines)
 
 
 async def test_the_issuer_stalls_once_after_the_configured_count(stack):

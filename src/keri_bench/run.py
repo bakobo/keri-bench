@@ -274,10 +274,7 @@ class Run:
                 await self.procs.restart(name)
             self._harness_event("fault_ended", attrs=attrs)
             return
-        link = self.links.get(fault.target)
-        if link is None:
-            raise BenchError(E_FAULT_TARGET, f"The {fault.kind} fault targets the link "
-                             f"{fault.target!r}; this run's links are {sorted(self.links)}.")
+        link = self.links[fault.target]
         self._harness_event("fault_started", attrs={**attrs, "delay_ms": fault.delay_ms})
         if fault.kind == "partition":
             link.partition()
@@ -314,6 +311,11 @@ class Run:
         reconciliation, components, cost = None, {}, {}
         try:
             await self._bring_up()
+            for fault in self.plan.scenario.faults:
+                if fault.kind != "crash" and fault.target not in self.links:
+                    raise BenchError(E_FAULT_TARGET, f"The {fault.kind} fault targets the link "
+                                     f"{fault.target!r}; this run's links are "
+                                     f"{sorted(self.links)}.")
             holder = self.adapters.get(Role.HOLDER)
             verifier = self.adapters.get(Role.VERIFIER)
             self.holder_identity = await holder.identity() if holder else {}
@@ -330,11 +332,14 @@ class Run:
             await OpenLoopDriver(self.rate, load.duration_s, clock=self.clock).run(self._fire)
             self._harness_event("run_ended")
             gc.unfreeze()
-            if self.tasks:
-                await asyncio.wait(set(self.tasks), timeout=load.drain_s)
-            for task in list(self.tasks):
-                task.cancel()
-            await asyncio.gather(*self.tasks, *faults, return_exceptions=True)
+            # Lifecycles still running when the drain ends are cancelled; the report counts them
+            # as incomplete, censored at the window's end.
+            try:
+                await asyncio.wait_for(asyncio.gather(*self.tasks, return_exceptions=True),
+                                       load.drain_s)
+            except TimeoutError:
+                pass
+            await asyncio.gather(*faults, return_exceptions=True)
             await self._offsets()
             reconciliation = await self._reconcile()
             components = {role.value: await adapter.versions()

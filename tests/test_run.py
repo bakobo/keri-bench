@@ -1,0 +1,256 @@
+"""The run orchestrator: planning refusals, a whole run, faults, and the sweep summary."""
+
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).parent))
+
+from scenarios import scenario  # noqa: E402
+
+from keri_bench import run as runner  # noqa: E402
+from keri_bench.adapters import registry  # noqa: E402
+from keri_bench.errors import BenchError  # noqa: E402
+from keri_bench.scenario import load_scenario  # noqa: E402
+from keri_bench.timeline import read_timeline  # noqa: E402
+
+
+def load(tmp_path, text):
+    path = tmp_path / "scenario.toml"
+    path.write_text(text)
+    return load_scenario(path)
+
+
+def test_planning_refuses_stages_whose_roles_are_not_configured(tmp_path):
+    text = scenario(names=("witness_pool", "state_distribution", "issuer"))
+    with pytest.raises(BenchError) as refused:
+        runner.plan(load(tmp_path, text))
+    assert refused.value.code == "e.input.missing.scenario.role.f"
+
+
+def test_planning_refuses_an_adapter_configured_for_another_role(tmp_path):
+    text = scenario(stages='["issue"]', names=("state_distribution", "issuer")).replace(
+        'adapter = "synthetic.state_distribution"', 'adapter = "synthetic.holder"')
+    with pytest.raises(BenchError) as refused:
+        runner.plan(load(tmp_path, text))
+    assert refused.value.code == "e.input.range.scenario.adapter.role.f"
+
+
+def test_planning_refuses_two_sources_for_one_milestone(tmp_path, monkeypatch):
+    from keri_bench.adapters.base import Declaration, Observation
+    from keri_bench.synthetic.adapters import SyntheticIssuer
+
+    class Greedy(SyntheticIssuer):
+        declaration = Declaration(
+            adapter="greedy", role=SyntheticIssuer.declaration.role, version="1",
+            milestones={**SyntheticIssuer.declaration.milestones,
+                        "requested": Observation("observed", "harness")},
+            knobs=SyntheticIssuer.declaration.knobs, tested_against={})
+
+    monkeypatch.setitem(registry.ADAPTERS, "test.greedy", "test_run:Greedy")
+    monkeypatch.setattr(sys.modules[__name__], "Greedy", Greedy, raising=False)
+    text = scenario(stages='["issue"]', names=("state_distribution", "issuer")).replace(
+        'adapter = "synthetic.issuer"', 'adapter = "test.greedy"')
+    with pytest.raises(BenchError) as refused:
+        runner.plan(load(tmp_path, text))
+    assert refused.value.code == "e.state.conflict.run.milestone-source.f"
+
+
+def test_planning_refuses_a_crash_of_an_unconfigured_role(tmp_path):
+    text = scenario(stages='["issue"]', names=("state_distribution", "issuer"),
+                    faults='[[faults]]\nkind = "crash"\ntarget = "holder"\nat_s = 0.1\n')
+    with pytest.raises(BenchError) as refused:
+        runner.plan(load(tmp_path, text))
+    assert refused.value.code == "e.input.range.scenario.fault.target.f"
+
+
+def test_the_registry_refuses_unknown_and_uninstalled_adapters(monkeypatch):
+    with pytest.raises(BenchError) as unknown:
+        registry.lookup("nobody.issuer")
+    assert unknown.value.code == "e.input.range.scenario.adapter.f"
+    monkeypatch.setitem(registry.ADAPTERS, "ghost.issuer", "no_such_module_xyz:Issuer")
+    with pytest.raises(BenchError) as missing:
+        registry.lookup("ghost.issuer")
+    assert missing.value.code == "e.feature.unsupported.adapter.f"
+
+
+async def test_a_whole_lifecycle_run_writes_a_timeline_provenance_and_report(tmp_path):
+    plan = load(tmp_path, scenario())
+    report = await runner.run_once(plan, tmp_path / "out", rate=10.0, repetition=1,
+                                   harness_commit="test")
+    run_dir = tmp_path / "out" / "rate-10" / "rep-1"
+    for name in ("timeline.jsonl", "provenance.json", "report.json", "report.md"):
+        assert (run_dir / name).exists(), name
+    header, events = read_timeline(run_dir / "timeline.jsonl")
+    names = {e.name for e in events}
+    assert {"run_started", "run_ended", "clock_offset", "requested", "dispatched", "accepted",
+            "constructed", "witnessed", "published", "grant_sent", "delivered", "stored",
+            "proof_generated", "verified", "revocation_requested", "revocation_published",
+            "revocation_recognised", "process_ready"} <= names
+    assert "stage_failed" not in names
+    assert report["reconciliation"]["summary"]["done"] == 10
+    assert report["observability"]["pairs"]["revocation_vs_recognition"]["measurable"]
+    provenance = json.loads((run_dir / "provenance.json").read_text())
+    assert provenance["run"]["rate"] == 10.0
+    assert provenance["components"]["issuer"] == {"synthetic": "1"}
+    assert set(provenance["measurement_cost"]["links"]) == {
+        "state_distribution.api", "issuer.api", "holder.api", "verifier.api"}
+    assert "harness.driver" in provenance["adapters"]
+
+
+async def test_faults_are_scheduled_recorded_and_survived(tmp_path):
+    faults = "\n".join([
+        '[[faults]]\nkind = "crash"\ntarget = "issuer"\nat_s = 0.3\nduration_s = 0.1\n',
+        '[[faults]]\nkind = "partition"\ntarget = "holder.api"\nat_s = 0.2\nduration_s = 0.3\n',
+        '[[faults]]\nkind = "delay"\ntarget = "verifier.api"\nat_s = 0.1\nduration_s = 0.5\n'
+        'delay_ms = 20.0\n',
+        '[[faults]]\nkind = "duplicate"\ntarget = "state_distribution.api"\nat_s = 0.0\n'
+        'duration_s = 1.0\n',
+    ])
+    plan = load(tmp_path, scenario(stages='["issue", "deliver", "present", "verify"]',
+                                   faults=faults))
+    report = await runner.run_once(plan, tmp_path / "out", rate=10.0, repetition=1,
+                                   harness_commit="test")
+    _, events = read_timeline(tmp_path / "out" / "rate-10" / "rep-1" / "timeline.jsonl")
+    started = sorted(e.attrs["kind"] for e in events if e.name == "fault_started")
+    assert started == ["crash", "delay", "duplicate", "partition"]
+    assert len([e for e in events if e.name == "fault_ended"]) == 4
+    assert any(e.name == "process_killed" and e.attrs["process"] == "issuer" for e in events)
+    assert any(e.name == "process_ready" and e.attrs["restart"] for e in events)
+    assert any(e.name == "stage_failed" for e in events)
+    assert len(report["faults"]) == 4
+    summary = report["reconciliation"]["summary"]
+    assert summary["done"] + summary["resumed"] + summary["lost"] == summary["total"] == 10
+    assert summary["lost"] >= 1 and summary["resumed"] >= 1  # the crash cost credentials
+
+
+async def test_a_fault_on_a_link_the_run_does_not_have_refuses_before_driving(tmp_path):
+    plan = load(tmp_path, scenario(stages='["issue"]', names=("state_distribution", "issuer"),
+                                   faults='[[faults]]\nkind = "delay"\ntarget = "nowhere.api"\n'
+                                          'at_s = 0.1\nduration_s = 0.1\ndelay_ms = 1.0\n'))
+    with pytest.raises(BenchError) as refused:
+        await runner.run_once(plan, tmp_path / "out", rate=10.0, repetition=1,
+                              harness_commit="test")
+    assert refused.value.code == "e.input.range.scenario.fault.target.f"
+    _, events = read_timeline(tmp_path / "out" / "rate-10" / "rep-1" / "timeline.jsonl")
+    assert "requested" not in {e.name for e in events}
+
+
+async def test_an_issue_only_run_without_verifier_or_witness_pool_skips_reconciliation(tmp_path):
+    plan = load(tmp_path, scenario(stages='["issue"]', names=("state_distribution", "issuer")))
+    report = await runner.run_once(plan, tmp_path / "out", rate=10.0, repetition=1,
+                                   harness_commit="test")
+    assert report["reconciliation"] == "not measured"
+
+
+def fake_report(rate, rep, achieved, p99, refused=False):
+    return {"run": {"repetition": rep}, "refused": refused,
+            "refused_reason": "lagged" if refused else None,
+            "throughput": {"milestones": {"constructed": {"per_s": achieved}}},
+            "incomplete": {"latency": {"p99": {"value": p99, "lower_bound": False}}}}
+
+
+def test_the_sweep_summary_finds_saturation_and_lists_refused_runs(tmp_path):
+    plan = load(tmp_path, scenario(stages='["issue"]', rates="[10.0, 20.0, 30.0]",
+                                   names=("state_distribution", "issuer")))
+    reports = {
+        10.0: [fake_report(10, r, 10.0, 100) for r in (1, 2, 3)],
+        20.0: [fake_report(20, r, 20.0, 110) for r in (1, 2)] + [fake_report(20, 3, 0, 0, True)],
+        30.0: [fake_report(30, r, 20.1, 900) for r in (1, 2, 3)],
+    }
+    summary = runner.summarize(plan, reports)
+    assert summary["saturation"] == {"offered": 30.0, "reason": "throughput", "achieved": 20.1}
+    assert summary["refused"] == [{"rate": 20.0, "repetition": 3, "reason": "lagged"}]
+    assert summary["steps"][1]["runs"] == 2
+    assert runner.summarize(plan, {10.0: [fake_report(10, 1, 10.0, 1)]})["saturation"] is None
+
+
+def test_a_summary_with_no_accepted_runs_or_no_latency_has_no_points(tmp_path):
+    plan = load(tmp_path, scenario(stages='["issue"]', rates="[10.0, 20.0]",
+                                   names=("state_distribution", "issuer")))
+    unmeasured = fake_report(10, 1, 10.0, 0)
+    unmeasured["incomplete"]["latency"] = {"measured": False}
+    summary = runner.summarize(plan, {10.0: [unmeasured], 20.0: [fake_report(20, 1, 0, 0, True)]})
+    assert summary["steps"][0]["p99_ns"] is None and summary["steps"][1]["achieved"] is None
+    assert summary["saturation"] is None
+
+
+def test_a_sweep_that_never_saturates_says_so(tmp_path):
+    plan = load(tmp_path, scenario(stages='["issue"]', rates="[10.0, 20.0]",
+                                   names=("state_distribution", "issuer")))
+    summary = runner.summarize(plan, {10.0: [fake_report(10, 1, 10.0, 100)],
+                                      20.0: [fake_report(20, 1, 20.0, 100)]})
+    assert summary["saturation"] is None
+
+
+async def test_a_sweep_writes_its_summary(tmp_path):
+    plan = load(tmp_path, scenario(stages='["issue"]', names=("state_distribution", "issuer"),
+                                   duration="0.5"))
+    summary = await runner.sweep(plan, tmp_path / "out", harness_commit="test")
+    assert json.loads((tmp_path / "out" / "sweep.json").read_text()) == summary
+    assert summary["steps"][0]["runs"] + len(summary["refused"]) == 3
+
+
+FAKES = {"fake.issuer": "fake_adapters:FakeIssuer", "fake.holder": "fake_adapters:FakeHolder",
+         "fake.verifier": "fake_adapters:FakeVerifier"}
+
+
+def fake_scenario(issue_s, drain="10.0", stages='["issue", "deliver"]', verifier=False):
+    text = f"""scenario_schema = 1
+name = "fake"
+stages = {stages}
+[load]
+rates = [20.0]
+duration_s = 0.3
+warmup_s = 0.0
+drain_s = {drain}
+repetitions = 3
+measure = ["requested", "constructed"]
+[roles.issuer]
+adapter = "fake.issuer"
+[roles.issuer.knobs]
+knob_schema = 1
+issue_s = {issue_s}
+[roles.holder]
+adapter = "fake.holder"
+[roles.holder.knobs]
+knob_schema = 1
+"""
+    if verifier:
+        text += '[roles.verifier]\nadapter = "fake.verifier"\n[roles.verifier.knobs]\n' \
+                'knob_schema = 1\n'
+    return text
+
+
+@pytest.fixture
+def fakes(monkeypatch):
+    for name, where in FAKES.items():
+        monkeypatch.setitem(registry.ADAPTERS, name, where)
+
+
+async def test_a_stack_that_delivers_itself_is_not_relayed(tmp_path, fakes):
+    plan = load(tmp_path, fake_scenario(0.0))
+    assert "harness.relay" not in [d.adapter for d in runner.plan(plan).harness]
+    report = await runner.run_once(plan, tmp_path / "out", rate=20.0, repetition=1,
+                                   harness_commit="test")
+    _, events = read_timeline(tmp_path / "out" / "rate-20" / "rep-1" / "timeline.jsonl")
+    sent = [e for e in events if e.name == "grant_sent"]
+    assert sent and all(e.attrs["adapter"] == "fake.issuer" for e in sent)
+    assert report["reconciliation"] == "not measured"
+
+
+async def test_lifecycles_still_running_after_the_drain_are_cancelled(tmp_path, fakes):
+    plan = load(tmp_path, fake_scenario(30.0, drain="0.05"))
+    report = await runner.run_once(plan, tmp_path / "out", rate=20.0, repetition=1,
+                                   harness_commit="test")
+    assert report["incomplete"]["count"] == 6
+
+
+async def test_a_verifier_that_fails_to_answer_reconciles_as_unknown(tmp_path, fakes):
+    plan = load(tmp_path, fake_scenario(0.0, stages='["issue", "deliver", "verify"]',
+                                        verifier=True))
+    report = await runner.run_once(plan, tmp_path / "out", rate=20.0, repetition=1,
+                                   harness_commit="test")
+    assert report["reconciliation"]["summary"]["lost"] == 6
