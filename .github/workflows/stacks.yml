@@ -1,15 +1,19 @@
 name: Stacks
 
 # The real stacks' adapters (docs/test-plan.md, Part B #10): their tests and the imbu stack end to
-# end, weekly and on demand, against the stack versions pyproject.toml pins. A stack that drifted
-# from what its adapter declares fails here. imbu and heti are private, so the Bakobo Dependency
-# Reader App mints a short-lived read token; client-id is public, and only the private key is a
+# end, weekly, against the stack versions pyproject.toml pins. A stack that drifted from what its
+# adapter declares fails here. imbu and heti are private, so the Bakobo Dependency Reader App
+# mints a short-lived, contents:read token; client-id is public, and only the private key is a
 # secret, which expires on its own rather than needing rotation.
+#
+# Only the schedule triggers it, so the secret is only ever given to the default branch's copy of
+# this file. Every action is pinned by commit, the uv cache is off (it would carry the private
+# checkouts to jobs that never had the token), and the token reaches git only through process
+# environment in the two steps that fetch, never a config file later code could read.
 
 on:
   schedule:
     - cron: "17 6 * * 1"
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -19,16 +23,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # persist-credentials:false is load-bearing: a persisted extraheader carrying this repo's
-      # GITHUB_TOKEN would beat the App token the insteadOf rewrite puts in the URL.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
-      # Third-party code runs before the token exists, and is pinned by commit.
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: "3.14"
-      - name: Mint a token for private intra-org dependencies
+          enable-cache: false
+      - name: Mint a read-only token for private intra-org dependencies
         id: dep-reader
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
         with:
@@ -38,20 +40,18 @@ jobs:
           repositories: |
             imbu
             heti
-      - name: Authenticate git for private intra-org dependencies
+          permission-contents: read
+      # GIT_CONFIG_* is configuration for this one process tree; nothing is written to disk.
+      - name: Verify private dependency access, then install from the lock
         env:
-          TOKEN: ${{ steps.dep-reader.outputs.token }}
-        run: |
-          git config --global \
-            url."https://x-access-token:${TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
-      # Separates "the credential is broken" from "the build is broken".
-      - name: Verify private dependency access
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ steps.dep-reader.outputs.token }}@github.com/.insteadOf
+          GIT_CONFIG_VALUE_0: ssh://git@github.com/
         run: |
           git ls-remote ssh://git@github.com/bakobo/imbu HEAD > /dev/null
           git ls-remote ssh://git@github.com/bakobo/heti HEAD > /dev/null
-      - name: Install, with the stacks extra, from the lock
-        run: uv sync --frozen --extra stacks
+          uv sync --frozen --extra stacks
       - name: Real-stack tests at 100% branch coverage
         run: >
-          uv run pytest -rs tests/stacks --cov --cov-config=tests/stacks/coveragerc
+          uv run --frozen pytest -rs tests/stacks --cov --cov-config=tests/stacks/coveragerc
           --cov-fail-under=100
