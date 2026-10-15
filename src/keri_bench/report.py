@@ -395,7 +395,7 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         outcomes = classify(events, section["verifier"], section["anchors"], faults=spans)
         reconciliation = {"summary": summary(outcomes),
                           "credentials": {c: outcomes[c].to_dict() for c in sorted(outcomes)}}
-    return {
+    out = {
         "report_schema": REPORT_SCHEMA, "generator_commit": generator_commit,
         "timeline_schema": header.timeline_schema,
         "vocabulary_version": header.vocabulary_version,
@@ -410,6 +410,25 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         "measurement_cost": record.get("measurement_cost", NOT_MEASURED),
         "census": NOT_MEASURED, "warnings": _warnings(run, driver, intervals),
     }
+    # Provenance written before calibration existed has no section, and its report is unchanged.
+    if "calibration" in record:
+        out["calibration"] = record["calibration"]
+        out["warnings"] += _calibration_warnings(record["calibration"], header.harness_commit)
+    return out
+
+
+def _calibration_warnings(calibration: Any, harness_commit: str) -> list[str]:
+    if not isinstance(calibration, dict):
+        return ["The run carries no calibration, so its numbers have no measured error budget "
+                "(test plan, Part B #1). Run keri-bench calibrate and pass --calibration."]
+    out = []
+    if not calibration["ok"]:
+        out.append("The calibration this run carries did not pass, so its error budget does not "
+                   "show that the harness measures correctly.")
+    if calibration["harness_commit"] != harness_commit:
+        out.append(f"The calibration was made by harness {calibration['harness_commit']}, not "
+                   f"by {harness_commit}, which made this run.")
+    return out
 
 
 # --- markdown ----------------------------------------------------------------------------------
@@ -543,6 +562,17 @@ def render_markdown(report: dict) -> str:
         lines += [f"- {link}: p50 {_ns(v['p50_ns'])}, p99 {_ns(v['p99_ns'])}"
                   for link, v in cost["links"].items()]
         lines.append(f"- harness CPU: {cost['harness_cpu_s']} s")
+    if "calibration" in report:
+        lines += ["", "## Calibration (error budget)", ""]
+        calibration = report["calibration"]
+        if isinstance(calibration, dict):
+            lines.append(f"Calibrated by harness {calibration['harness_commit']}; "
+                         f"{'passed' if calibration['ok'] else 'FAILED'}. The worst error per "
+                         f"injected transition:")
+            lines += [f"- {key}: p50 {_ns(v['p50_error_ns'])}, p99 {_ns(v['p99_error_ns'])}"
+                      for key, v in calibration["budget"].items()]
+        else:
+            lines.append("This run carries no calibration.")
     lines += ["", "## Signer census", "",
               "The signer census is not measured until the external-signer interface exists "
               "(plan item heti-signer).", "", "## Warnings", ""]

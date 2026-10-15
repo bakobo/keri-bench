@@ -123,6 +123,7 @@ class Run:
     rate: float
     repetition: int
     harness_commit: str
+    calibration: Path | None = None
     clock: Callable[[], int] = time.monotonic_ns
     links: dict[str, Link] = field(default_factory=dict)
     adapters: dict[Role, Adapter] = field(default_factory=dict)
@@ -390,7 +391,7 @@ class Run:
                         for role, cls in self.plan.classes.items()}
         for declaration in self.plan.harness:
             declarations[declaration.adapter] = declaration.describe()
-        extra = {"measurement_cost": cost}
+        extra = {"measurement_cost": cost, "calibration": _calibration(self.calibration)}
         if reconciliation is not None:
             extra["reconciliation"] = reconciliation
         return provenance.build(
@@ -407,11 +408,23 @@ class Run:
             **extra)
 
 
+def _calibration(path: Path | None) -> dict | str:
+    """The error budget a run's numbers carry (test plan, Part B #1): what the calibration
+    measured on the harness, or a plain statement that no calibration was supplied."""
+    if path is None:
+        return "not calibrated"
+    result = json.loads(Path(path).read_text())
+    return {"path": str(path), "ok": result["ok"], "harness_commit": result["harness_commit"],
+            "budget": result["intervals"]["budget"],
+            "saturation_relative_error": result["saturation"].get("relative_error")}
+
+
 async def run_once(scenario: Scenario, out: Path, *, rate: float, repetition: int,
-                   harness_commit: str) -> dict:
+                   harness_commit: str, calibration: Path | None = None) -> dict:
     resolved = plan(scenario)
     run_dir = Path(out) / f"rate-{rate:g}" / f"rep-{repetition}"
-    return await Run(resolved, run_dir, rate, repetition, harness_commit).execute()
+    return await Run(resolved, run_dir, rate, repetition, harness_commit,
+                     calibration).execute()
 
 
 def summarize(scenario: Scenario, reports: dict[float, list[dict]]) -> dict:
@@ -446,12 +459,14 @@ def summarize(scenario: Scenario, reports: dict[float, list[dict]]) -> dict:
             "epsilon": scenario.statistics.epsilon, "k": scenario.statistics.k}
 
 
-async def sweep(scenario: Scenario, out: Path, *, harness_commit: str) -> dict:
+async def sweep(scenario: Scenario, out: Path, *, harness_commit: str,
+                calibration: Path | None = None) -> dict:
     reports: dict[float, list[dict]] = defaultdict(list)
     for rate in scenario.load.rates:
         for repetition in range(1, scenario.load.repetitions + 1):
             reports[rate].append(await run_once(scenario, out, rate=rate, repetition=repetition,
-                                                harness_commit=harness_commit))
+                                                harness_commit=harness_commit,
+                                                calibration=calibration))
     summary = summarize(scenario, reports)
     (Path(out) / "sweep.json").write_text(json.dumps(summary, indent=2) + "\n")
     return summary

@@ -801,3 +801,37 @@ def test_the_golden_markdown_carries_the_hand_computed_numbers():
     batch = report.render_markdown(frozen(GOLDEN / "v1" / "batch"))
     assert "- time to ready: 500 ns" in batch and "- time to first success: 490 ns" in batch
     assert "- double_anchored: 1" in batch and "- resumed: 2" in batch
+
+
+def _with_calibration(tmp_path, calibration):
+    import shutil
+    source = GOLDEN / "v1" / "singles"
+    for name in ("timeline.jsonl", "provenance.json"):
+        shutil.copy(source / name, tmp_path / name)
+    record = json.loads((tmp_path / "provenance.json").read_text())
+    record["calibration"] = calibration
+    (tmp_path / "provenance.json").write_text(json.dumps(record))
+    return report.derive(tmp_path / "timeline.jsonl", tmp_path / "provenance.json",
+                         generator_commit="x")
+
+
+def test_a_run_without_calibration_says_its_numbers_have_no_error_budget(tmp_path):
+    got = _with_calibration(tmp_path, "not calibrated")
+    assert got["calibration"] == "not calibrated"
+    assert "This run carries no calibration." in report.render_markdown(got)
+    assert any("no calibration" in w for w in got["warnings"])
+
+
+def test_a_failed_or_foreign_calibration_is_named(tmp_path):
+    budget = {"ok": False, "harness_commit": "other",
+              "budget": {"a->b": {"p50_error_ns": 120, "p99_error_ns": -40}}}
+    got = _with_calibration(tmp_path, budget)
+    text = report.render_markdown(got)
+    assert "FAILED" in text and "- a->b: p50 120 ns, p99 -40 ns" in text
+    assert got["calibration"] == budget
+    assert any("did not pass" in w for w in got["warnings"])
+    assert any("made by harness other" in w for w in got["warnings"])
+    good = {"ok": True, "harness_commit": "golden-harness", "budget": {}}
+    got = _with_calibration(tmp_path, good)
+    assert not [w for w in got["warnings"] if "calibration" in w]
+    assert "passed" in report.render_markdown(got)

@@ -1,0 +1,73 @@
+"""``keri-bench``: run a scenario, sweep it, calibrate the harness, or rebuild a report."""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import sys
+from pathlib import Path
+
+from . import provenance, report
+from .calibration import calibrate
+from .errors import BenchError
+from .run import run_once, sweep
+from .scenario import load_scenario
+
+REPO = Path(__file__).resolve().parents[2]
+
+
+def _commit() -> str:
+    return provenance.harness_commit(REPO)
+
+
+def _run(args) -> dict:
+    scenario = load_scenario(args.scenario)
+    if args.rate is None:
+        return asyncio.run(sweep(scenario, args.out, harness_commit=_commit(),
+                                 calibration=args.calibration))
+    return asyncio.run(run_once(scenario, args.out, rate=args.rate, repetition=args.repetition,
+                                harness_commit=_commit(), calibration=args.calibration))
+
+
+def _calibrate(args) -> dict:
+    return asyncio.run(calibrate(args.scenarios, args.out, harness_commit=_commit()))
+
+
+def _report(args) -> dict:
+    return report.write_report(args.run_dir, generator_commit=_commit())
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(prog="keri-bench", description=__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    run = commands.add_parser("run", help="Run a scenario: every load step and repetition, or "
+                              "one run with --rate.")
+    run.add_argument("scenario", type=Path)
+    run.add_argument("--out", type=Path, required=True)
+    run.add_argument("--rate", type=float, help="One run at this offered rate only.")
+    run.add_argument("--repetition", type=int, default=1)
+    run.add_argument("--calibration", type=Path, help="A calibration.json whose error budget "
+                     "goes into each run's provenance.")
+    run.set_defaults(handler=_run)
+    cal = commands.add_parser("calibrate", help="Prove the harness measures correctly against "
+                              "the synthetic stack.")
+    cal.add_argument("--scenarios", type=Path, default=REPO / "scenarios")
+    cal.add_argument("--out", type=Path, required=True)
+    cal.set_defaults(handler=_calibrate)
+    rebuild = commands.add_parser("report", help="Rebuild a run's report from its timeline and "
+                                  "provenance.")
+    rebuild.add_argument("run_dir", type=Path)
+    rebuild.set_defaults(handler=_report)
+    args = parser.parse_args(argv)
+    try:
+        result = args.handler(args)
+    except BenchError as refused:
+        print(str(refused), file=sys.stderr)
+        return 2
+    print(json.dumps({k: result[k] for k in ("ok", "refused", "saturation") if k in result}))
+    return 1 if result.get("ok") is False or result.get("refused") else 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    sys.exit(main())
