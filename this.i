@@ -39,8 +39,9 @@ Measure end-to-end KERI+ACDC issuance on any implementation, well enough to buy 
         Every number is re-derivable from a raw timeline and carries full provenance = decision:
           nid: 8q4myzru
           why: >
-            Each run writes a JSONL timeline (one line per milestone per credential) and a report
-            derived from it, plus component commits, versions, policy knobs, host fingerprint and the
+            Each run writes a versioned JSONL timeline of events (one line per event, naming every
+            credential it covers, so one anchor or batch for many credentials is one line) and a
+            report derived from it and the run's provenance, plus component commits, versions, policy knobs, host fingerprint and the
             scenario file. A disputed number can then be recomputed rather than argued. Rejected
             reporting only aggregates, because an aggregate cannot be audited. Tradeoff: large run
             directories.
@@ -64,14 +65,17 @@ Measure end-to-end KERI+ACDC issuance on any implementation, well enough to buy 
         and a milestone it cannot observe is reported as not measured, never inferred. Daniel
         confirmed, 2026-10-15 (Q2).
       children:
-        Every number is labelled with how it was observed = decision:
+        Every number is labelled with how it was observed, and on which clock = decision:
           nid: 7vsky4sk
           why: >
-            "Outside" is the harness's own clock at an API or network boundary; "inside" is a probe in
-            the stack's process. Outside is preferred, and imbu's move to async operations with
-            per-milestone timestamps (imbu tick ~73tw, Q-EVAG) is what lets its anchored/witnessed
-            split be observed from outside. Rejected trusting stack logs unlabelled, because a reader
-            could not tell measured from self-reported.
+            Three methods: "observed" is the harness's monotonic clock at a boundary it controls;
+            "polled" is the harness clock when a poll first saw a state, with the poll interval as
+            its resolution; "reported" is a timestamp the stack wrote, usable only with its clock
+            domain and an offset measured during the run. imbu's async operation resource (imbu tick
+            ~73tw, Q-EVAG) yields "reported" timestamps, not harness-observed ones. An interval across
+            clock domains with no measured offset is not measured. Rejected a two-way outside/inside
+            label (the first draft), because it let stack-written timestamps pass as harness-measured
+            (maintainability review MNT-3, testability review TST-2, 2026-10-15).
         Independent verification means a verifier that is not the issuer's code path = decision:
           nid: 27mjdj7q
           why: >
