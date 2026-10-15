@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "A stack-agnostic instrument that measures end-to-end KERI+ACDC issuance (Utah KERI-006)."
 requires-python = ">=3.14"
 dependencies = [
+    "aiohttp>=3.10",
     "httpx>=0.27",
+    # httpcore imports sniffio on every request and, when it is absent, pays a failed import
+    # (a filesystem search) each time: measured at over a second of CPU per 20-request-per-second
+    # run, which showed up as driver lag.
+    "sniffio>=1.3",
 ]
 
 [project.scripts]

@@ -118,3 +118,12 @@ PAIRS: tuple[Pair, ...] = (
          "Performance under normal load from performance after crashes, partitions, delays, "
          "duplicate messages, and recovery"),
 )
+
+
+ISSUANCE_CHAIN = ("requested", "accepted", "constructed", "registry_updated", "anchored",
+                  "witnessed", "published", "grant_sent", "delivered", "stored",
+                  "proof_generated", "verified")
+REVOCATION_CHAIN = ("revocation_requested", "revocation_anchored", "revocation_witnessed",
+                    "revocation_published", "revocation_recognised")
+"""A credential's lifecycle in order. Each adjacent pair of milestones a run observes is reported
+as a step, so a whole lifecycle reads as a sum of its parts."""

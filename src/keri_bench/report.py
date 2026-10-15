@@ -24,7 +24,7 @@ from .errors import BenchError
 from .reconcile import classify, summary
 from .stats import Histogram
 from .timeline import Event, Header, read_timeline
-from .vocabulary import MILESTONES, PAIRS, Pair
+from .vocabulary import ISSUANCE_CHAIN, MILESTONES, PAIRS, REVOCATION_CHAIN, Pair
 
 REPORT_SCHEMA = 1
 NOT_MEASURED = "not measured"
@@ -148,6 +148,10 @@ def _intervals(run: _Run) -> dict:
         for start, end in pair.intervals:
             specs.setdefault(_key(start, end), []).append(pair.key)
     specs.setdefault(_key(*run.measure), [])
+    for chain in (ISSUANCE_CHAIN, REVOCATION_CHAIN):
+        seen = [name for name in chain if name in run.observed or name == "requested"]
+        for start, end in zip(seen, seen[1:]):
+            specs.setdefault(_key(start, end), [])
     for name in MILESTONES:
         if name != "requested" and name in run.observed:
             specs.setdefault(_key("requested", name), [])

@@ -58,3 +58,10 @@ def test_the_fault_pair_has_no_intervals_of_its_own():
 
 def test_methods_are_the_three_the_plan_names():
     assert set(v.Method) == {"observed", "polled", "reported"}
+
+
+def test_the_lifecycle_chains_name_every_milestone_but_the_sync_ones_once():
+    chained = v.ISSUANCE_CHAIN + v.REVOCATION_CHAIN
+    assert len(chained) == len(set(chained))
+    assert set(v.MILESTONES) - set(chained) == {"sync_full_started", "sync_full_done",
+                                                "sync_increment_applied"}

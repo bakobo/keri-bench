@@ -105,6 +105,24 @@
       "resolution_ns": 1000,
       "start": "anchored"
     },
+    "constructed->registry_updated": {
+      "count": 3,
+      "end": "registry_updated",
+      "max": 50,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 50,
+      "p90": 50,
+      "p99": 50,
+      "p99.9": 50,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "constructed"
+    },
     "delivered->stored": {
       "count": 0,
       "end": "stored",
@@ -334,6 +352,24 @@
       ],
       "resolution_ns": null,
       "start": "sync_full_started"
+    },
+    "witnessed->verified": {
+      "count": 3,
+      "end": "verified",
+      "max": 2040,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 2040,
+      "p90": 2040,
+      "p99": 2040,
+      "p99.9": 2040,
+      "pairs": [],
+      "resolution_ns": 1020,
+      "start": "witnessed"
     }
   },
   "measure": "requested->verified",

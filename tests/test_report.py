@@ -594,6 +594,17 @@ SINGLES = {
         # 100, 150, 50 -> sorted [50, 100, 150]
         "requested->accepted": entry("requested", "accepted", [],
                                      stats(3, 0, 1, 100, 150, 150, 150, 150)),
+        # Lifecycle steps. 1200-1100=100, 2300-2150=150, 3400-3050=350 -> sorted [100, 150, 350]
+        "accepted->constructed": entry("accepted", "constructed", [],
+                                       stats(3, 0, 1, 150, 350, 350, 350, 350)),
+        # 100 each
+        "constructed->registry_updated": entry("constructed", "registry_updated", [],
+                                               stats(3, 0, 1, 100, 100, 100, 100, 100)),
+        # published is not observed, so witnessed is followed by verified. Res max(100, 500) + 14
+        # = 514. c1: 2000-1700=300 -> 514; c2: 3500-2720=780 -> 2*514=1028. c3 never witnessed,
+        # so it lacks the start and is not missing. sorted [514, 1028].
+        "witnessed->verified": entry("witnessed", "verified", [],
+                                     stats(2, 0, 514, 514, 1028, 1028, 1028, 1028)),
         # 200, 300, 400
         "requested->constructed": entry("requested", "constructed", [],
                                         stats(3, 0, 1, 300, 400, 400, 400, 400)),
@@ -687,6 +698,13 @@ BATCH = {
         # 1300-1000, 1400-1100, 1500-1200 = 300 each
         "requested->constructed": entry("requested", "constructed", [],
                                         stats(3, 0, 1, 300, 300, 300, 300, 300)),
+        # Lifecycle steps. 1350-1300, 1450-1400, 1550-1500 = 50 each
+        "constructed->registry_updated": entry("constructed", "registry_updated", [],
+                                               stats(3, 0, 1, 50, 50, 50, 50, 50)),
+        # witnessed 2600 (harness) to verified 2750, 4000, 4300 = 150, 1400, 1700, res
+        # max(1000, 250) + 20 = 1020 -> 1020, 2040, 2040 (below 2048: exact).
+        "witnessed->verified": entry("witnessed", "verified", [],
+                                     stats(3, 0, 1020, 2040, 2040, 2040, 2040, 2040)),
         # 350 each
         "requested->registry_updated": entry("requested", "registry_updated", [],
                                              stats(3, 0, 1, 350, 350, 350, 350, 350)),

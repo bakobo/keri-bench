@@ -21,6 +21,7 @@ E_SCHEDULE = "e.input.range.driver.schedule.f"
 E_CHECK = "e.input.range.driver.check.f"
 
 WINDOW_NS = 1_000_000_000
+
 GROWTH_WINDOWS = 3
 
 
@@ -49,9 +50,11 @@ class OpenLoopDriver:
             if self._stopped:
                 break
             scheduled = start + round(index * period)
-            wait = scheduled - self.clock()
-            if wait > 0:
-                await asyncio.sleep(wait / 1e9)
+            # Yield rather than sleep: a thread blocked in epoll is woken late by the OS, and
+            # asyncio rounds its timeouts to whole milliseconds (this.i, the driver holds a
+            # core). Every other task on the loop still runs between yields.
+            while self.clock() < scheduled:
+                await asyncio.sleep(0)
             fire(index, scheduled)
             sent += 1
         return sent

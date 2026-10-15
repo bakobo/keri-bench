@@ -21,8 +21,7 @@ import time
 import zlib
 from pathlib import Path
 
-import httpx
-
+from .. import http as client_http
 from . import http
 
 ROLES = ("issuer", "state_distribution", "holder", "verifier")
@@ -73,7 +72,7 @@ class Issuer(Role):
         self.changed: dict[str, asyncio.Event] = {}
         self.queue: asyncio.Queue[str] = asyncio.Queue()
         self.constructed = 0
-        self.client = httpx.AsyncClient(timeout=30, limits=httpx.Limits(max_connections=200))
+        self.client = client_http.HttpClient(timeout_s=30)
         self.tasks: set[asyncio.Task] = set()
 
     def spawn(self, coro) -> None:
@@ -87,13 +86,21 @@ class Issuer(Role):
         self.changed[credential] = asyncio.Event()
 
     async def worker(self) -> None:
-        period = 1.0 / self.spec["service_rate"]
+        """Construct one credential per ``1/service_rate`` seconds while there is work.
+
+        Each slot is due a fixed period after the previous one, never after the previous one's
+        late wake-up, so sleep overshoot does not accumulate and a backlogged issuer runs at
+        exactly the cap.
+        """
+        period = round(1e9 / self.spec["service_rate"])
+        due = time.monotonic_ns()
         while True:
             credential = await self.queue.get()
             if self.spec.get("stall_after") is not None \
                     and self.constructed == self.spec["stall_after"]:
                 await asyncio.sleep(self.spec["stall_ms"] / 1e3)
-            await asyncio.sleep(period)
+            due = max(due + period, time.monotonic_ns())
+            await asyncio.sleep(max(0, due - time.monotonic_ns()) / 1e9)
             self.constructed += 1
             self.mark(credential, "constructed")
             self.spawn(self.finish(credential))
@@ -176,7 +183,7 @@ class Verifier(Role):
     def __init__(self, name, spec, truth, state: str) -> None:
         super().__init__(name, spec, truth)
         self.state = state.rstrip("/")
-        self.client = httpx.AsyncClient(timeout=30)
+        self.client = client_http.HttpClient(timeout_s=30)
 
     async def on_post_verify(self, credential: str, body: bytes):
         await self.delay(credential, "proof_generated>verified")

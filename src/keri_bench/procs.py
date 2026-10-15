@@ -21,6 +21,7 @@ import ctypes
 import json
 import os
 import signal
+import socket
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -259,3 +260,11 @@ class ProcessController:
     async def stop_all(self, timeout: float = STOP_TIMEOUT) -> None:
         """Stop every process: SIGTERM, then SIGKILL for any still running after ``timeout``."""
         await asyncio.gather(*(spec.process.stop(timeout) for spec in self._specs.values()))
+
+
+def free_port() -> int:
+    """A port free on loopback now. Roles are started on a fixed port so a restart comes back
+    on the address its proxy already points at."""
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return probe.getsockname()[1]

@@ -1,0 +1,44 @@
+# The calibration stack (test plan, Part B #1; this.i 6he49n0k). Every delay is injected with a
+# seeded log-normal and logged as truth; construction is capped at service_rate per second.
+scenario_schema = 1
+name = "calibration-saturation"
+description = "Issuance stepped past a known construction cap of 50 per second."
+stages = ["issue"]
+
+[load]
+rates = [30.0, 50.0, 70.0]
+duration_s = 4.0
+warmup_s = 0.5
+drain_s = 15.0
+repetitions = 3
+measure = ["requested", "constructed"]
+
+[roles.witness_pool]
+adapter = "synthetic.witness_pool"
+[roles.witness_pool.knobs]
+knob_schema = 1
+
+[roles.state_distribution]
+adapter = "synthetic.state_distribution"
+[roles.state_distribution.knobs]
+knob_schema = 1
+seed = 11
+delays = ""
+clock_skew_ms = 0.0
+
+[roles.issuer]
+adapter = "synthetic.issuer"
+[roles.issuer.knobs]
+knob_schema = 1
+seed = 12
+clock_skew_ms = 7300.0
+service_rate = 50.0
+stall_after = "n/a"
+stall_ms = "n/a"
+delays = """
+constructed>registry_updated=30/0.3, registry_updated>anchored=40/0.3,
+anchored>witnessed=50/0.3, witnessed>published=30/0.3,
+revocation_requested>revocation_anchored=40/0.3,
+revocation_anchored>revocation_witnessed=50/0.3,
+revocation_witnessed>revocation_published=30/0.3"""
+
