@@ -36,6 +36,11 @@ Measure end-to-end KERI+ACDC issuance on any implementation, well enough to buy 
             delay (coordinated omission), which is exactly what a saturated issuance lock produces.
             A run whose driver was the bottleneck is refused rather than reported. Tradeoff: a more
             complex driver than a simple request loop.
+          children:
+            The calibration stack is real processes behind the proxy, with injected delays logged as ground truth = decision:
+              nid: 6he49n0k
+              why: >-
+                Part B #1 must show the harness measures correctly, so the synthetic stack is four small HTTP processes (issuer, state distribution, holder, verifier) started through process control, reached only through the fault proxy, and driven by synthetic adapters that use every observation path a real adapter uses: observed at an API boundary and at the proxy, polled, and reported on a stack clock deliberately skewed from wall time so the offset measurement is exercised. Each process draws every injected delay from a seeded log-normal, logs it to a truth file, and serializes construction behind a fixed service rate, so the throughput cap is known. The calibration compares the harness's report against the truth files. Rejected fake adapters that emit their injected delays directly into the timeline, because that would test arithmetic on numbers the harness never measured. Rejected a sleep-only in-process fake, because it would skip process control, the proxy and the clock offsets, which are where measurement error comes from. Tradeoff: the calibration takes tens of seconds in CI, and its tolerances must absorb loopback round trips (about 0.2 ms through the proxy), so injected delays are tens of milliseconds.
         Every number is re-derivable from a raw timeline and carries full provenance = decision:
           nid: 8q4myzru
           why: >
