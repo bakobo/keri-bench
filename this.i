@@ -82,6 +82,10 @@ Measure end-to-end KERI+ACDC issuance on any implementation, well enough to buy 
             Utah's pair 3 separates generating a proof from independently verifying it. The verifier
             role is configured separately and the report names it. For imbu that is a separate heti
             process, and ideally also a keripy-based one, since heti is imbu's own substrate.
+        Adapters are in-process Python classes per role, declaring before they emit = decision:
+          nid: 2vu4969q
+          why: >-
+            Each role adapter is a Python class with a static declaration (role, the milestones it emits with each one's method, clock and resolution, a versioned knob schema, the stack versions it was contract-tested against), an async start that receives the harness's run context and configured peer endpoints and returns the endpoints it serves, an async stop, and the role's operations (issue, revoke, present, verify, status, sync) as async methods. Every event goes through the context's emit, which refuses a milestone, method or clock the declaration does not name, so the contract suite can check an adapter by running it rather than by reading it. Rejected out-of-process adapters behind a wire protocol: they would let a KERIA team write theirs in TypeScript, but they put one more process and one more clock boundary inside every measured interval and add a protocol to version, while every stack under test is reached over HTTP anyway, so a Python adapter can drive any of them. Rejected post-hoc adapters that scrape a stack's logs into a timeline after the run: an undeclared or misclocked event would be found only after the run, and the open-loop driver needs a live call to schedule. Tradeoff: adapter authors write Python, and an adapter's own overhead sits inside observed intervals; the proxy's pass-through cost is reported, the adapter's is bounded by the calibration stack using the same code paths.
     It measures a configured deployment, not the software in the abstract = goal:
       nid: 6f6he77q
       why: >
