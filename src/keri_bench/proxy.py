@@ -14,6 +14,7 @@ statement about whole messages.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import re
 import time
 from collections.abc import Callable
@@ -169,7 +170,11 @@ def _closes(fields: dict[str, list[str]]) -> bool:
 async def _read_response(reader, method: str, max_body: int, max_header: int):
     """Read one final response, with any interim 1xx responses before it, as raw bytes.
 
-    Returns (status, raw, closes), where ``closes`` says the connection ends after it.
+    Returns (status, raw, closes), where ``closes`` says the response was delimited by the
+    upstream closing the connection. A ``Connection: close`` header alone does not count: what
+    ends a connection is the upstream closing it, which the proxy watches for between requests
+    (keripy's witnesses send the header and keep the socket open, and keripy's client goes on
+    using it).
     """
     parts = []
     while True:
@@ -182,10 +187,10 @@ async def _read_response(reader, method: str, max_body: int, max_header: int):
         if status >= 200:
             break
     if method == "HEAD" or status in (204, 304):
-        return status, b"".join(parts), _closes(fields)
+        return status, b"".join(parts), False
     framing = _framing(fields, max_body)
     parts.append(await _body(reader, framing, max_body, max_header, close_delimited=True))
-    return status, b"".join(parts), framing is None or _closes(fields)
+    return status, b"".join(parts), framing is None
 
 
 def _refusal(status: int, code: str, message: str) -> bytes:
@@ -291,7 +296,9 @@ class Link:
             while True:
                 method = path = ""
                 try:
-                    head = await _until(reader, b"\r\n\r\n")
+                    head = await self._next_request(reader, upstream)
+                    if head is None:
+                        return  # the upstream ended the connection, so the proxy does too
                     start, fields = _fields(head)
                     if not (m := _REQUEST_LINE.fullmatch(start)):
                         raise _Bad("format", "The request line is not METHOD target HTTP/1.x.")
@@ -352,6 +359,28 @@ class Link:
             writer.close()
             if upstream is not None:
                 upstream[1].close()
+
+    @staticmethod
+    async def _next_request(reader, upstream) -> bytes | None:
+        """The client's next request head, or None if the upstream closes (or speaks unasked)
+        while the proxy waits for it, so the client sees the connection end as it would have."""
+        if upstream is None:
+            return await _until(reader, b"\r\n\r\n")
+        head = asyncio.ensure_future(_until(reader, b"\r\n\r\n"))
+        ended = asyncio.ensure_future(upstream[0].read(1))
+        done, _ = await asyncio.wait({head, ended}, return_when=asyncio.FIRST_COMPLETED)
+        if ended not in done:
+            ended.cancel()  # and wait, so the stream has no reader left when the response is read
+            with contextlib.suppress(asyncio.CancelledError):
+                await ended
+            if not ended.cancelled():
+                head.cancel()  # pragma: no cover - the upstream spoke in the same instant
+                return None  # pragma: no cover
+            return head.result()
+        head.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await head
+        return None
 
     async def _refuse(self, writer, method, path, t_request, t_forwarded, status, code, message):
         writer.write(_refusal(status, code, message))

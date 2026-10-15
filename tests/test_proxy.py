@@ -203,8 +203,37 @@ async def test_connection_close_from_either_side_ends_the_client_connection(link
     _, reader, writer = await send(link, b"GET / HTTP/1.1\r\nHost: h\r\nConnection: close\r\n\r\n")
     assert await closed(reader)
     reply = b"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 2\r\n\r\nok"
-    peer.routes["/bye"] = respond(reply)
+    peer.routes["/bye"] = respond(reply, close=True)
     _, reader, writer = await send(link, b"GET /bye HTTP/1.1\r\nHost: h\r\n\r\n", expect=reply)
+    assert await closed(reader)
+
+
+async def test_the_connection_lives_as_long_as_the_upstream_keeps_it(link, peer):
+    # keripy's witnesses answer "Connection: close" and keep the socket open, and keripy's
+    # client sends its next request on it. The proxy must not end what the upstream did not.
+    reply = b"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 2\r\n\r\nok"
+    peer.routes["/says-close"] = respond(reply)
+    _, reader, writer = await send(link, b"GET /says-close HTTP/1.1\r\nHost: h\r\n\r\n",
+                                   expect=reply)
+    writer.write(b"GET /next HTTP/1.1\r\nHost: h\r\n\r\n")
+    assert await asyncio.wait_for(reader.readexactly(len(OK)), 2) == OK
+    assert peer.connections == 1
+    writer.close()
+
+
+async def test_an_upstream_that_closes_between_requests_closes_the_client(link, peer):
+    peer.routes["/then-close"] = respond(OK, close=True)
+    _, reader, writer = await send(link, b"GET /then-close HTTP/1.1\r\nHost: h\r\n\r\n")
+    assert await closed(reader)
+
+
+async def test_unsolicited_bytes_from_the_upstream_end_the_connection(link, peer):
+    async def chatter(writer):
+        writer.write(OK + b"garbage")
+        await writer.drain()
+        return False
+    peer.routes["/chatty"] = chatter
+    _, reader, writer = await send(link, b"GET /chatty HTTP/1.1\r\nHost: h\r\n\r\n")
     assert await closed(reader)
 
 
