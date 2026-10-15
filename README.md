@@ -32,10 +32,15 @@ uv run keri-bench report runs/smoke/rate-10/rep-1
 - **Calibrate on the machine you measure on.** `calibrate` proves the harness recovers known delays, a known throughput cap and an injected stall. Its error budget goes into every run given `--calibration`, and a run without one says so.
 - **Every knob is explicit.** A scenario that leaves an adapter's knob unset is refused.
 
+## The imbu stack
+
+The real stack's adapters need private bakobo repositories, so they are an extra: `uv sync --extra stacks`, then `uv run pytest tests/stacks`. That stands up real keripy witnesses, the Registrar, heti's Observer, imbu, and a heti holder and verifier, and drives one credential through its whole lifecycle. `scenarios/imbu-smoke.toml` is the KERI-006 smoke run at one home. It needs imbu's asynchronous operations (plan item imbu-async), and its test skips until imbu has them. Each milestone's binding on this stack, and its known gaps, are in [`docs/adapters.md`](docs/adapters.md). The `Stacks` workflow runs all of this weekly.
+
 ## Layout
 
 - `src/keri_bench/`: the harness. The modules are `driver`, `run`, `timeline`, `clocks`, `stats`, `proxy`, `procs`, `report`, `reconcile`, `calibration` and `contract`.
 - `src/keri_bench/adapters/`: the per-role adapter interface and the registry of adapter names.
 - `src/keri_bench/synthetic/`: the calibration stack and its adapters.
+- `src/keri_bench/stacks/`: the imbu stack's processes and adapters.
 - `scenarios/`: scenario files.
 - `tests/golden/`: hand-checked timelines for every timeline schema the harness has emitted.
