@@ -50,6 +50,9 @@ source = ["src/keri_bench"]
 patch = ["subprocess"]
 parallel = true
 sigterm = true
+# The real stacks' code needs private repositories, so it has its own coverage run and
+# configuration (tests/stacks/coveragerc), in its own CI job.
+omit = ["src/keri_bench/stacks/*"]
 
 [tool.coverage.report]
 show_missing = true
