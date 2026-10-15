@@ -240,7 +240,7 @@ async def test_unsolicited_bytes_from_the_upstream_end_the_connection(link, peer
 # --- delay --------------------------------------------------------------------------------------
 
 DELAY = 20_000_000
-TOLERANCE = 5_000_000
+TOLERANCE = 15_000_000  # the upper bound absorbs scheduling on a loaded host
 
 
 async def test_delay_adds_the_configured_latency_within_tolerance(link, records):

@@ -15,7 +15,7 @@ import json
 import resource
 import time
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -48,6 +48,7 @@ E_ROLE_MISMATCH = "e.input.range.scenario.adapter.role.f"
 E_SOURCE = "e.state.conflict.run.milestone-source.f"
 E_FAULT_TARGET = "e.input.range.scenario.fault.target.f"
 E_NOT_VERIFIED = "e.proof.presentation.f"
+E_STATUS = "e.party.verifier.status.f"
 
 HARNESS_VERSION = "1"
 OFFSET_READS = 15
@@ -259,6 +260,9 @@ class Run:
         polled = self.clock()
         try:
             answer = await self.adapters[Role.VERIFIER].status(credential)
+            if not isinstance(answer, Mapping):
+                raise BenchError(E_STATUS, f"The verifier's status for {credential} is not an "
+                                 f"object: {answer!r}"[:300])
         except Exception:
             if not confirming:
                 raise
@@ -324,9 +328,11 @@ class Run:
         if fault.kind == "crash":
             names = [n for n in self.procs.names()
                      if n == fault.target or n.startswith(fault.target + ".")]
+            names = [n for n in names if self.procs.process(n).proc.returncode is None]
             if not names:
                 raise BenchError(E_FAULT_TARGET, f"The crash fault targets {fault.target}, which "
-                                 f"runs no process the harness started, so nothing was crashed.")
+                                 f"has no running process the harness started, so nothing was "
+                                 f"crashed.")
             self._harness_event("fault_started", attrs=attrs)
             for name in names:
                 await self.procs.kill(name)

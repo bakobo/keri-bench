@@ -876,8 +876,8 @@ def test_a_pair_whose_ends_never_meet_in_one_credential_is_a_gap(tmp_path):
         "anchored": ("observed", "harness", 1), "witnessed": ("observed", "harness", 1)})}
     got = derive(write_run(tmp_path, events, adapters=adapters_))
     assert got["observability"]["pairs"]["anchor_vs_witness"]["gap"] == (
-        "No credential in this run has both registry_updated and anchored. No credential in "
-        "this run has both anchored and witnessed.")
+        "No credential in the measured window has both registry_updated and anchored. No "
+        "credential in the measured window has both anchored and witnessed.")
 
 
 def test_failure_attributes_of_any_shape_are_counted_as_text(tmp_path):
@@ -886,3 +886,16 @@ def test_failure_attributes_of_any_shape_are_counted_as_text(tmp_path):
     got = derive(write_run(tmp_path, events))
     assert got["failures"]["by_stage"] == {"['verify']": 1}
     assert got["failures"]["by_code"] == {"7": 1}
+
+
+def test_a_pair_seen_only_during_warmup_is_a_gap(tmp_path):
+    adapters_ = {"issuer": decl("fake.issuer", "issuer", {
+        "registry_updated": ("observed", "harness", 1), "anchored": ("observed", "harness", 1),
+        "witnessed": ("observed", "harness", 1)})}
+    events = window(1_000_000) + [ev("requested", 0, ["w"]), ev("dispatched", 1, ["w"]),
+                                  ev("registry_updated", 5, ["w"]), ev("anchored", 6, ["w"]),
+                                  ev("witnessed", 7, ["w"])] + simple("c1", 100_000, 1000)
+    got = derive(write_run(tmp_path, events, adapters=adapters_,
+                           run=run_section(warmup_s=0.00005)))
+    assert got["window"]["credentials"] == 1
+    assert got["observability"]["pairs"]["anchor_vs_witness"]["measurable"] is False

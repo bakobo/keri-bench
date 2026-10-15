@@ -350,10 +350,13 @@ def _gaps(run: _Run, matrix: dict, names: Sequence[str],
     # and an interval only if one credential has both of its ends.
     missing = [f"{name} is declared, but no {name} event appeared in this run."
                for name in names if name not in run.observed]
-    return missing or [f"No credential in this run has both {start} and {end}."
-                       for start, end in intervals
-                       if not any(start in seen and end in seen
-                                  for seen in run.first.values())]
+    def paired(start: str, end: str) -> bool:
+        # The credentials the interval tables count: the measured window, or a cold sync.
+        pool = run.window if start != "sync_full_started" else run.first
+        return any(start in run.first[c] and end in run.first[c] for c in pool)
+
+    return missing or [f"No credential in the measured window has both {start} and {end}."
+                       for start, end in intervals if not paired(start, end)]
 
 
 def _ordered(pair: Pair) -> list[str]:

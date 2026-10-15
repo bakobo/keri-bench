@@ -382,7 +382,7 @@ async def test_a_crash_of_a_role_with_no_process_is_a_failed_fault(tmp_path, fak
     text = fake_scenario(0.0) + ('[[faults]]\nkind = "crash"\ntarget = "issuer"\nat_s = 0.0\n')
     report = await runner.run_once(load(tmp_path, text), tmp_path / "out", rate=20.0,
                                    repetition=1, harness_commit="test")
-    assert "runs no process" in report["failures"]["fault_failed"]
+    assert "no running process" in report["failures"]["fault_failed"]
 
 
 async def test_a_failing_first_poll_fails_the_revoke_stage(tmp_path, scripted_fakes, monkeypatch):
@@ -394,3 +394,33 @@ async def test_a_failing_first_poll_fails_the_revoke_stage(tmp_path, scripted_fa
     monkeypatch.setattr(ScriptedVerifier, "status", down)
     events = await scripted_run(tmp_path, scripted(True, "r"))
     assert [e.attrs["stage"] for e in events if e.name == "stage_failed"] == ["revoke"]
+
+
+async def test_a_malformed_confirmation_answer_withholds_recognition(tmp_path, scripted_fakes,
+                                                                    monkeypatch):
+    from fake_adapters import ScriptedVerifier
+
+    original = ScriptedVerifier.status
+
+    async def odd(self, credential):
+        answer = await original(self, credential)
+        return [] if self.ctx.shared["polls"][credential] > 2 else answer
+
+    monkeypatch.setattr(ScriptedVerifier, "status", odd)
+    events = await scripted_run(tmp_path, scripted(True, "r"))
+    assert "revocation_recognised" not in {e.name for e in events}
+
+
+async def test_a_crash_of_a_role_whose_process_already_exited_is_a_failed_fault(tmp_path):
+    from types import SimpleNamespace
+
+    from keri_bench.scenario import Fault
+    run = runner.Run(runner.plan(load(tmp_path, scenario(stages='["issue"]', names=(
+        "state_distribution", "issuer")))), tmp_path / "out", 1.0, 1, "test")
+    dead = SimpleNamespace(proc=SimpleNamespace(returncode=1))
+    run.procs = SimpleNamespace(names=lambda: ["issuer"], process=lambda name: dead)
+    run.harness_clock = "monotonic@b"
+    run.sink = lambda event: None
+    with pytest.raises(BenchError) as refused:
+        await run._fault(Fault("crash", "issuer", 0.0), run.clock())
+    assert "no running process" in refused.value.message

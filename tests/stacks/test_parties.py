@@ -201,7 +201,8 @@ async def test_a_verifier_that_does_not_accept_this_credential_is_a_stage_failur
         server.close()
 
 
-@pytest.mark.parametrize("answer, said", [([1, 2], "E1"), ({"valid": True, "said": "E1"}, None)])
+@pytest.mark.parametrize("answer, said", [([1, 2], "E1"), ({"valid": True, "said": "E1"}, None),
+                                          ({"valid": True, "said": ""}, "")])
 async def test_a_malformed_answer_or_an_unknown_issuance_is_not_verification(tmp_path, answer,
                                                                              said):
     from keri_bench.errors import BenchError
@@ -224,6 +225,34 @@ async def test_a_malformed_answer_or_an_unknown_issuance_is_not_verification(tmp
         with pytest.raises(BenchError) as refused:
             await party.verify("c1", {"grant": "g", "oobi": "o"})
         assert refused.value.code == "e.party.stack.refused.f"
+    finally:
+        await party.stop()
+        server.close()
+
+
+async def test_a_refused_verification_is_retried_until_it_is_accepted(tmp_path):
+    from keri_bench.http import HttpClient
+    from keri_bench.synthetic import http
+    from keri_bench.vocabulary import Role
+
+    answers = iter([(409, {"valid": False, "code": "e.proof.binding.f"}),
+                    (200, {"valid": True, "said": "E1"})])
+
+    async def reply(method, path, body):
+        return next(answers)
+
+    server = await http.serve(reply, 0)
+    url = f"http://127.0.0.1:{server.sockets[0].getsockname()[1]}"
+    sink = []
+    ctx = AdapterContext(adapters.HetiVerifier.declaration, run_dir=tmp_path,
+                         knobs={"deadline_s": 5.0, "retry_ms": 1.0},
+                         peers={Role.VERIFIER: {"api": url}}, procs=None, sink=sink.append,
+                         harness_clock="h", realtime_clock="r", shared={"said": {"c1": "E1"}})
+    party = adapters.HetiVerifier(ctx)
+    party.client = HttpClient()
+    try:
+        assert await party.verify("c1", {"grant": "g", "oobi": "o"}) is True
+        assert sink[0].attrs["attempts"] == 2
     finally:
         await party.stop()
         server.close()

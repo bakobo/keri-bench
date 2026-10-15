@@ -75,6 +75,9 @@ class Event:
             raise BenchError(E_RESOLUTION, f"The event {self.name!r} gives resolution "
                              f"{self.resolution} ns; a polled event needs its poll interval and "
                              f"no event may be negative.")
+        if self.attrs is not None and not isinstance(self.attrs, dict):
+            raise BenchError(E_EVENT_FORMAT, f"The event {self.name!r} carries attrs that are "
+                             f"not an object.")
         owner = MILESTONES.get(self.name, HARNESS_ROLE)
         if self.role not in _ROLES or self.role != owner:
             raise BenchError(E_ROLE, f"The event {self.name!r} belongs to the {owner} role, so "

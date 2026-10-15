@@ -58,6 +58,7 @@ def test_optional_fields_are_omitted_when_absent(tmp_path):
     ({"t": 1.5}, "e.input.format.event.f"),
     ({"credentials": ("c1", 2)}, "e.input.format.event.f"),
     ({"role": "bystander"}, "e.input.range.event.role.f"),
+    ({"attrs": ["verify"]}, "e.input.format.event.f"),
     ({"name": "witnessed", "role": "issuer"}, "e.input.range.event.role.f"),
     ({"name": "dispatched", "role": "issuer"}, "e.input.range.event.role.f"),
 ])
