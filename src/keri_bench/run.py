@@ -253,9 +253,16 @@ class Run:
                 "stage": stage, "code": getattr(failed, "code", type(failed).__name__),
                 "error": str(failed)[:500]})
 
-    async def _status(self, credential: str) -> tuple[int, bool]:
+    async def _status(self, credential: str, *, confirming: bool = False) -> tuple[int, bool]:
+        """One poll. A confirmation poll that fails counts as not revoked, so a revocation is
+        never recognised on evidence the run could not gather."""
         polled = self.clock()
-        answer = await self.adapters[Role.VERIFIER].status(credential)
+        try:
+            answer = await self.adapters[Role.VERIFIER].status(credential)
+        except Exception:
+            if not confirming:
+                raise
+            return polled, False
         return polled, answer.get("status") == "revoked"
 
     async def _recognise(self, credential: str) -> None:
@@ -282,7 +289,7 @@ class Run:
         rule = self.plan.scenario.recognition
         for _ in range(rule.stable_polls):
             await asyncio.sleep(rule.poll_ms / 1e3)
-            polls.append(await self._status(credential))
+            polls.append(await self._status(credential, confirming=True))
 
     def _recognitions(self) -> None:
         """Emit each credential's recognition from all its polls: the start of the final
@@ -317,6 +324,9 @@ class Run:
         if fault.kind == "crash":
             names = [n for n in self.procs.names()
                      if n == fault.target or n.startswith(fault.target + ".")]
+            if not names:
+                raise BenchError(E_FAULT_TARGET, f"The crash fault targets {fault.target}, which "
+                                 f"runs no process the harness started, so nothing was crashed.")
             self._harness_event("fault_started", attrs=attrs)
             for name in names:
                 await self.procs.kill(name)

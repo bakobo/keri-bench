@@ -344,9 +344,16 @@ def _gaps(run: _Run, matrix: dict, names: Sequence[str],
         if _domain(run, matrix, start) != _domain(run, matrix, end):
             found += [unmeasured(start), unmeasured(end)]
     found = list(dict.fromkeys(gap for gap in found if gap))
-    # Declared and measurable in principle, but a pair is measured only if it was in this run.
-    return found or [f"{name} is declared, but no {name} event appeared in this run."
-                     for name in names if name not in run.observed]
+    if found:
+        return found
+    # Declared and measurable in principle, but a pair is measured only if it was in this run,
+    # and an interval only if one credential has both of its ends.
+    missing = [f"{name} is declared, but no {name} event appeared in this run."
+               for name in names if name not in run.observed]
+    return missing or [f"No credential in this run has both {start} and {end}."
+                       for start, end in intervals
+                       if not any(start in seen and end in seen
+                                  for seen in run.first.values())]
 
 
 def _ordered(pair: Pair) -> list[str]:
@@ -378,8 +385,10 @@ def _failures(events) -> dict:
     for event in events:
         attrs = event.attrs or {}
         if event.name == "stage_failed":
-            stages[attrs.get("stage", "?")] = stages.get(attrs.get("stage", "?"), 0) + 1
-            codes[attrs.get("code", "?")] = codes.get(attrs.get("code", "?"), 0) + 1
+            # Attributes are whatever the timeline says, so they are named as text.
+            stage, code = str(attrs.get("stage", "?")), str(attrs.get("code", "?"))
+            stages[stage] = stages.get(stage, 0) + 1
+            codes[code] = codes.get(code, 0) + 1
         elif event.name == "fault_failed" and fault_failed is None:
             fault_failed = (f"The scheduled {attrs.get('kind')} fault on {attrs.get('target')} "
                             f"could not be applied: {attrs.get('error')}")

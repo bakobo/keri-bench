@@ -358,3 +358,39 @@ async def test_a_fault_that_cannot_be_applied_refuses_the_run(tmp_path, fakes, m
                                    repetition=1, harness_commit="test")
     assert report["refused"] is True
     assert "the proxy would not take it" in report["failures"]["fault_failed"]
+
+
+
+async def test_a_confirmation_poll_that_fails_withholds_recognition(tmp_path, scripted_fakes,
+                                                                   monkeypatch):
+    from fake_adapters import ScriptedVerifier
+
+    original = ScriptedVerifier.status
+
+    async def flaky(self, credential):
+        polls = self.ctx.shared.get("polls", {}).get(credential, 0)
+        if polls >= 2:
+            raise ConnectionResetError("the verifier went away")
+        return await original(self, credential)
+
+    monkeypatch.setattr(ScriptedVerifier, "status", flaky)
+    events = await scripted_run(tmp_path, scripted(True, "r"))
+    assert "revocation_recognised" not in {e.name for e in events}
+
+
+async def test_a_crash_of_a_role_with_no_process_is_a_failed_fault(tmp_path, fakes):
+    text = fake_scenario(0.0) + ('[[faults]]\nkind = "crash"\ntarget = "issuer"\nat_s = 0.0\n')
+    report = await runner.run_once(load(tmp_path, text), tmp_path / "out", rate=20.0,
+                                   repetition=1, harness_commit="test")
+    assert "runs no process" in report["failures"]["fault_failed"]
+
+
+async def test_a_failing_first_poll_fails_the_revoke_stage(tmp_path, scripted_fakes, monkeypatch):
+    from fake_adapters import ScriptedVerifier
+
+    async def down(self, credential):
+        raise ConnectionResetError("the verifier went away")
+
+    monkeypatch.setattr(ScriptedVerifier, "status", down)
+    events = await scripted_run(tmp_path, scripted(True, "r"))
+    assert [e.attrs["stage"] for e in events if e.name == "stage_failed"] == ["revoke"]

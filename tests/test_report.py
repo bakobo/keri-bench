@@ -865,3 +865,24 @@ def test_failed_stages_are_counted_and_a_failed_fault_refuses_the_run(tmp_path):
     assert got["refused"] is True and got["refused_reason"].startswith("The scheduled delay")
     assert any(w.startswith("1 lifecycle stage(s) failed") for w in got["warnings"])
     assert any(w.startswith("The run is refused. The scheduled") for w in got["warnings"])
+
+
+def test_a_pair_whose_ends_never_meet_in_one_credential_is_a_gap(tmp_path):
+    events = window() + simple("c1", 100, 1000) + simple("c2", 200, 1200) + [
+        ev("constructed", 300, ["c1"]), ev("registry_updated", 400, ["c2"]),
+        ev("anchored", 500, ["c1"]), ev("witnessed", 600, ["c2"])]
+    adapters_ = {"issuer": decl("fake.issuer", "issuer", {
+        "constructed": ("observed", "harness", 1), "registry_updated": ("observed", "harness", 1),
+        "anchored": ("observed", "harness", 1), "witnessed": ("observed", "harness", 1)})}
+    got = derive(write_run(tmp_path, events, adapters=adapters_))
+    assert got["observability"]["pairs"]["anchor_vs_witness"]["gap"] == (
+        "No credential in this run has both registry_updated and anchored. No credential in "
+        "this run has both anchored and witnessed.")
+
+
+def test_failure_attributes_of_any_shape_are_counted_as_text(tmp_path):
+    events = window() + simple("c1", 100, 1000) + [
+        ev("stage_failed", 1100, ["c1"], attrs={"stage": ["verify"], "code": 7})]
+    got = derive(write_run(tmp_path, events))
+    assert got["failures"]["by_stage"] == {"['verify']": 1}
+    assert got["failures"]["by_code"] == {"7": 1}

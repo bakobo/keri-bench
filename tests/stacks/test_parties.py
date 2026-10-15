@@ -199,3 +199,31 @@ async def test_a_verifier_that_does_not_accept_this_credential_is_a_stage_failur
     finally:
         await party.stop()
         server.close()
+
+
+@pytest.mark.parametrize("answer, said", [([1, 2], "E1"), ({"valid": True, "said": "E1"}, None)])
+async def test_a_malformed_answer_or_an_unknown_issuance_is_not_verification(tmp_path, answer,
+                                                                             said):
+    from keri_bench.errors import BenchError
+    from keri_bench.http import HttpClient
+    from keri_bench.synthetic import http
+    from keri_bench.vocabulary import Role
+
+    async def reply(method, path, body):
+        return 200, answer
+
+    server = await http.serve(reply, 0)
+    url = f"http://127.0.0.1:{server.sockets[0].getsockname()[1]}"
+    ctx = AdapterContext(adapters.HetiVerifier.declaration, run_dir=tmp_path,
+                         knobs={"deadline_s": 1.0, "retry_ms": 1.0},
+                         peers={Role.VERIFIER: {"api": url}}, procs=None, sink=[].append,
+                         harness_clock="h", realtime_clock="r", shared={"said": {"c1": said}})
+    party = adapters.HetiVerifier(ctx)
+    party.client = HttpClient()
+    try:
+        with pytest.raises(BenchError) as refused:
+            await party.verify("c1", {"grant": "g", "oobi": "o"})
+        assert refused.value.code == "e.party.stack.refused.f"
+    finally:
+        await party.stop()
+        server.close()
