@@ -110,7 +110,8 @@ class AdapterContext:
                  sink: Callable[[Event], None], harness_clock: str, realtime_clock: str,
                  clock: Callable[[], int] = time.monotonic_ns,
                  observe: Callable[..., None] | None = None,
-                 front: Callable[[str, str], Awaitable[str]] | None = None) -> None:
+                 front: Callable[[str, str], Awaitable[str]] | None = None,
+                 shared: dict | None = None) -> None:
         self.declaration = declaration
         self.run_dir = run_dir
         self.knobs = dict(knobs)
@@ -118,6 +119,9 @@ class AdapterContext:
         self.procs = procs
         self.observe = observe
         self.front = front
+        self.shared = {} if shared is None else shared
+        """One dict every adapter in a run sees: what one role learns about a credential that
+        another needs, such as the SAID and registry an issuer assigned it."""
         """``await ctx.front(name, upstream)`` puts a proxy link named ``<role>.<name>`` in front of
         ``upstream`` before the adapter starts the process behind it, and returns the proxy's URL.
         For a stack whose processes advertise their own address (a KERI witness names its URL in

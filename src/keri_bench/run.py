@@ -131,6 +131,7 @@ class Run:
     watchers: dict[str, list] = field(default_factory=lambda: defaultdict(list))
     tasks: set = field(default_factory=set)
     exchanges: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    shared: dict = field(default_factory=dict)
     credentials: list[str] = field(default_factory=list)
 
     # --- events ---
@@ -147,7 +148,8 @@ class Run:
                               harness_clock=self.harness_clock,
                               realtime_clock=self.realtime_clock, observe=self._observe,
                               front=lambda name, upstream: self._front(declaration.role,
-                                                                       name, upstream))
+                                                                       name, upstream),
+                              shared=self.shared)
 
     def _observe(self, link: str, callback) -> None:
         self.watchers[link].append(callback)

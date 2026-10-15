@@ -73,6 +73,7 @@ def test_the_context_offers_the_harness_clock_and_resolved_knobs():
     assert ctx.now() == 99
     assert ctx.knobs == {"toad": 2}
     assert ctx.domain("stack:issuer-wall") == "stack:issuer-wall"
+    assert ctx.shared == {}
 
 
 @pytest.mark.parametrize("bad, code", [
