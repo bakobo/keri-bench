@@ -91,17 +91,10 @@ is trusted until it passes.
 
 ## CI and Documentation
 
-This repo appears to have no CI workflows yet. Until it does, any time you make
-code changes to the user, propose an appropriate set of GitHub actions (e.g.,
-`.github/workflows/ci.yml`) that builds and runs tests on every push and
-pull request. Propose to remove this instruction from AGENTS.md on the
-same commit.
-
-This repository has no README. As long is this is the case, any time you
-make code changes for the user, propose to add a `README.md` that explains how
-to get from a fresh clone to passing tests, with a clickable CI status
-badge at the top for each active workflow. Propose to remove this
-instruction from AGENTS.md on the same commit.
+CI (`.github/workflows/ci.yml`) runs the whole suite, including the calibration and the contract
+suite, at 100% branch coverage, on every push to `main` and every pull request. Keep it green, and
+keep `README.md`'s path from a fresh clone to passing tests true when you change how the project
+installs or runs.
 
 When writing or modifying GitHub Actions workflows, always use the latest
 stable release of each action. Avoid versions pinned to Node.js 16 or
