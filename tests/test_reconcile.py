@@ -149,3 +149,11 @@ def test_ids_that_are_not_requested_credentials_are_not_classified():
     sync = Event(name="sync_full_done", t=5, method="observed", clock="monotonic@b",
                  resolution=1, credentials=("sync-cold",), role="verifier")
     assert classify([sync], {}, {}, faults=[]) == {}
+
+
+def test_a_said_that_is_not_text_is_ignored_rather_than_crashing():
+    from keri_bench.timeline import Event
+    asked = Event(name="requested", t=1, method="observed", clock="monotonic@b", resolution=1,
+                  credentials=("c1",), role="issuer", attrs={"said": ["E1"]})
+    out = classify([asked], {"c1": {"status": "valid", "said": "E1"}}, {}, faults=[])
+    assert out["c1"].saids == ("E1",)

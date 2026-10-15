@@ -62,9 +62,10 @@ def classify(events: Iterable[Event], verifier: Mapping[str, Mapping],
         if status not in _KNOWN:
             raise BenchError(E_STATUS, f"The verifier answered {status!r} for {credential}; "
                              f"reconciliation understands only valid, revoked and unknown.")
-        saids = {e.attrs["said"] for e in own if e.attrs and "said" in e.attrs}
+        saids = {e.attrs["said"] for e in own
+                 if e.attrs and isinstance(e.attrs.get("said"), str)}
         if answer.get("said") is not None:
-            saids.add(answer["said"])
+            saids.add(str(answer["said"]))
         fate = "lost"
         if status in _DONE:
             fate = "done"

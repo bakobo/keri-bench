@@ -424,3 +424,41 @@ async def test_a_crash_of_a_role_whose_process_already_exited_is_a_failed_fault(
     with pytest.raises(BenchError) as refused:
         await run._fault(Fault("crash", "issuer", 0.0), run.clock())
     assert "no running process" in refused.value.message
+
+
+async def test_a_revoked_answer_about_another_credential_is_not_evidence(tmp_path):
+    from types import SimpleNamespace
+    run = runner.Run(runner.plan(load(tmp_path, scenario(stages='["issue"]', names=(
+        "state_distribution", "issuer")))), tmp_path / "out", 1.0, 1, "test")
+
+    async def status(credential):
+        return {"status": "revoked", "said": "Eother"}
+
+    run.adapters[runner.Role.VERIFIER] = SimpleNamespace(status=status)
+    run.shared["said"] = {"c1": "Emine"}
+    assert (await run._status("c1"))[1] is False
+    run.shared["said"] = {"c1": "Eother"}
+    assert (await run._status("c1"))[1] is True
+
+
+async def test_a_crash_restarts_every_process_of_the_role_even_one_already_down(tmp_path):
+    from types import SimpleNamespace
+
+    from keri_bench.scenario import Fault
+    run = runner.Run(runner.plan(load(tmp_path, scenario(stages='["issue"]', names=(
+        "state_distribution", "issuer")))), tmp_path / "out", 1.0, 1, "test")
+    states = {"issuer": None, "issuer.helper": 1}
+    killed, restarted = [], []
+
+    async def kill(name):
+        killed.append(name)
+
+    async def restart(name):
+        restarted.append(name)
+
+    run.procs = SimpleNamespace(
+        names=lambda: list(states), kill=kill, restart=restart,
+        process=lambda name: SimpleNamespace(proc=SimpleNamespace(returncode=states[name])))
+    run.harness_clock, run.sink = "monotonic@b", (lambda event: None)
+    await run._fault(Fault("crash", "issuer", 0.0), run.clock())
+    assert killed == ["issuer"] and restarted == ["issuer", "issuer.helper"]

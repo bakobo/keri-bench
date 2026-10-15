@@ -258,16 +258,20 @@ class Run:
         """One poll. A confirmation poll that fails counts as not revoked, so a revocation is
         never recognised on evidence the run could not gather."""
         polled = self.clock()
+        expected = self.shared.get("said", {}).get(credential)
         try:
             answer = await self.adapters[Role.VERIFIER].status(credential)
             if not isinstance(answer, Mapping):
                 raise BenchError(E_STATUS, f"The verifier's status for {credential} is not an "
                                  f"object: {answer!r}"[:300])
+            # An answer about another credential is no evidence about this one.
+            revoked = answer.get("status") == "revoked" and (
+                expected is None or answer.get("said") in (None, expected))
         except Exception:
             if not confirming:
                 raise
             return polled, False
-        return polled, answer.get("status") == "revoked"
+        return polled, revoked
 
     async def _recognise(self, credential: str) -> None:
         """Poll the verifier until ``stable_polls`` polls in a row say revoked, which ends the
@@ -328,13 +332,13 @@ class Run:
         if fault.kind == "crash":
             names = [n for n in self.procs.names()
                      if n == fault.target or n.startswith(fault.target + ".")]
-            names = [n for n in names if self.procs.process(n).proc.returncode is None]
-            if not names:
+            running = [n for n in names if self.procs.process(n).proc.returncode is None]
+            if not running:
                 raise BenchError(E_FAULT_TARGET, f"The crash fault targets {fault.target}, which "
                                  f"has no running process the harness started, so nothing was "
                                  f"crashed.")
             self._harness_event("fault_started", attrs=attrs)
-            for name in names:
+            for name in running:
                 await self.procs.kill(name)
             await asyncio.sleep(fault.duration_s)
             for name in names:
