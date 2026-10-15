@@ -121,6 +121,11 @@ Measure end-to-end KERI+ACDC issuance on any implementation, well enough to buy 
         Rejected container networking with tc/netem as the base, because it adds a dependency Utah
         must reproduce and cannot duplicate a message. Multi-host is a later deployment of the same
         design. Consequence: adapters must accept configured endpoints. Daniel agreed, 2026-10-15 (Q4).
+      children:
+        The fault proxy is an HTTP/1.1-aware reverse proxy per endpoint that never rewrites bytes = decision:
+          nid: 6wlc25pz
+          why: >-
+            Every link between roles on the stacks under test is HTTP/1.1 (witnesses, the Registrar, the Observer, imbu's control plane), and the duplicate fault must replay one whole message, which a byte-level TCP proxy cannot delimit. So the harness puts one asyncio reverse proxy in front of every endpoint an adapter announces, reads each message whole within size limits, and applies delay, partition (requests are swallowed and their clients get no answer until the partition heals) and duplicate (an identical copy on a fresh upstream connection, its answer discarded). It rewrites nothing, not even Host, because clients sign @authority under RFC 9421 and the upstream checks it against the Host it receives. Rejected a TCP proxy with byte-offset faults, because it cannot duplicate a message. Rejected an off-the-shelf proxy (toxiproxy), because it adds a binary Utah must reproduce and still works at the byte level. Tradeoff: buffering adds about 0.2 ms at p50 and under 1 ms at p99 per hop on one host, which every report states per link; upgrades, 100-continue and HTTP/2 are not carried.
     The HSM question is answered by sensitivity, through a real signer seam = decision:
       nid: 4jlx9k8q
       why: >
