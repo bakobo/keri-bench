@@ -11,6 +11,10 @@ name = "issue-steady"
 description = "Steady issuance."
 stages = ["issue", "deliver", "present", "verify", "revoke"]
 
+[recognition]
+poll_ms = 20.0
+stable_polls = 3
+
 [load]
 rates = [10, 20, 40]
 duration_s = 5.0
@@ -68,6 +72,7 @@ def test_a_complete_scenario_loads_with_plan_defaults_for_the_statistics(tmp_pat
     assert (crash.kind, crash.target, crash.at_s, crash.duration_s) == ("crash", "issuer", 2.0, 0.0)
     assert (delay.delay_ms, delay.duration_s) == (20.0, 1.0)
     assert scenario.stages == ("issue", "deliver", "present", "verify", "revoke")
+    assert (scenario.recognition.poll_ms, scenario.recognition.stable_polls) == (20.0, 3)
     assert len(scenario.sha256) == 64
     assert scenario.text == GOOD
     assert SCENARIO_SCHEMA == 1
@@ -110,6 +115,10 @@ def replace(old, new):
     (replace("at_s = 2.0", "at_s = -2.0"), "e.input.range.scenario.fault.f"),
     (replace("delay_ms = 20.0", ""), "e.input.missing.scenario.fault.f"),
     (replace("at_s = 1.0\nduration_s = 1.0", "at_s = 1.0"), "e.input.missing.scenario.fault.f"),
+    (replace("[recognition]\npoll_ms = 20.0\nstable_polls = 3\n", ""),
+     "e.input.missing.scenario.field.f"),
+    (replace("stable_polls = 3", "stable_polls = 0"), "e.input.range.scenario.recognition.f"),
+    (replace("poll_ms = 20.0", "poll_ms = -1"), "e.input.range.scenario.recognition.f"),
     (replace("[roles.issuer.knobs]\nknob_schema = 1\nservice_ms = 5", ""),
      "e.input.missing.scenario.field.f"),
     (replace('target = "issuer"\nat_s = 2.0', 'target = ""\nat_s = 2.0'),
@@ -134,3 +143,10 @@ def test_a_soak_stop_rule_is_read_when_present(tmp_path):
                                    "duration_s = 60.0\n"))
     assert (scenario.stop.credentials, scenario.stop.duration_s) == (1000, 60.0)
     assert load_scenario(write(tmp_path, GOOD)).stop is None
+
+
+def test_a_scenario_that_never_revokes_needs_no_recognition_rule(tmp_path):
+    text = replace('stages = ["issue", "deliver", "present", "verify", "revoke"]',
+                   'stages = ["issue"]').replace("[recognition]\npoll_ms = 20.0\n"
+                                                 "stable_polls = 3\n", "")
+    assert load_scenario(write(tmp_path, text)).recognition is None

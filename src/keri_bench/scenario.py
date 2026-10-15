@@ -39,6 +39,7 @@ E_ROLE = "e.input.range.scenario.role.f"
 E_STAGES = "e.input.range.scenario.stages.f"
 E_FAULT = "e.input.range.scenario.fault.f"
 E_FAULT_MISSING = "e.input.missing.scenario.fault.f"
+E_RECOGNITION = "e.input.range.scenario.recognition.f"
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,15 @@ class Fault:
 
 
 @dataclass(frozen=True)
+class Recognition:
+    """How the harness decides a verifier reliably recognises a revocation (test plan,
+    Milestones: revocation_recognised). Part of the run's identity, so it is never defaulted."""
+
+    poll_ms: float
+    stable_polls: int
+
+
+@dataclass(frozen=True)
 class Stop:
     credentials: int | None
     duration_s: float | None
@@ -92,6 +102,7 @@ class Scenario:
     roles: Mapping[str, RoleConfig]
     faults: tuple[Fault, ...]
     stop: Stop | None
+    recognition: Recognition | None
     text: str
     sha256: str
 
@@ -184,6 +195,20 @@ def _fault(table: Mapping) -> Fault:
     return Fault(kind, target, float(at), float(duration), float(delay))
 
 
+def _recognition(table: Mapping | None, stages: tuple[str, ...]) -> Recognition | None:
+    if "revoke" not in stages:
+        return None
+    if table is None:
+        raise BenchError(E_FIELD, "The scenario revokes credentials but has no [recognition] "
+                         "table saying how often to poll and how many polls make it reliable.")
+    poll = _need(table, "poll_ms", "[recognition]")
+    stable = _need(table, "stable_polls", "[recognition]")
+    if not (_number(poll) and poll > 0 and isinstance(stable, int) and stable >= 1):
+        raise BenchError(E_RECOGNITION, "[recognition] poll_ms must be positive and "
+                         "stable_polls at least 1.")
+    return Recognition(float(poll), stable)
+
+
 def load_scenario(path: Path) -> Scenario:
     raw = Path(path).read_bytes()
     if len(raw) > MAX_BYTES:
@@ -198,9 +223,10 @@ def load_scenario(path: Path) -> Scenario:
         raise BenchError(E_SCHEMA, f"{path} uses scenario schema {schema!r}; this harness reads "
                          f"schema {SCENARIO_SCHEMA}.")
     stop = table.get("stop")
+    stages = _stages(_need(table, "stages", "top level"))
     return Scenario(
         name=_need(table, "name", "top level"), description=table.get("description", ""),
-        stages=_stages(_need(table, "stages", "top level")),
+        stages=stages, recognition=_recognition(table.get("recognition"), stages),
         load=_load(_need(table, "load", "top level")),
         statistics=_statistics(table.get("statistics", {})),
         roles=_roles(_need(table, "roles", "top level")),

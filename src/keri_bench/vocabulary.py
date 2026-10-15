@@ -66,6 +66,7 @@ HARNESS_EVENTS: dict[str, str] = {
     "process_ready": "A role's process announced it was ready, at start or after a restart.",
     "run_started": "The measured window began.",
     "run_ended": "The measured window ended.",
+    "stage_failed": "A credential's lifecycle stage failed; attrs name the stage and the error.",
 }
 """Events the harness itself writes. They share the timeline with milestones but never a name."""
 

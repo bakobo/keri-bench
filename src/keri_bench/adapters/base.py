@@ -176,6 +176,10 @@ class Adapter:
     async def stop(self) -> None:
         return None
 
+    async def versions(self) -> dict[str, str]:
+        """The running version of each component this adapter drives, for provenance."""
+        return {}
+
     def clock_sources(self) -> dict[str, Callable[[], Awaitable[int]]]:
         """A reader per ``stack:`` clock this adapter declares, for offset measurement."""
         return {}
@@ -218,8 +222,9 @@ class VerifierAdapter(Adapter):
     async def verify(self, credential: str, presentation: Any) -> bool:
         raise NotImplementedError
 
-    async def status(self, credential: str) -> str:
-        """``valid``, ``revoked`` or ``unknown``, as this verifier would judge it now."""
+    async def status(self, credential: str) -> Mapping[str, Any]:
+        """``{"status": "valid"|"revoked"|"unknown", "said": str|None}``, as this verifier would
+        judge the credential now."""
         raise NotImplementedError
 
     async def sync_cold(self) -> None:

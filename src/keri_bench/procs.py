@@ -210,6 +210,10 @@ class ProcessController:
             raise BenchError(E_UNKNOWN, f"There is no process named {name!r}. The known "
                              f"processes are: {sorted(self._specs)}.") from None
 
+    def names(self) -> list[str]:
+        """Every name a process has been started under, in start order."""
+        return list(self._specs)
+
     def process(self, name: str) -> Process:
         """The most recent process started under ``name``."""
         return self._spec(name).process  # stored only once its first process has started

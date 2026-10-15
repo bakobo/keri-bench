@@ -282,3 +282,9 @@ async def test_output_after_the_announcement_is_drained_into_the_log(controller,
     assert marker.exists()
     await controller.stop_all()
     assert "x" * 1000 in (tmp_path / "chatty.log").read_text()
+
+
+async def test_the_controller_lists_its_process_names(controller):
+    await controller.start("one", FAKE, ("ok",))
+    await controller.start("two", FAKE, ("ok",))
+    assert controller.names() == ["one", "two"]

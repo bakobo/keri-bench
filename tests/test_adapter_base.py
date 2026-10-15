@@ -126,6 +126,7 @@ async def test_the_base_lifecycle_does_nothing_and_role_operations_must_be_writt
     plain = base.Adapter(ctx)
     assert await plain.start() == {} and await plain.connect() == {}
     assert await plain.stop() is None and plain.clock_sources() == {}
+    assert await plain.versions() == {}
     assert await base.WitnessPoolAdapter(ctx).anchors("c1") is None
     calls = [base.IssuerAdapter(ctx).issue("c1", {}), base.IssuerAdapter(ctx).revoke("c1"),
              base.HolderAdapter(ctx).identity(), base.HolderAdapter(ctx).receive(None),
