@@ -5,8 +5,9 @@ name: CI
 # Nothing here needs a private repository; the real adapters' weekly contract run is separate.
 
 on:
+  # Every branch, because work on keri-bench lands on main without a pull request (pr-merge land),
+  # so a topic branch's CI is the only run before it lands.
   push:
-    branches: [main]
   pull_request:
 
 permissions:

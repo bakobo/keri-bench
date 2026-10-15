@@ -92,7 +92,7 @@ is trusted until it passes.
 ## CI and Documentation
 
 CI (`.github/workflows/ci.yml`) runs the whole suite, including the calibration and the contract
-suite, at 100% branch coverage, on every push to `main` and every pull request. Keep it green, and
+suite, at 100% branch coverage, on every push to any branch and every pull request. Keep it green, and
 keep `README.md`'s path from a fresh clone to passing tests true when you change how the project
 installs or runs.
 
