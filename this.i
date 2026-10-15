@@ -76,6 +76,11 @@ Measure end-to-end KERI+ACDC issuance on any implementation, well enough to buy 
             clock domains with no measured offset is not measured. Rejected a two-way outside/inside
             label (the first draft), because it let stack-written timestamps pass as harness-measured
             (maintainability review MNT-3, testability review TST-2, 2026-10-15).
+          children:
+            The harness clock is the host's CLOCK_MONOTONIC, named by boot id; wall clocks are offset-measured = decision:
+              nid: 98rxw488
+              why: >-
+                Harness events use time.monotonic_ns(), whose clock domain is named monotonic@<boot_id>. On Linux CLOCK_MONOTONIC is one clock for every process on the host since boot, so a stack process on the same box that stamps with it (the summit harness's Registrar publisher does) shares the harness's domain exactly, with zero offset and nothing to measure. A stack that stamps wall time is in domain realtime@<host>; the harness measures that domain's offset by bracketing a realtime read between two monotonic reads at the start and the end of every run, and the bound carried into each interval is the wider bracket plus the change in offset between the two samples, so an NTP step during the run widens the bound instead of hiding in it. A stack on another host needs its own offset source (a time route sampled the same way) and is not measured without one. Rejected wall time as the harness clock, because it steps and slews under NTP and an interval across a step is wrong by the step. Rejected assuming same-host wall clocks agree with zero bound, because that is exactly the unmeasured offset 7vsky4sk forbids.
         Independent verification means a verifier that is not the issuer's code path = decision:
           nid: 27mjdj7q
           why: >
