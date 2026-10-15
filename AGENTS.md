@@ -81,15 +81,13 @@ later need to know *why*) may skip intent entirely — just delete `this.i.seed`
 
 ## Testing Protocol
 
-This repository appears to have no test suite yet. Before writing feature code
-or fixing bugs, propose an appropriate testing framework for this project type
-and add a single trivially-passing test to confirm the setup works. In the
-same commit, propose to change AGENTS.md to replace this instruction with one
-that instructs agents to follow strict TDD from now on: write failing tests
-that capture happy path and edge cases/unhappy paths for each requirement,
-observe them fail, implement until tests pass, never checkin without proving
-that all tests pass, aim for 100% of all new code, and always leave existing
-code better tested than it was before you touched it.
+Follow strict TDD. For each requirement, write failing tests that capture the happy path and the
+edge and unhappy paths, watch them fail, then implement until they pass. Never check in without
+proving the whole suite passes (`nice -n 19 uv run pytest`). Aim for 100% branch coverage of all new
+code, and always leave existing code better tested than you found it. Part B of
+[`docs/test-plan.md`](docs/test-plan.md) is the standard the harness's own tests meet; the
+calibration stack (Part B #1) is the test that the harness measures correctly, and no real adapter
+is trusted until it passes.
 
 ## CI and Documentation
 
