@@ -6,7 +6,7 @@ description = "Every transition's injected delay, recovered through the full lif
 stages = ["issue", "deliver", "present", "verify", "revoke"]
 
 [recognition]
-poll_ms = 10.0
+poll_ms = 25.0
 stable_polls = 3
 
 [load]

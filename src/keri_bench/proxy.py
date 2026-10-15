@@ -193,6 +193,12 @@ async def _read_response(reader, method: str, max_body: int, max_header: int):
     return status, b"".join(parts), framing is None
 
 
+def _retrieve(future: asyncio.Future) -> None:
+    """Mark a finished future's outcome as seen, whatever it was."""
+    if not future.cancelled():
+        future.exception()
+
+
 def _refusal(status: int, code: str, message: str) -> bytes:
     body = f"{code}: {message}\n".encode()
     return (f"HTTP/1.1 {status} {_REASONS[status]}\r\nContent-Type: text/plain\r\n"
@@ -368,20 +374,23 @@ class Link:
             return await _until(reader, b"\r\n\r\n")
         head = asyncio.ensure_future(_until(reader, b"\r\n\r\n"))
         ended = asyncio.ensure_future(upstream[0].read(1))
-        done, _ = await asyncio.wait({head, ended}, return_when=asyncio.FIRST_COMPLETED)
-        if ended not in done:
-            ended.cancel()  # and wait, so the stream has no reader left when the response is read
-            with contextlib.suppress(asyncio.CancelledError):
+        try:
+            done, _ = await asyncio.wait({head, ended}, return_when=asyncio.FIRST_COMPLETED)
+        except asyncio.CancelledError:
+            # The link is stopping: leave no future running or unretrieved.
+            for future in (head, ended):
+                future.cancel()
+                future.add_done_callback(_retrieve)
+            raise
+        if head in done:
+            ended.cancel()  # and wait, so the stream has no reader when the response is read
+            with contextlib.suppress(asyncio.CancelledError, OSError):
                 await ended
-            if not ended.cancelled():
-                head.cancel()  # pragma: no cover - the upstream spoke in the same instant
-                return None  # pragma: no cover
-            return head.result()
+            if ended.cancelled():
+                return head.result()
+        # The upstream closed (or spoke unasked), perhaps in the same instant the client did.
         head.cancel()
-        # The client may have hung up in the same instant; either way nothing is left to read.
-        with contextlib.suppress(asyncio.CancelledError, asyncio.IncompleteReadError, _Bad,
-                                 OSError):
-            await head
+        head.add_done_callback(_retrieve)
         return None
 
     async def _refuse(self, writer, method, path, t_request, t_forwarded, status, code, message):

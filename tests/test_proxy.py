@@ -482,3 +482,18 @@ async def test_measure_refuses_fewer_than_one_sample():
     with pytest.raises(BenchError) as err:
         await measure_pass_through(0)
     assert err.value.code == E_SAMPLES
+
+
+async def test_client_and_upstream_closing_together_leaves_nothing_unretrieved(peer):
+    from keri_bench.proxy import _retrieve
+
+    failed = asyncio.get_running_loop().create_future()
+    failed.set_exception(asyncio.IncompleteReadError(b"", None))
+    _retrieve(failed)  # marks it seen, so no "never retrieved" report at collection
+    cancelled = asyncio.get_running_loop().create_future()
+    cancelled.cancel()
+    _retrieve(cancelled)
+    reader, ended = asyncio.StreamReader(), asyncio.StreamReader()
+    reader.feed_eof()
+    ended.feed_eof()
+    assert await Link._next_request(reader, (ended, None)) is None

@@ -134,7 +134,6 @@ class Run:
     shared: dict = field(default_factory=dict)
     recognitions: dict[str, list] = field(default_factory=dict)
     watching: set = field(default_factory=set)
-    watch_over: asyncio.Event = field(default_factory=asyncio.Event)
     credentials: list[str] = field(default_factory=list)
 
     # --- events ---
@@ -261,9 +260,9 @@ class Run:
 
     async def _recognise(self, credential: str) -> None:
         """Poll the verifier until ``stable_polls`` polls in a row say revoked, which ends the
-        credential's lifecycle; then keep polling until the run's watch ends, because the
-        milestone is the first poll after which every later poll says revoked, and only later
-        polls can show that (test plan, Milestones: revocation_recognised)."""
+        credential's lifecycle; then confirm with as many polls again, because the milestone is
+        the first poll after which every later poll says revoked, and only later polls can show
+        that (test plan, Milestones: revocation_recognised)."""
         rule = self.plan.scenario.recognition
         polls = self.recognitions.setdefault(credential, [])
         streak = 0
@@ -276,19 +275,14 @@ class Run:
         self.watching.add(task)
 
     async def _keep_watching(self, credential: str, polls: list) -> None:
-        """Poll on: at least ``stable_polls`` more times, then until the run's watch ends."""
+        """Poll ``stable_polls`` more times after the first streak: a confirmation window, so a
+        verifier that flips back to valid disproves the streak. Watching to the end of the run
+        instead was tried and cost the event loop enough to fail the driver check (calibration,
+        2026-10-15)."""
         rule = self.plan.scenario.recognition
-        extra = 0
-        while True:
-            try:
-                await asyncio.wait_for(self.watch_over.wait(), rule.poll_ms / 1e3)
-                if extra >= rule.stable_polls:
-                    return
-                await asyncio.sleep(rule.poll_ms / 1e3)
-            except TimeoutError:
-                pass
+        for _ in range(rule.stable_polls):
+            await asyncio.sleep(rule.poll_ms / 1e3)
             polls.append(await self._status(credential))
-            extra += 1
 
     def _recognitions(self) -> None:
         """Emit each credential's recognition from all its polls: the start of the final
@@ -402,7 +396,6 @@ class Run:
                     self._harness_event("fault_failed", attrs={
                         "kind": fault.kind, "target": fault.target,
                         "error": str(outcome)[:500]})
-            self.watch_over.set()
             await asyncio.gather(*self.watching, return_exceptions=True)
             if self.plan.scenario.recognition is not None:
                 self._recognitions()
