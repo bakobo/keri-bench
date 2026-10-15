@@ -145,7 +145,9 @@ class Run:
         return AdapterContext(declaration, run_dir=self.run_dir, knobs=knobs, peers=self.peers,
                               procs=self.procs, sink=self.sink, clock=self.clock,
                               harness_clock=self.harness_clock,
-                              realtime_clock=self.realtime_clock, observe=self._observe)
+                              realtime_clock=self.realtime_clock, observe=self._observe,
+                              front=lambda name, upstream: self._front(declaration.role,
+                                                                       name, upstream))
 
     def _observe(self, link: str, callback) -> None:
         self.watchers[link].append(callback)
@@ -157,21 +159,34 @@ class Run:
 
     # --- topology ---
 
+    async def _front(self, role: Role, name: str, upstream: str) -> str:
+        link = Link(f"{role.value}.{name}", upstream, clock=self.clock,
+                    on_exchange=self._exchange)
+        await link.start()
+        self.links[link.name] = link
+        return link.url
+
     async def _proxy(self, role: Role, endpoints: Endpoints) -> Endpoints:
+        """Front every http URL an adapter announces with a link; pass anything else through.
+
+        A URL that is already a link's address (the adapter fronted it itself) is left alone, and
+        so is a value that is not an http URL, such as an AID a peer needs to know.
+        """
+        fronts = {link.url for link in self.links.values()}
         proxied: Endpoints = {}
         for name, value in endpoints.items():
             urls = value if isinstance(value, list) else [value]
             fronted = []
             for index, url in enumerate(urls):
+                scheme, _, rest = str(url).partition("://")
+                hostport, slash, path = rest.partition("/")
+                if scheme != "http" or f"{scheme}://{hostport}" in fronts:
+                    fronted.append(url)
+                    continue
                 link_name = f"{role.value}.{name}" + (f".{index}" if isinstance(value, list)
                                                       else "")
-                scheme, _, rest = url.partition("://")
-                hostport, slash, path = rest.partition("/")
-                link = Link(link_name, f"{scheme}://{hostport}", clock=self.clock,
-                            on_exchange=self._exchange)
-                await link.start()
-                self.links[link_name] = link
-                fronted.append(link.url + slash + path)
+                fronted.append(await self._front(role, link_name.split(".", 1)[1],
+                                                  f"{scheme}://{hostport}") + slash + path)
             proxied[name] = fronted if isinstance(value, list) else fronted[0]
         return proxied
 

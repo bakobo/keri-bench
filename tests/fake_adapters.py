@@ -56,3 +56,19 @@ class FakeVerifier(VerifierAdapter):
 
     async def status(self, credential):
         raise ConnectionError("the verifier went away")
+
+
+from keri_bench.adapters.base import WitnessPoolAdapter  # noqa: E402
+
+
+class FakeWitnessPool(WitnessPoolAdapter):
+    """Fronts one address itself, as a stack whose processes advertise their own URL must."""
+
+    declaration = Declaration(
+        adapter="fake.witness_pool", role=Role.WITNESS_POOL, version="1", milestones={},
+        knobs=KnobSchema(1, {}), tested_against={"fake": "1"})
+
+    async def start(self):
+        fronted = await self.ctx.front("advertised", "http://127.0.0.1:9")
+        return {"oobis": [f"{fronted}/oobi/B1/controller", "http://127.0.0.1:8/oobi/B2"],
+                "aid": "Bwitness", "single": "http://127.0.0.1:7/x"}

@@ -109,13 +109,20 @@ class AdapterContext:
                  knobs: Mapping[str, Any], peers: Mapping[Role, Endpoints], procs: Any,
                  sink: Callable[[Event], None], harness_clock: str, realtime_clock: str,
                  clock: Callable[[], int] = time.monotonic_ns,
-                 observe: Callable[..., None] | None = None) -> None:
+                 observe: Callable[..., None] | None = None,
+                 front: Callable[[str, str], Awaitable[str]] | None = None) -> None:
         self.declaration = declaration
         self.run_dir = run_dir
         self.knobs = dict(knobs)
         self.peers = peers
         self.procs = procs
         self.observe = observe
+        self.front = front
+        """``await ctx.front(name, upstream)`` puts a proxy link named ``<role>.<name>`` in front of
+        ``upstream`` before the adapter starts the process behind it, and returns the proxy's URL.
+        For a stack whose processes advertise their own address (a KERI witness names its URL in
+        a signed location record), so that peers that discover the address still go through the
+        proxy."""
         self._sink = sink
         self._clock = clock
         self._domains = {HARNESS: harness_clock, REALTIME: realtime_clock}

@@ -254,3 +254,29 @@ async def test_a_verifier_that_fails_to_answer_reconciles_as_unknown(tmp_path, f
     report = await runner.run_once(plan, tmp_path / "out", rate=20.0, repetition=1,
                                    harness_commit="test")
     assert report["reconciliation"]["summary"]["lost"] == 6
+
+
+async def test_announced_endpoints_are_fronted_unless_already_fronted_or_not_urls(tmp_path,
+                                                                                    monkeypatch):
+    monkeypatch.setitem(registry.ADAPTERS, "fake.witness_pool", "fake_adapters:FakeWitnessPool")
+    from keri_bench.adapters.base import Declaration  # noqa: F401
+    text = fake_scenario(0.0).replace("[roles.holder]", '[roles.witness_pool]\nadapter = '
+                                      '"fake.witness_pool"\n[roles.witness_pool.knobs]\n'
+                                      'knob_schema = 1\n[roles.holder]')
+    for name, where in FAKES.items():
+        monkeypatch.setitem(registry.ADAPTERS, name, where)
+    run = runner.Run(runner.plan(load(tmp_path, text)), tmp_path / "out", 1.0, 1, "test")
+    run.harness_clock, run.realtime_clock = "monotonic@b", "realtime@h"
+    run.sink, run.procs = (lambda event: None), None
+    await run._bring_up()
+    try:
+        peers = run.peers[runner.Role.WITNESS_POOL]
+        fronted = run.links["witness_pool.advertised"].url
+        assert peers["oobis"][0] == f"{fronted}/oobi/B1/controller"
+        second = run.links["witness_pool.oobis.1"].url
+        assert peers["oobis"][1] == f"{second}/oobi/B2"
+        assert peers["aid"] == "Bwitness"
+        assert peers["single"] == run.links["witness_pool.single"].url + "/x"
+    finally:
+        for link in run.links.values():
+            await link.stop()
