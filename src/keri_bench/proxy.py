@@ -378,7 +378,9 @@ class Link:
                 return None  # pragma: no cover
             return head.result()
         head.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
+        # The client may have hung up in the same instant; either way nothing is left to read.
+        with contextlib.suppress(asyncio.CancelledError, asyncio.IncompleteReadError, _Bad,
+                                 OSError):
             await head
         return None
 

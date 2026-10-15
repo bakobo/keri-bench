@@ -25,10 +25,13 @@ def sync_issuer(monkeypatch):
 async def test_real_credentials_flow_through_holder_verifier_and_revocation(tmp_path,
                                                                             sync_issuer):
     path = tmp_path / "scenario.toml"
-    path.write_text(scenario())
-    report = await runner.run_once(load_scenario(path), tmp_path / "out", rate=1.0,
+    # One credential. imbu's simple issuance shares one registry, and heti judges a registry
+    # by its head against the Observer, so a second credential would make the first one
+    # unverifiable (~4sfp).
+    path.write_text(scenario(rate="0.5", duration="2.0"))
+    report = await runner.run_once(load_scenario(path), tmp_path / "out", rate=0.5,
                                    repetition=1, harness_commit="test")
-    run_dir = tmp_path / "out" / "rate-1" / "rep-1"
+    run_dir = tmp_path / "out" / "rate-0.5" / "rep-1"
     _, events = read_timeline(run_dir / "timeline.jsonl")
     failed = [e.attrs for e in events if e.name == "stage_failed"]
     assert failed == []
@@ -36,5 +39,5 @@ async def test_real_credentials_flow_through_holder_verifier_and_revocation(tmp_
     assert {"delivered", "stored", "proof_generated", "verified", "revocation_recognised",
             "sync_full_started", "sync_full_done"} <= names
     summary = report["reconciliation"]["summary"]
-    assert summary["done"] + summary["resumed"] == summary["total"] == 3
+    assert summary["done"] + summary["resumed"] == summary["total"] == 1
     (tmp_path / "report.json").write_text(json.dumps(report))

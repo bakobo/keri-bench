@@ -53,5 +53,7 @@ adapter = "heti.verifier"
 knob_schema = 1
 toad = 2
 freshness_s = 30.0
+retry_ms = 250.0
+deadline_s = 60.0
 {faults}
 """

@@ -15,6 +15,11 @@ once imbu-async lands:
 - the operation is finished when ``state`` is ``done``, and failed when it is ``failed``, with
   ``result.said`` and ``result.grant`` (base64) on success;
 - the client's idempotency key travels as the ``Idempotency-Key`` header.
+
+It issues through ``/v1/imbu/issuances``, which puts every credential in one shared registry.
+heti's verifier judges a registry by its head against the Observer, so on that route only the
+newest credential verifies independently (~4sfp); the bench needs imbu to issue one credential
+per registry, as SEDI's pool does, before verification numbers on imbu mean anything.
 """
 
 from __future__ import annotations

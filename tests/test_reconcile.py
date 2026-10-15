@@ -142,3 +142,10 @@ def test_an_outcome_serialises_to_plain_json():
     assert outcomes()["c-double"].to_dict() == {"fate": "done", "double_anchored": True,
                                                 "two_saids": True,
                                                 "saids": ["Esaid-a", "Esaid-b"]}
+
+
+def test_ids_that_are_not_requested_credentials_are_not_classified():
+    from keri_bench.timeline import Event
+    sync = Event(name="sync_full_done", t=5, method="observed", clock="monotonic@b",
+                 resolution=1, credentials=("sync-cold",), role="verifier")
+    assert classify([sync], {}, {}, faults=[]) == {}

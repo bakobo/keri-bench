@@ -71,6 +71,16 @@ async def _provision(home, passcode: str) -> tuple[str, tuple[str, ...], str]:
         return facet.aid, facet.oobis, registry.regid
 
 
+async def start_listener(server) -> asyncio.Task:
+    """Start a uvicorn server and return once it accepts, so the announcement is never early."""
+    task = asyncio.create_task(server.serve())
+    while not server.started:
+        if task.done():
+            raise SystemExit("imbu's control listener stopped before it started")
+        await asyncio.sleep(0.02)
+    return task
+
+
 async def serve(args, passcode: str, issuer: str, oobis, registry: str) -> None:
     import fiki
     import uvicorn
@@ -87,11 +97,7 @@ async def serve(args, passcode: str, issuer: str, oobis, registry: str) -> None:
     with service:
         server = uvicorn.Server(uvicorn.Config(create_app(service), host="127.0.0.1",
                                                port=args.control_port, log_level="warning"))
-        task = asyncio.create_task(server.serve())
-        while not server.started:
-            if task.done():
-                raise SystemExit("imbu's control listener stopped before it started")
-            await asyncio.sleep(0.02)
+        task = await start_listener(server)
         announce(issuer=issuer, oobis=list(oobis), registry=registry,
                  control=f"http://127.0.0.1:{args.control_port}")
         await task  # uvicorn exits on SIGTERM; then the service closes

@@ -42,7 +42,9 @@ def _overlaps(start: int, end: int, faults: Sequence[tuple[int, int]]) -> bool:
 def classify(events: Iterable[Event], verifier: Mapping[str, Mapping],
              anchors: Mapping[str, int | None], *,
              faults: Sequence[tuple[int, int]]) -> dict[str, Outcome]:
-    """Classify every credential named by an event.
+    """Classify every credential the run asked for: named by a ``requested`` event, or asked
+    about in the verifier's answers. Ids that name something else, such as a cold sync, are not
+    credentials and are left out.
 
     A lifecycle runs from the credential's ``requested`` event to its latest event on that same
     (harness) clock; events stamped on other clocks are not placed against fault windows.
@@ -53,6 +55,8 @@ def classify(events: Iterable[Event], verifier: Mapping[str, Mapping],
             by_credential[credential].append(event)
     out = {}
     for credential, own in by_credential.items():
+        if credential not in verifier and not any(e.name == "requested" for e in own):
+            continue
         answer = verifier.get(credential, {"status": "unknown", "said": None})
         status = answer.get("status")
         if status not in _KNOWN:

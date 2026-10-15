@@ -227,6 +227,10 @@ class HetiVerifier(_Party, VerifierAdapter):
             "toad": Knob(int, "Receipts the verifier's facet requires."),
             "freshness_s": Knob(float, "How old the Observer's state may be before the verifier "
                                 "refuses to rely on it.", unit="s"),
+            "retry_ms": Knob(float, "How soon a refused verification is tried again.",
+                             unit="ms"),
+            "deadline_s": Knob(float, "How long verification is retried before the credential "
+                               "counts as not verified.", unit="s"),
         }),
         tested_against={"heti": HETI})
 
@@ -240,26 +244,34 @@ class HetiVerifier(_Party, VerifierAdapter):
                                   observer["observer_aid"], "--freshness",
                                   f"{self.ctx.knobs['freshness_s']:g}"))
 
-    def _registry(self) -> str:
-        return self.ctx.peers[Role.ISSUER]["registry"]
-
     async def verify(self, credential: str, presentation) -> bool:
-        _check(await self.client.post(f"{self.api()}/verify/{credential}",
-                                      body=json.dumps(presentation).encode()),
-               "verification", credential)
-        self.ctx.emit("verified", credentials=[credential])
+        """Verify, retrying refusals until the deadline: a presentation can reach the verifier
+        before the Observer holds the state that makes it current, and a real verifier asked
+        again later would accept it. ``verified`` is the first acceptance, so the interval from
+        ``proof_generated`` includes waiting for state to arrive, which is what independent
+        verification costs (pair 3). The number of attempts goes with the event."""
+        knobs = self.ctx.knobs
+        deadline = self.ctx.now() + round(knobs["deadline_s"] * 1e9)
+        body, attempts = json.dumps(presentation).encode(), 0
+        while True:
+            attempts += 1
+            answer = await self.client.post(f"{self.api()}/verify/{credential}", body=body)
+            if answer.status < 300 or self.ctx.now() >= deadline:
+                break
+            await asyncio.sleep(knobs["retry_ms"] / 1e3)
+        _check(answer, "verification", credential)
+        self.ctx.emit("verified", credentials=[credential], attrs={"attempts": attempts})
         return True
 
     async def status(self, credential: str):
         said = self.ctx.shared.get("said", {}).get(credential)
         if said is None:
             return {"status": "unknown", "said": None}
-        answer = _check(await self.client.get(
-            f"{self.api()}/status/{said}?registry={self._registry()}"), "status", credential)
+        answer = _check(await self.client.get(f"{self.api()}/status/{said}"), "status",
+                        credential)
         return {"status": answer.json()["status"], "said": said}
 
     async def sync_cold(self) -> None:
         self.ctx.emit("sync_full_started", credentials=["sync-cold"])
-        _check(await self.client.post(f"{self.api()}/sync/cold?registry={self._registry()}"),
-               "a cold sync", "sync-cold")
+        _check(await self.client.post(f"{self.api()}/sync/cold"), "a cold sync", "sync-cold")
         self.ctx.emit("sync_full_done", credentials=["sync-cold"])
