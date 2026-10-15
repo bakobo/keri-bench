@@ -266,6 +266,11 @@ class HetiVerifier(_Party, VerifierAdapter):
                 break
             await asyncio.sleep(knobs["retry_ms"] / 1e3)
         _check(answer, "verification", credential)
+        found = answer.json()
+        said = self.ctx.shared.get("said", {}).get(credential)
+        if found.get("valid") is not True or (said is not None and found.get("said") != said):
+            raise BenchError(E_STAGE, f"The verifier answered {answer.status} for {credential} "
+                             f"without accepting it as issued: {found!r}"[:500])
         self.ctx.emit("verified", credentials=[credential], attrs={"attempts": attempts})
         return True
 

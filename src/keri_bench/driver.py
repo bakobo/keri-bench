@@ -97,7 +97,11 @@ def check_driver(scheduled: Sequence[int], dispatched: Sequence[int | None], *,
         rises = rises + 1 if after > before else 0
         longest = max(longest, rises)
     reason = None
-    if p99 > lag_limit_ns:
+    lost = sum(1 for t in dispatched if t is None)
+    if lost:
+        reason = (f"{lost} scheduled request(s) never left the driver, so the offered load was "
+                  f"not the load the system saw.")
+    elif p99 > lag_limit_ns:
         reason = (f"The driver's p99 send lag was {p99} ns, above the {lag_limit_ns} ns limit, "
                   f"so the driver, not the system, set the pace.")
     elif longest >= GROWTH_WINDOWS:

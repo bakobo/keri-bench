@@ -343,7 +343,10 @@ def _gaps(run: _Run, matrix: dict, names: Sequence[str],
     for start, end in intervals:
         if _domain(run, matrix, start) != _domain(run, matrix, end):
             found += [unmeasured(start), unmeasured(end)]
-    return list(dict.fromkeys(gap for gap in found if gap))
+    found = list(dict.fromkeys(gap for gap in found if gap))
+    # Declared and measurable in principle, but a pair is measured only if it was in this run.
+    return found or [f"{name} is declared, but no {name} event appeared in this run."
+                     for name in names if name not in run.observed]
 
 
 def _ordered(pair: Pair) -> list[str]:
@@ -366,6 +369,24 @@ def _observability(run: _Run, faults: list[dict]) -> dict:
     return {"milestones": matrix, "pairs": pairs}
 
 
+def _failures(events) -> dict:
+    """Lifecycle stages that failed, by stage and code, and a scheduled fault that could not be
+    applied, which refuses the run: its numbers would describe a fault that never happened."""
+    stages: dict[str, int] = {}
+    codes: dict[str, int] = {}
+    fault_failed = None
+    for event in events:
+        attrs = event.attrs or {}
+        if event.name == "stage_failed":
+            stages[attrs.get("stage", "?")] = stages.get(attrs.get("stage", "?"), 0) + 1
+            codes[attrs.get("code", "?")] = codes.get(attrs.get("code", "?"), 0) + 1
+        elif event.name == "fault_failed" and fault_failed is None:
+            fault_failed = (f"The scheduled {attrs.get('kind')} fault on {attrs.get('target')} "
+                            f"could not be applied: {attrs.get('error')}")
+    return {"count": sum(stages.values()), "by_stage": stages, "by_code": codes,
+            "fault_failed": fault_failed}
+
+
 def _warnings(run: _Run, driver: dict, intervals: dict) -> list[str]:
     out = []
     for item in provenance_file.untested(run.record["adapters"], run.record["components"]):
@@ -379,7 +400,7 @@ def _warnings(run: _Run, driver: dict, intervals: dict) -> list[str]:
         skipped = entry["not_measured"]
         if skipped["count"]:
             out.append(f"The interval {key} was not measured for {skipped['count']} "
-                       f"credential(s) because of clock domains. "
+                       f"credential(s) because of its clock evidence. "
                        + " ".join(skipped["reasons"]))
     return out
 
@@ -399,6 +420,8 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         outcomes = classify(events, section["verifier"], section["anchors"], faults=spans)
         reconciliation = {"summary": summary(outcomes),
                           "credentials": {c: outcomes[c].to_dict() for c in sorted(outcomes)}}
+    failures = _failures(events)
+    refused = driver["reason"] if not driver["ok"] else failures["fault_failed"]
     out = {
         "report_schema": REPORT_SCHEMA, "generator_commit": generator_commit,
         "timeline_schema": header.timeline_schema,
@@ -407,13 +430,19 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         "run": run.run,
         "window": {"start_ns": run.start, "end_ns": run.end, "warmup_ns": run.warmup,
                    "measured_from_ns": run.measured_from, "credentials": len(run.window)},
-        "driver": driver, "refused": not driver["ok"], "refused_reason": driver["reason"],
+        "driver": driver, "refused": refused is not None, "refused_reason": refused,
+        "failures": failures,
         "measure": _key(*run.measure), "intervals": intervals, "incomplete": _censored(run),
         "throughput": _throughput(run), "observability": _observability(run, windows),
         "faults": _faults(run, windows), "reconciliation": reconciliation,
         "measurement_cost": record.get("measurement_cost", NOT_MEASURED),
         "census": NOT_MEASURED, "warnings": _warnings(run, driver, intervals),
     }
+    if failures["fault_failed"]:
+        out["warnings"].append(f"The run is refused. {failures['fault_failed']}")
+    if failures["count"]:
+        out["warnings"].append(f"{failures['count']} lifecycle stage(s) failed: "
+                               f"{failures['by_stage']}, with codes {failures['by_code']}.")
     # Provenance written before calibration existed has no section, and its report is unchanged.
     if "calibration" in record:
         out["calibration"] = record["calibration"]

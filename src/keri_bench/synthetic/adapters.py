@@ -246,8 +246,10 @@ class SyntheticVerifier(_Synthetic, VerifierAdapter):
         answer = _check(await self.client.post(f"{self.api(Role.VERIFIER)}/verify/{credential}",
                                                body=str(presentation).encode()),
                         "verify", credential)
+        if answer.json().get("valid") is not True:
+            return False
         self.ctx.emit("verified", credentials=[credential])
-        return answer.json()["valid"]
+        return True
 
     async def status(self, credential: str):
         return _check(await self.client.get(f"{self.api(Role.VERIFIER)}/status/{credential}"),

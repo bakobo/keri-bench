@@ -67,14 +67,15 @@ def test_a_run_is_refused_just_above_the_lag_limit_and_accepted_just_below(lag, 
     assert verdict.p99_lag_ns >= lag
 
 
-def test_a_growing_backlog_over_three_windows_is_refused_even_with_small_lag():
-    # 300 requests over 3 s; in each second the last third never goes out at all.
+def test_a_growing_backlog_over_three_windows_is_refused_even_within_the_lag_limit():
+    # Every request leaves, each later than the last in proportion to its schedule: a driver
+    # falling further behind each second, under a lag limit set high enough not to fire first.
     scheduled = schedule(300, period=10 * MS)
-    dispatched = [s if (s % S) < (2 * S) // 3 else None for s in scheduled]
-    verdict = check_driver(scheduled, dispatched, lag_limit_ns=5 * MS)
+    dispatched = [s + s // 2 for s in scheduled]
+    verdict = check_driver(scheduled, dispatched, lag_limit_ns=10 * S)
     assert not verdict.ok
     assert "backlog" in verdict.reason
-    assert verdict.backlog == [33, 66, 99]
+    assert verdict.backlog == sorted(verdict.backlog) and verdict.backlog[-1] > verdict.backlog[0]
 
 
 def test_a_steady_backlog_is_not_growth():
@@ -82,6 +83,11 @@ def test_a_steady_backlog_is_not_growth():
     dispatched = [s + 2 * MS for s in scheduled]
     verdict = check_driver(scheduled, dispatched, lag_limit_ns=5 * MS)
     assert verdict.ok and verdict.reason is None
+
+
+def test_a_request_that_never_left_refuses_the_run():
+    verdict = check_driver([0], [None], lag_limit_ns=5 * MS)
+    assert not verdict.ok and "never left" in verdict.reason
 
 
 def test_check_driver_refuses_mismatched_inputs_and_an_empty_run():

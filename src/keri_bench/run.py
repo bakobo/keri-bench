@@ -47,7 +47,7 @@ E_ROLE_MISSING = "e.input.missing.scenario.role.f"
 E_ROLE_MISMATCH = "e.input.range.scenario.adapter.role.f"
 E_SOURCE = "e.state.conflict.run.milestone-source.f"
 E_FAULT_TARGET = "e.input.range.scenario.fault.target.f"
-E_RECOGNITION = "e.state.pending.run.recognition.r"
+E_NOT_VERIFIED = "e.proof.presentation.f"
 
 HARNESS_VERSION = "1"
 OFFSET_READS = 15
@@ -132,6 +132,9 @@ class Run:
     tasks: set = field(default_factory=set)
     exchanges: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     shared: dict = field(default_factory=dict)
+    recognitions: dict[str, list] = field(default_factory=dict)
+    watching: set = field(default_factory=set)
+    watch_over: asyncio.Event = field(default_factory=asyncio.Event)
     credentials: list[str] = field(default_factory=list)
 
     # --- events ---
@@ -237,7 +240,9 @@ class Run:
                     credential, self.verifier_identity)
             if "verify" in stages:
                 stage = "verify"
-                await self.adapters[Role.VERIFIER].verify(credential, presentation)
+                if not await self.adapters[Role.VERIFIER].verify(credential, presentation):
+                    raise BenchError(E_NOT_VERIFIED, f"The verifier did not accept the "
+                                     f"presentation of {credential}.")
             if "revoke" in stages:
                 stage = "revoke"
                 await issuer.revoke(credential)
@@ -249,25 +254,57 @@ class Run:
                 "stage": stage, "code": getattr(failed, "code", type(failed).__name__),
                 "error": str(failed)[:500]})
 
+    async def _status(self, credential: str) -> tuple[int, bool]:
+        polled = self.clock()
+        answer = await self.adapters[Role.VERIFIER].status(credential)
+        return polled, answer.get("status") == "revoked"
+
     async def _recognise(self, credential: str) -> None:
-        """Poll the verifier until ``stable_polls`` polls in a row say revoked; the milestone is
-        the first poll of that final streak, with the first revoked poll kept beside it."""
+        """Poll the verifier until ``stable_polls`` polls in a row say revoked, which ends the
+        credential's lifecycle; then keep polling until the run's watch ends, because the
+        milestone is the first poll after which every later poll says revoked, and only later
+        polls can show that (test plan, Milestones: revocation_recognised)."""
         rule = self.plan.scenario.recognition
-        verifier = self.adapters[Role.VERIFIER]  # one verifier; the plan says every one (~4jcn)
-        first_seen, streak_start, streak = None, None, 0
+        polls = self.recognitions.setdefault(credential, [])
+        streak = 0
         while streak < rule.stable_polls:
-            polled = self.clock()
-            answer = await verifier.status(credential)
-            if answer.get("status") == "revoked":
-                first_seen = polled if first_seen is None else first_seen
-                streak_start = polled if streak == 0 else streak_start
-                streak += 1
-            else:
-                streak = 0
+            polls.append(await self._status(credential))
+            streak = streak + 1 if polls[-1][1] else 0
             if streak < rule.stable_polls:
                 await asyncio.sleep(rule.poll_ms / 1e3)
-        self.monitor.emit("revocation_recognised", credentials=[credential], t=streak_start,
-                          attrs={"first_seen": first_seen, "polls": rule.stable_polls})
+        task = asyncio.get_running_loop().create_task(self._keep_watching(credential, polls))
+        self.watching.add(task)
+
+    async def _keep_watching(self, credential: str, polls: list) -> None:
+        """Poll on: at least ``stable_polls`` more times, then until the run's watch ends."""
+        rule = self.plan.scenario.recognition
+        extra = 0
+        while True:
+            try:
+                await asyncio.wait_for(self.watch_over.wait(), rule.poll_ms / 1e3)
+                if extra >= rule.stable_polls:
+                    return
+                await asyncio.sleep(rule.poll_ms / 1e3)
+            except TimeoutError:
+                pass
+            polls.append(await self._status(credential))
+            extra += 1
+
+    def _recognitions(self) -> None:
+        """Emit each credential's recognition from all its polls: the start of the final
+        unbroken run of revoked answers, if that run is at least ``stable_polls`` long."""
+        rule = self.plan.scenario.recognition
+        for credential, polls in self.recognitions.items():
+            tail = 0
+            while tail < len(polls) and polls[len(polls) - 1 - tail][1]:
+                tail += 1
+            if tail < rule.stable_polls:
+                continue
+            seen = [t for t, revoked in polls if revoked]
+            self.monitor.emit("revocation_recognised", credentials=[credential],
+                              t=polls[len(polls) - tail][0],
+                              attrs={"first_seen": seen[0], "polls": len(polls),
+                                     "relapsed": len(seen) > tail})
 
     def _fire(self, index: int, scheduled: int) -> None:
         credential = f"c{index:06d}"
@@ -359,7 +396,16 @@ class Run:
                                        load.drain_s)
             except TimeoutError:
                 pass
-            await asyncio.gather(*faults, return_exceptions=True)
+            for fault, outcome in zip(self.plan.scenario.faults,
+                                      await asyncio.gather(*faults, return_exceptions=True)):
+                if isinstance(outcome, Exception):
+                    self._harness_event("fault_failed", attrs={
+                        "kind": fault.kind, "target": fault.target,
+                        "error": str(outcome)[:500]})
+            self.watch_over.set()
+            await asyncio.gather(*self.watching, return_exceptions=True)
+            if self.plan.scenario.recognition is not None:
+                self._recognitions()
             if "sync" in self.plan.scenario.stages:
                 await self.adapters[Role.VERIFIER].sync_cold()
             await self._offsets()

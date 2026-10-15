@@ -111,6 +111,14 @@ def test_an_interval_is_never_reported_finer_than_its_resolution(value, resoluti
     assert Interval(value, resolution).reported() == shown
 
 
+def test_an_end_stamped_well_before_its_start_is_not_measured():
+    got = interval(ev("requested", 100), ev("constructed", 50, role="issuer"), Clocks(H))
+    assert isinstance(got, NotMeasured) and "inconsistent" in got.reason
+    within = interval(ev("requested", 100), ev("constructed", 60, method="polled",
+                                                 resolution=50, role="issuer"), Clocks(H))
+    assert within == Interval(-40, 50) and within.reported() == 0
+
+
 def test_offset_events_must_name_their_domain():
     bad = Event(name="clock_offset", t=0, method="observed", clock=H, resolution=1,
                 credentials=(), role="harness", attrs={"offset_ns": 1})

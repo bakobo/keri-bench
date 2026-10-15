@@ -67,6 +67,7 @@ HARNESS_EVENTS: dict[str, str] = {
     "run_started": "The measured window began.",
     "run_ended": "The measured window ended.",
     "stage_failed": "A credential's lifecycle stage failed; attrs name the stage and the error.",
+    "fault_failed": "A scheduled fault could not be applied; the run is refused.",
 }
 """Events the harness itself writes. They share the timeline with milestones but never a name."""
 

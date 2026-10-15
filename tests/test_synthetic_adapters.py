@@ -74,3 +74,24 @@ async def test_the_verifier_runs_a_cold_sync_and_refuses_an_error_answer(tmp_pat
         await verifier.stop()
         await state.stop()
         await procs.stop_all()
+
+
+async def test_a_verifier_answer_that_is_not_valid_is_not_a_verification(tmp_path):
+    from keri_bench.http import HttpClient
+    from keri_bench.synthetic import http
+
+    async def refuse(method, path, body):
+        return 200, {"valid": False}
+
+    server = await http.serve(refuse, 0)
+    url = f"http://127.0.0.1:{server.sockets[0].getsockname()[1]}"
+    sink = []
+    verifier = synthetic.SyntheticVerifier(context(synthetic.SyntheticVerifier, sink, tmp_path,
+                                                   peers={Role.VERIFIER: {"api": url}}))
+    verifier.client = HttpClient()
+    try:
+        assert await verifier.verify("c1", "P") is False
+        assert sink == []
+    finally:
+        await verifier.stop()
+        server.close()

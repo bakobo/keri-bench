@@ -9,6 +9,7 @@ scenario's text and hash go into provenance verbatim, so a report names exactly 
 from __future__ import annotations
 
 import hashlib
+import math
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -116,7 +117,9 @@ def _need(table: Mapping, key: str, where: str) -> Any:
 
 
 def _number(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    """A finite number: TOML admits inf and nan, and neither is a rate or a time."""
+    return isinstance(value, (int, float)) and not isinstance(value, bool) \
+        and math.isfinite(value)
 
 
 def _load(table: Mapping) -> Load:
@@ -193,6 +196,9 @@ def _fault(table: Mapping) -> Fault:
     delay = table.get("delay_ms", 0.0 if kind != "delay" else None)
     if delay is None:
         raise BenchError(E_FAULT_MISSING, f"The delay fault on {target} needs delay_ms.")
+    if not (_number(duration) and duration >= 0 and _number(delay) and delay >= 0):
+        raise BenchError(E_FAULT, f"The {kind} fault on {target} needs a duration_s and delay_ms "
+                         f"that are finite and not negative.")
     return Fault(kind, target, float(at), float(duration), float(delay))
 
 

@@ -9,6 +9,12 @@
     "p99_lag_ns": 3,
     "reason": null
   },
+  "failures": {
+    "by_code": {},
+    "by_stage": {},
+    "count": 0,
+    "fault_failed": null
+  },
   "faults": [
     {
       "after": {

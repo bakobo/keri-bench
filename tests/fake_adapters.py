@@ -72,3 +72,33 @@ class FakeWitnessPool(WitnessPoolAdapter):
         fronted = await self.ctx.front("advertised", "http://127.0.0.1:9")
         return {"oobis": [f"{fronted}/oobi/B1/controller", "http://127.0.0.1:8/oobi/B2"],
                 "aid": "Bwitness", "single": "http://127.0.0.1:7/x"}
+
+
+class FakeRevokingIssuer(FakeIssuer):
+    async def revoke(self, credential):
+        return None
+
+
+class ScriptedVerifier(VerifierAdapter):
+    """Accepts or refuses every presentation, and answers status polls from a script whose
+    last answer repeats: ``answers`` is a string of r (revoked) and v (valid)."""
+
+    declaration = Declaration(
+        adapter="fake.scripted_verifier", role=Role.VERIFIER, version="1", milestones={},
+        knobs=KnobSchema(1, {"accept": Knob(bool, "Accept presentations."),
+                             "answers": Knob(str, "Status answers, r or v, the last repeating.")}),
+        tested_against={"fake": "1"})
+
+    async def identity(self):
+        return {"aid": "Vscripted"}
+
+    async def verify(self, credential, presentation):
+        return self.ctx.knobs["accept"]
+
+    async def status(self, credential):
+        polls = self.ctx.shared.setdefault("polls", {})
+        index = polls.get(credential, 0)
+        polls[credential] = index + 1
+        script = self.ctx.knobs["answers"]
+        answer = script[min(index, len(script) - 1)]
+        return {"status": "revoked" if answer == "r" else "valid", "said": None}

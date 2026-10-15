@@ -151,8 +151,10 @@ def test_the_driver_check_reads_requested_and_dispatched(tmp_path):
     events = window(10_000) + simple("c1", 100, 1000, dispatched_lag=7) + [
         ev("requested", 200, ["c2"])]  # never dispatched
     got = derive(write_run(tmp_path, events))
-    assert got["driver"] == {"ok": True, "p99_lag_ns": 7, "backlog": [1], "reason": None,
-                             "lag_limit_ns": 5 * MS}
+    # c2 never left the driver: the offered load was not what the system saw, so it refuses.
+    assert got["driver"]["p99_lag_ns"] == 7 and got["driver"]["backlog"] == [1]
+    assert got["driver"]["ok"] is False and "never left" in got["driver"]["reason"]
+    assert got["refused"] is True
 
 
 def test_a_lagging_driver_refuses_the_run_and_says_so(tmp_path):
@@ -200,12 +202,14 @@ def test_a_cross_domain_interval_without_an_offset_is_not_measured_and_warned(tm
                "measured in this run."}
 
 
-def test_a_negative_interval_clamps_to_zero(tmp_path):
+def test_an_end_stamped_before_its_start_is_not_measured_rather_than_zero(tmp_path):
     events = window() + simple("c1", 100, 1000) + [
         ev("constructed", 300, ["c1"]), ev("registry_updated", 250, ["c1"])]
     got = derive(write_run(tmp_path, events, run=run_section(
         measure=["constructed", "registry_updated"])))
-    assert got["intervals"]["constructed->registry_updated"]["max"] == 0
+    entry = got["intervals"]["constructed->registry_updated"]
+    assert entry["measured"] is False and entry["not_measured"]["count"] == 1
+    assert "inconsistent" in entry["not_measured"]["reasons"][0]
 
 
 # --- incomplete credentials --------------------------------------------------------------------
@@ -291,7 +295,11 @@ def test_the_matrix_names_the_declaring_adapter_and_marks_the_rest_unobserved(tm
     assert matrix["anchored"]["events"] == 0
     assert matrix["stored"] == "unobserved"
     pairs = got["observability"]["pairs"]
-    assert pairs["construction_vs_registry"] == {"measurable": True, "gap": None}
+    assert pairs["construction_vs_registry"] == {
+        "measurable": False,
+        "gap": "constructed is declared, but no constructed event appeared in this run. "
+               "registry_updated is declared, but no registry_updated event appeared in this "
+               "run."}
     assert pairs["delivery_vs_storage"] == {
         "measurable": False,
         "gap": "No adapter in this run observes grant_sent. No adapter in this run observes "
@@ -320,7 +328,8 @@ def test_an_adapter_may_declare_another_roles_milestone_and_the_driver_may_decla
     assert got["observability"]["pairs"]["anchor_vs_witness"]["gap"] == (
         "anchored is stamped in realtime, which has no offset to the harness clock measured "
         "in this run.")
-    assert got["observability"]["pairs"]["construction_vs_registry"]["measurable"] is True
+    assert got["observability"]["pairs"]["construction_vs_registry"]["gap"].startswith(
+        "constructed is declared, but no constructed event appeared")
 
 
 def test_a_throughput_milestone_on_an_unmeasured_clock_is_a_gap(tmp_path):
@@ -437,7 +446,8 @@ def test_write_report_writes_json_and_markdown_beside_the_inputs(tmp_path):
 def test_the_markdown_quotes_every_pair_and_carries_the_key_numbers(tmp_path):
     cost = {"links": {"issuer": {"p50_ns": 200_000, "p99_ns": 800_000}}, "harness_cpu_s": 1.5}
     events = (window(10_000) + simple("c1", 100, 1000) + simple("c2", 200, 1200)
-              + [ev("requested", 9000, ["c3"]), ev("constructed", 500, ["c1"]),
+              + [ev("requested", 9000, ["c3"]), ev("dispatched", 9001, ["c3"]),
+                 ev("constructed", 500, ["c1"]),
                  ev("registry_updated", 600, ["c1"]), ev("anchored", 1, ["c1"], clock=SK),
                  ev("fault_started", 2000, attrs={"kind": "crash", "target": "issuer"}),
                  ev("process_killed", 2100, attrs={"process": "issuer"}),
@@ -468,7 +478,8 @@ def test_the_markdown_says_what_was_not_measured_and_when_the_run_was_refused(tm
     assert "No faults were scheduled" in text
     assert "Warnings" in text
     clean = report.render_markdown(derive(write_run(tmp_path / "ok", window()
-                                                    + [ev("requested", 100, ["c1"])])))
+                                                    + [ev("requested", 100, ["c1"]),
+                                                       ev("dispatched", 101, ["c1"])])))
     assert "No warnings" in clean
     unplaced = window() + [ev("requested", 100, ["c1"]),
                            ev("verified", 300, ["c1"], clock=SK, method="reported")]
@@ -661,6 +672,7 @@ SINGLES = {
                    "saids": ["Ec3"]}}},
     "measurement_cost": {"links": {"issuer": {"p50_ns": 210000, "p99_ns": 640000}},
                          "harness_cpu_s": 0.25},
+    "failures": {"count": 0, "by_stage": {}, "by_code": {}, "fault_failed": None},
     "warnings": ["The verifier adapter golden.verifier ran against heti 0.9.1, which it was "
                  "never contract-tested against (it was tested against 0.9)."],
     "pairs": PAIR_VERDICTS,
@@ -751,6 +763,7 @@ BATCH = {
             "b3": {"fate": "resumed", "double_anchored": False, "two_saids": True,
                    "saids": ["Eb3", "Eb3-dup"]}}},
     "measurement_cost": "not measured",
+    "failures": {"count": 0, "by_stage": {}, "by_code": {}, "fault_failed": None},
     "warnings": [],
     "pairs": PAIR_VERDICTS,
     "events": {"requested": 3, "constructed": 3, "registry_updated": 3, "anchored": 1,
@@ -778,7 +791,8 @@ def test_every_golden_report_agrees_with_its_hand_computed_values(where):
     hand = HAND[where.name]
     stored = frozen(where)
     for section in ("window", "driver", "refused", "measure", "intervals", "incomplete",
-                    "throughput", "faults", "reconciliation", "measurement_cost", "warnings"):
+                    "throughput", "faults", "reconciliation", "measurement_cost", "warnings",
+                    "failures"):
         assert stored[section] == hand[section], section
     assert stored["census"] == "not measured"
     assert stored["observability"]["pairs"] == hand["pairs"]
@@ -835,3 +849,19 @@ def test_a_failed_or_foreign_calibration_is_named(tmp_path):
     got = _with_calibration(tmp_path, good)
     assert not [w for w in got["warnings"] if "calibration" in w]
     assert "passed" in report.render_markdown(got)
+
+
+def test_failed_stages_are_counted_and_a_failed_fault_refuses_the_run(tmp_path):
+    events = window() + simple("c1", 100, 1000) + [
+        ev("stage_failed", 1100, ["c1"], attrs={"stage": "verify", "code": "e.proof.x.f"}),
+        ev("fault_failed", 1200, attrs={"kind": "delay", "target": "holder.api",
+                                        "error": "no such link"}),
+        ev("fault_failed", 1300, attrs={"kind": "crash", "target": "issuer", "error": "x"})]
+    got = derive(write_run(tmp_path, events))
+    assert got["failures"] == {"count": 1, "by_stage": {"verify": 1},
+                               "by_code": {"e.proof.x.f": 1},
+                               "fault_failed": "The scheduled delay fault on holder.api could "
+                                               "not be applied: no such link"}
+    assert got["refused"] is True and got["refused_reason"].startswith("The scheduled delay")
+    assert any(w.startswith("1 lifecycle stage(s) failed") for w in got["warnings"])
+    assert any(w.startswith("The run is refused. The scheduled") for w in got["warnings"])

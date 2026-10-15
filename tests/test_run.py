@@ -280,3 +280,81 @@ async def test_announced_endpoints_are_fronted_unless_already_fronted_or_not_url
     finally:
         for link in run.links.values():
             await link.stop()
+
+
+def scripted(accept, answers, stable=2, stages='["issue", "verify", "revoke"]'):
+    return f"""scenario_schema = 1
+name = "scripted"
+stages = {stages}
+[recognition]
+poll_ms = 5.0
+stable_polls = {stable}
+[load]
+rates = [10.0]
+duration_s = 0.1
+warmup_s = 0.0
+drain_s = 5.0
+repetitions = 3
+measure = ["requested", "constructed"]
+[roles.issuer]
+adapter = "fake.revoking_issuer"
+[roles.issuer.knobs]
+knob_schema = 1
+issue_s = 0.0
+[roles.verifier]
+adapter = "fake.scripted_verifier"
+[roles.verifier.knobs]
+knob_schema = 1
+accept = {"true" if accept else "false"}
+answers = "{answers}"
+"""
+
+
+@pytest.fixture
+def scripted_fakes(monkeypatch):
+    monkeypatch.setitem(registry.ADAPTERS, "fake.revoking_issuer",
+                        "fake_adapters:FakeRevokingIssuer")
+    monkeypatch.setitem(registry.ADAPTERS, "fake.scripted_verifier",
+                        "fake_adapters:ScriptedVerifier")
+
+
+async def scripted_run(tmp_path, text):
+    await runner.run_once(load(tmp_path, text), tmp_path / "out", rate=10.0, repetition=1,
+                          harness_commit="test")
+    return read_timeline(tmp_path / "out" / "rate-10" / "rep-1" / "timeline.jsonl")[1]
+
+
+async def test_a_revocation_a_later_poll_disproves_is_not_recognised(tmp_path, scripted_fakes):
+    events = await scripted_run(tmp_path, scripted(True, "rrv"))
+    assert "revocation_recognised" not in {e.name for e in events}
+    assert "stage_failed" not in {e.name for e in events}
+
+
+async def test_a_revocation_is_recognised_at_the_start_of_the_final_streak(tmp_path,
+                                                                          scripted_fakes):
+    events = await scripted_run(tmp_path, scripted(True, "rvr"))
+    recognised = [e for e in events if e.name == "revocation_recognised"]
+    assert len(recognised) == 1
+    assert recognised[0].attrs["relapsed"] is True
+    assert recognised[0].attrs["first_seen"] < recognised[0].t
+    assert recognised[0].attrs["polls"] >= 3
+
+
+async def test_a_verifier_that_refuses_the_presentation_fails_the_stage(tmp_path,
+                                                                        scripted_fakes):
+    events = await scripted_run(tmp_path, scripted(False, "r"))
+    failed = [e for e in events if e.name == "stage_failed"]
+    assert failed and failed[0].attrs["code"] == "e.proof.presentation.f"
+    assert failed[0].attrs["stage"] == "verify"
+
+
+async def test_a_fault_that_cannot_be_applied_refuses_the_run(tmp_path, fakes, monkeypatch):
+    async def broken(self, fault, window_start):
+        raise RuntimeError("the proxy would not take it")
+
+    monkeypatch.setattr(runner.Run, "_fault", broken)
+    text = fake_scenario(0.0) + ('[[faults]]\nkind = "crash"\ntarget = "issuer"\nat_s = 0.0\n')
+    report = await runner.run_once(load(tmp_path, text), tmp_path / "out", rate=20.0,
+                                   repetition=1, harness_commit="test")
+    assert report["refused"] is True
+    assert "the proxy would not take it" in report["failures"]["fault_failed"]

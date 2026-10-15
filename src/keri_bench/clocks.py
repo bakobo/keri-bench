@@ -144,12 +144,25 @@ class Clocks:
 
 
 def interval(start: Event, end: Event, clock_map: Clocks) -> Interval | NotMeasured:
+    """The interval between two events, or why it is not measured.
+
+    An end stamped before its start by more than the interval's resolution is inconsistent
+    clock evidence, and is not measured rather than reported as zero, which would pull the
+    percentiles down with a number nobody observed. Within the resolution it is uncertainty,
+    and reports as zero.
+    """
     resolution = max(start.resolution, end.resolution, 1)
     if start.clock == end.clock:
-        return Interval(end.t - start.t, resolution)
-    begin, finish = clock_map.to_harness(start), clock_map.to_harness(end)
-    for event, mapped in ((start, begin), (end, finish)):
-        if mapped is None:
-            return NotMeasured(f"{event.name} is stamped in {event.clock}, which has no offset "
-                               f"to the harness clock measured in this run.")
-    return Interval(finish[0] - begin[0], resolution + begin[1] + finish[1])
+        result = Interval(end.t - start.t, resolution)
+    else:
+        begin, finish = clock_map.to_harness(start), clock_map.to_harness(end)
+        for event, mapped in ((start, begin), (end, finish)):
+            if mapped is None:
+                return NotMeasured(f"{event.name} is stamped in {event.clock}, which has no "
+                                   f"offset to the harness clock measured in this run.")
+        result = Interval(finish[0] - begin[0], resolution + begin[1] + finish[1])
+    if result.value_ns < -result.resolution_ns:
+        return NotMeasured(f"{end.name} is stamped {-result.value_ns} ns before {start.name}, "
+                           f"more than the {result.resolution_ns} ns resolution, so the clock "
+                           f"evidence is inconsistent.")
+    return result
