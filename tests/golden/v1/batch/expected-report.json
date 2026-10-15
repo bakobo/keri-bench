@@ -1,0 +1,543 @@
+{
+  "census": "not measured",
+  "driver": {
+    "backlog": [
+      0
+    ],
+    "lag_limit_ns": 5000000,
+    "ok": true,
+    "p99_lag_ns": 1,
+    "reason": null
+  },
+  "faults": [
+    {
+      "after": {
+        "count": 0,
+        "measured": false,
+        "missing": 0,
+        "not_measured": {
+          "count": 0,
+          "reasons": []
+        },
+        "resolution_ns": null
+      },
+      "before": {
+        "count": 3,
+        "max": 3250,
+        "measured": true,
+        "missing": 0,
+        "not_measured": {
+          "count": 0,
+          "reasons": []
+        },
+        "p50": 3001,
+        "p90": 3251,
+        "p99": 3251,
+        "p99.9": 3251,
+        "resolution_ns": 250
+      },
+      "during": {
+        "count": 0,
+        "measured": false,
+        "missing": 0,
+        "not_measured": {
+          "count": 0,
+          "reasons": []
+        },
+        "resolution_ns": null
+      },
+      "ended_ns": 3510,
+      "kind": "crash",
+      "started_ns": 3000,
+      "target": "issuer",
+      "time_to_first_success_ns": 490,
+      "time_to_ready_ns": 500
+    }
+  ],
+  "generator_commit": "frozen-at-authoring",
+  "harness_commit": "golden-harness",
+  "incomplete": {
+    "count": 0,
+    "credentials": [],
+    "latency": {
+      "censored": 0,
+      "count": 3,
+      "max": {
+        "lower_bound": false,
+        "value": 3250
+      },
+      "p50": {
+        "lower_bound": false,
+        "value": 3001
+      },
+      "p90": {
+        "lower_bound": false,
+        "value": 3251
+      },
+      "p99": {
+        "lower_bound": false,
+        "value": 3251
+      },
+      "p99.9": {
+        "lower_bound": false,
+        "value": 3251
+      }
+    }
+  },
+  "intervals": {
+    "anchored->witnessed": {
+      "count": 3,
+      "end": "witnessed",
+      "max": 1000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 1000,
+      "p90": 1000,
+      "p99": 1000,
+      "p99.9": 1000,
+      "pairs": [
+        "anchor_vs_witness"
+      ],
+      "resolution_ns": 1000,
+      "start": "anchored"
+    },
+    "delivered->stored": {
+      "count": 0,
+      "end": "stored",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "delivery_vs_storage"
+      ],
+      "resolution_ns": null,
+      "start": "delivered"
+    },
+    "grant_sent->delivered": {
+      "count": 0,
+      "end": "delivered",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "delivery_vs_storage"
+      ],
+      "resolution_ns": null,
+      "start": "grant_sent"
+    },
+    "proof_generated->verified": {
+      "count": 0,
+      "end": "verified",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "proof_vs_verification"
+      ],
+      "resolution_ns": null,
+      "start": "proof_generated"
+    },
+    "published->sync_increment_applied": {
+      "count": 0,
+      "end": "sync_increment_applied",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "sync_full_vs_incremental"
+      ],
+      "resolution_ns": null,
+      "start": "published"
+    },
+    "registry_updated->anchored": {
+      "count": 3,
+      "end": "anchored",
+      "max": 1020,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 1020,
+      "p90": 1020,
+      "p99": 1020,
+      "p99.9": 1020,
+      "pairs": [
+        "anchor_vs_witness"
+      ],
+      "resolution_ns": 1020,
+      "start": "registry_updated"
+    },
+    "requested->anchored": {
+      "count": 3,
+      "end": "anchored",
+      "max": 1020,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 1020,
+      "p90": 1020,
+      "p99": 1020,
+      "p99.9": 1020,
+      "pairs": [],
+      "resolution_ns": 1020,
+      "start": "requested"
+    },
+    "requested->constructed": {
+      "count": 3,
+      "end": "constructed",
+      "max": 300,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 300,
+      "p90": 300,
+      "p99": 300,
+      "p99.9": 300,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->registry_updated": {
+      "count": 3,
+      "end": "registry_updated",
+      "max": 350,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 350,
+      "p90": 350,
+      "p99": 350,
+      "p99.9": 350,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->verified": {
+      "count": 3,
+      "end": "verified",
+      "max": 3250,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 3001,
+      "p90": 3251,
+      "p99": 3251,
+      "p99.9": 3251,
+      "pairs": [],
+      "resolution_ns": 250,
+      "start": "requested"
+    },
+    "requested->witnessed": {
+      "count": 3,
+      "end": "witnessed",
+      "max": 2040,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 2040,
+      "p90": 2040,
+      "p99": 2040,
+      "p99.9": 2040,
+      "pairs": [],
+      "resolution_ns": 1020,
+      "start": "requested"
+    },
+    "revocation_published->revocation_recognised": {
+      "count": 0,
+      "end": "revocation_recognised",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "revocation_vs_recognition"
+      ],
+      "resolution_ns": null,
+      "start": "revocation_published"
+    },
+    "revocation_requested->revocation_published": {
+      "count": 0,
+      "end": "revocation_published",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "revocation_vs_recognition"
+      ],
+      "resolution_ns": null,
+      "start": "revocation_requested"
+    },
+    "stored->proof_generated": {
+      "count": 0,
+      "end": "proof_generated",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "proof_vs_verification"
+      ],
+      "resolution_ns": null,
+      "start": "stored"
+    },
+    "sync_full_started->sync_full_done": {
+      "count": 0,
+      "end": "sync_full_done",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "sync_full_vs_incremental"
+      ],
+      "resolution_ns": null,
+      "start": "sync_full_started"
+    }
+  },
+  "measure": "requested->verified",
+  "measurement_cost": "not measured",
+  "observability": {
+    "milestones": {
+      "accepted": "unobserved",
+      "anchored": {
+        "adapter": "golden.issuer",
+        "clock": "realtime",
+        "events": 1,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "constructed": {
+        "adapter": "golden.issuer",
+        "clock": "harness",
+        "events": 3,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "issuer"
+      },
+      "delivered": "unobserved",
+      "grant_sent": "unobserved",
+      "proof_generated": "unobserved",
+      "published": "unobserved",
+      "registry_updated": {
+        "adapter": "golden.issuer",
+        "clock": "harness",
+        "events": 3,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "issuer"
+      },
+      "requested": {
+        "adapter": "driver",
+        "clock": "harness",
+        "events": 3,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "harness"
+      },
+      "revocation_anchored": "unobserved",
+      "revocation_published": "unobserved",
+      "revocation_recognised": "unobserved",
+      "revocation_requested": "unobserved",
+      "revocation_witnessed": "unobserved",
+      "stored": "unobserved",
+      "sync_full_done": "unobserved",
+      "sync_full_started": "unobserved",
+      "sync_increment_applied": "unobserved",
+      "verified": {
+        "adapter": "golden.verifier",
+        "clock": "harness",
+        "events": 3,
+        "method": "polled",
+        "resolution_ns": 250,
+        "role": "verifier"
+      },
+      "witnessed": {
+        "adapter": "golden.issuer",
+        "clock": "realtime",
+        "events": 1,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      }
+    },
+    "pairs": {
+      "anchor_vs_witness": {
+        "gap": null,
+        "measurable": true
+      },
+      "construction_vs_registry": {
+        "gap": null,
+        "measurable": true
+      },
+      "delivery_vs_storage": {
+        "gap": "No adapter in this run observes grant_sent. No adapter in this run observes delivered. No adapter in this run observes stored.",
+        "measurable": false
+      },
+      "normal_vs_faulted": {
+        "gap": null,
+        "measurable": true
+      },
+      "proof_vs_verification": {
+        "gap": "No adapter in this run observes stored. No adapter in this run observes proof_generated.",
+        "measurable": false
+      },
+      "revocation_vs_recognition": {
+        "gap": "No adapter in this run observes revocation_requested. No adapter in this run observes revocation_published. No adapter in this run observes revocation_recognised.",
+        "measurable": false
+      },
+      "sync_full_vs_incremental": {
+        "gap": "No adapter in this run observes sync_full_started. No adapter in this run observes sync_full_done. No adapter in this run observes published. No adapter in this run observes sync_increment_applied.",
+        "measurable": false
+      }
+    }
+  },
+  "reconciliation": {
+    "credentials": {
+      "b1": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Eb1"
+        ],
+        "two_saids": false
+      },
+      "b2": {
+        "double_anchored": true,
+        "fate": "resumed",
+        "saids": [
+          "Eb2"
+        ],
+        "two_saids": false
+      },
+      "b3": {
+        "double_anchored": false,
+        "fate": "resumed",
+        "saids": [
+          "Eb3",
+          "Eb3-dup"
+        ],
+        "two_saids": true
+      }
+    },
+    "summary": {
+      "done": 1,
+      "double_anchored": 1,
+      "lost": 0,
+      "resumed": 2,
+      "total": 3,
+      "two_saids": 1
+    }
+  },
+  "refused": false,
+  "refused_reason": null,
+  "report_schema": 1,
+  "run": {
+    "lag_limit_ms": 5.0,
+    "measure": [
+      "requested",
+      "verified"
+    ],
+    "rate": 1000.0,
+    "repetition": 2,
+    "stages": [
+      "steady"
+    ],
+    "warmup_s": 1e-06
+  },
+  "scenario_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "throughput": {
+    "milestones": {
+      "anchored": {
+        "count": 3,
+        "per_s": 300000.0,
+        "unconvertible": 0
+      },
+      "constructed": {
+        "count": 3,
+        "per_s": 300000.0,
+        "unconvertible": 0
+      },
+      "registry_updated": {
+        "count": 3,
+        "per_s": 300000.0,
+        "unconvertible": 0
+      },
+      "requested": {
+        "count": 3,
+        "per_s": 300000.0,
+        "unconvertible": 0
+      },
+      "verified": {
+        "count": 3,
+        "per_s": 300000.0,
+        "unconvertible": 0
+      },
+      "witnessed": {
+        "count": 3,
+        "per_s": 300000.0,
+        "unconvertible": 0
+      }
+    },
+    "offered_per_s": 1000.0,
+    "pairs": {
+      "construction_vs_registry": {
+        "constructed": 300000.0,
+        "registry_updated": 300000.0
+      }
+    },
+    "window_ns": 10000
+  },
+  "timeline_schema": 1,
+  "vocabulary_version": 1,
+  "warnings": [],
+  "window": {
+    "credentials": 3,
+    "end_ns": 11000,
+    "measured_from_ns": 1000,
+    "start_ns": 0,
+    "warmup_ns": 1000
+  }
+}
