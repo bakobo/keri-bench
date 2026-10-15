@@ -50,8 +50,8 @@ jobs:
         run: |
           git ls-remote ssh://git@github.com/bakobo/imbu HEAD > /dev/null
           git ls-remote ssh://git@github.com/bakobo/heti HEAD > /dev/null
-          uv sync --frozen --extra stacks
+          uv sync --locked --extra stacks
       - name: Real-stack tests at 100% branch coverage
         run: >
-          uv run --frozen pytest -rs tests/stacks --cov --cov-config=tests/stacks/coveragerc
+          uv run --locked pytest -rs tests/stacks --cov --cov-config=tests/stacks/coveragerc
           --cov-fail-under=100
