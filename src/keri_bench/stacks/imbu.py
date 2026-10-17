@@ -48,6 +48,8 @@ WALL = 1_000
 is the resolution claimed for them."""
 
 ISSUE_MILESTONES = ("anchored", "witnessed", "published")
+REQUIRED = ("anchored", "witnessed")
+"""What imbu owes for every verb that anchors; published only when a publisher is wired."""
 REVOKE_MILESTONES = {"anchored": "revocation_anchored", "witnessed": "revocation_witnessed",
                      "published": "revocation_published"}
 
@@ -186,6 +188,9 @@ class ImbuIssuer(IssuerAdapter):
             raise BenchError(E_SHAPE, f"imbu's finished operation carries milestones "
                              f"{milestones!r}, not an object."[:500])
         for theirs, ours in names.items():
+            if theirs not in milestones and theirs in REQUIRED:
+                raise BenchError(E_SHAPE, f"imbu's finished operation does not owe {theirs}, "
+                                 f"which every anchoring verb does.")
             if theirs not in milestones:
                 continue
             if milestones[theirs] is None:
@@ -203,10 +208,10 @@ class ImbuIssuer(IssuerAdapter):
         if answer.status != 202:
             raise BenchError(E_REFUSED, f"imbu answered {answer.status} to resolving the "
                              f"holder, not 202: {answer.body[:300]!r}")
-        resolved = (await self._finish(operation_id(answer))).get("result") or {}
-        if resolved.get("aid") != holder["aid"]:
-            raise BenchError(E_SHAPE, f"imbu resolved the holder's OOBI to "
-                             f"{resolved.get('aid')!r}, not the holder {holder['aid']!r}.")
+        resolved = (await self._finish(operation_id(answer))).get("result")
+        if not isinstance(resolved, dict) or resolved.get("aid") != holder["aid"]:
+            raise BenchError(E_SHAPE, f"imbu resolved the holder's OOBI to {resolved!r}, not "
+                             f"the holder {holder['aid']!r}."[:500])
 
     async def issue(self, credential: str, holder: Mapping[str, Any]) -> Issued:
         answer = await self._call("POST", "/v1/imbu/issuances",

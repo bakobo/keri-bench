@@ -44,7 +44,9 @@ class FakeImbu:
             self.reads[op] = self.reads.get(op, 0) + 1
             if op == "op-meet":
                 return 200, {"state": "done", "milestones": {"accepted": 1, "finished": 2},
-                             "result": {"aid": self.resolves_to}}
+                             "result": ({"aid": self.resolves_to}
+                                        if isinstance(self.resolves_to, str)
+                                        else self.resolves_to)}
             if op == "op-missing":
                 return 404, {"error": "no such operation"}
             if self.reads[op] == 1 or self.outcome == "pending":
@@ -128,6 +130,14 @@ async def test_a_failed_operation_or_a_refusal_is_a_coded_error(stand_in):
         with pytest.raises(BenchError) as unstamped:
             await issuer.issue("c5", {"aid": "Eholder"})
         assert unstamped.value.code == "e.input.format.imbu.operation.f"
+        stand_in.issued_milestones = {"accepted": 1, "published": 5_500, "finished": 6_000}
+        with pytest.raises(BenchError) as unowed:
+            await issuer.issue("c8", {"aid": "Eholder"})
+        assert unowed.value.code == "e.input.format.imbu.operation.f"
+        stand_in.resolves_to = ["Eholder"]
+        with pytest.raises(BenchError) as listed:
+            await issuer.meet({"aid": "Eholder", "oobi": "http://w/oobi/Eholder"})
+        assert listed.value.code == "e.input.format.imbu.operation.f"
         stand_in.issued_milestones = ["anchored"]
         with pytest.raises(BenchError) as shapeless:
             await issuer.issue("c6", {"aid": "Eholder"})

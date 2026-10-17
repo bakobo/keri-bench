@@ -73,6 +73,8 @@ class Verifier:
             try:
                 request = json.loads(body)
             except ValueError:
+                request = None
+            if not isinstance(request, dict) or not isinstance(request.get("grant"), str):
                 return 400, {"code": "e.input.format.status.f",
                              "error": "A status request is a JSON presentation."}
             return 200, {"status": await self.status(name, request)}

@@ -82,7 +82,8 @@ async def test_the_verifier_names_refusals_and_judges_status_from_a_fresh_presen
     assert await status() == "unknown"
     status_, body = await judge.handle("POST", "/verify/c2", b'{"oobi": "o", "grant": "!!"}')
     assert status_ == 409 and body["valid"] is False
-    assert (await judge.handle("POST", "/status/Es", b"{"))[0] == 400
+    for malformed in (b"{", b"null", b"[]", b"42", b"{}"):
+        assert (await judge.handle("POST", "/status/Es", malformed))[0] == 400
     # A presentation of another credential, even one admit refuses as revoked, says nothing of
     # this one.
     monkeypatch.setattr(verifier, "presented", lambda grant: ["Eanother"])
