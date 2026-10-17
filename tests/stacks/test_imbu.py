@@ -104,7 +104,8 @@ async def test_issue_and_revoke_report_imbus_own_times(stand_in):
 
 
 async def test_a_failed_operation_or_a_refusal_is_a_coded_error(stand_in):
-    issuer = adapter(stand_in.url, [])
+    sink = []
+    issuer = adapter(stand_in.url, sink)
     try:
         stand_in.outcome = "failed"
         with pytest.raises(BenchError) as failed:
@@ -122,18 +123,20 @@ async def test_a_failed_operation_or_a_refusal_is_a_coded_error(stand_in):
         with pytest.raises(BenchError) as stranger:
             await issuer.meet({"aid": "Eholder", "oobi": "http://w/oobi/Eholder"})
         assert stranger.value.code == "e.input.format.imbu.operation.f"
-        unpublished = dict(stand_in.issued_milestones)
-        del unpublished["published"]  # an imbu with no publisher owes no published
-        stand_in.issued_milestones = unpublished
-        assert (await issuer.issue("c7", {"aid": "Eholder"})).said == "Esaid"
-        stand_in.issued_milestones = {**unpublished, "published": None}
+        stand_in.issued_milestones = {**stand_in.issued_milestones, "published": None}
         with pytest.raises(BenchError) as unstamped:
             await issuer.issue("c5", {"aid": "Eholder"})
         assert unstamped.value.code == "e.input.format.imbu.operation.f"
-        stand_in.issued_milestones = {"accepted": 1, "published": 5_500, "finished": 6_000}
+        stand_in.issued_milestones = {"accepted": 1, "anchored": 3_000, "finished": 6_000}
         with pytest.raises(BenchError) as unowed:
             await issuer.issue("c8", {"aid": "Eholder"})
         assert unowed.value.code == "e.input.format.imbu.operation.f"
+        stand_in.issued_milestones = {"accepted": 1, "anchored": 3_000, "witnessed": 4_000,
+                                      "published": "yesterday", "finished": 6_000}
+        with pytest.raises(BenchError):
+            await issuer.issue("c9", {"aid": "Eholder"})
+        # A refused operation leaves no milestone behind it.
+        assert [e.name for e in sink if set(e.credentials) & {"c8", "c9"}] == ["accepted"] * 2
         stand_in.resolves_to = ["Eholder"]
         with pytest.raises(BenchError) as listed:
             await issuer.meet({"aid": "Eholder", "oobi": "http://w/oobi/Eholder"})

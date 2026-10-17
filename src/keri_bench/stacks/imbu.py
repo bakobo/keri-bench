@@ -48,8 +48,6 @@ WALL = 1_000
 is the resolution claimed for them."""
 
 ISSUE_MILESTONES = ("anchored", "witnessed", "published")
-REQUIRED = ("anchored", "witnessed")
-"""What imbu owes for every verb that anchors; published only when a publisher is wired."""
 REVOKE_MILESTONES = {"anchored": "revocation_anchored", "witnessed": "revocation_witnessed",
                      "published": "revocation_published"}
 
@@ -180,23 +178,22 @@ class ImbuIssuer(IssuerAdapter):
 
     def _report(self, op: dict, credential: str, names: Mapping[str, str],
                 said: str | None) -> None:
-        """Report each milestone a finished operation stamped. One it owes (its key is present)
-        and left null is refused rather than skipped: a done operation has reached them all, and
-        a missing stamp would quietly drop the evidence a measurement needs."""
+        """Report every milestone a finished operation owes. One missing or null is refused rather
+        than skipped: a done operation has reached them all, and a missing stamp would quietly
+        drop the evidence a measurement needs."""
         milestones = op.get("milestones")
         if not isinstance(milestones, dict):
             raise BenchError(E_SHAPE, f"imbu's finished operation carries milestones "
                              f"{milestones!r}, not an object."[:500])
-        for theirs, ours in names.items():
-            if theirs not in milestones and theirs in REQUIRED:
-                raise BenchError(E_SHAPE, f"imbu's finished operation does not owe {theirs}, "
-                                 f"which every anchoring verb does.")
-            if theirs not in milestones:
-                continue
-            if milestones[theirs] is None:
-                raise BenchError(E_SHAPE, f"imbu's finished operation owes {theirs} and never "
-                                 f"stamped it.")
-            self.ctx.emit(ours, credentials=[credential], t=stamp(milestones[theirs]),
+        for theirs in names:
+            if milestones.get(theirs) is None:
+                raise BenchError(E_SHAPE, f"imbu's finished operation did not stamp {theirs}, "
+                                 f"which imbu owes for every anchoring verb when a publisher is "
+                                 f"wired, as this stack's always is (issuer.py).")
+        # All read before any is emitted, so a refused operation leaves nothing in the timeline.
+        stamps = {ours: stamp(milestones[theirs]) for theirs, ours in names.items()}
+        for ours, t in stamps.items():
+            self.ctx.emit(ours, credentials=[credential], t=t,
                           attrs={"said": said} if said else None)
 
     async def meet(self, holder: Mapping[str, Any]) -> None:
