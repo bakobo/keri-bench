@@ -19,8 +19,8 @@ dependencies = [
 # (bakobo/witness) runs in its own uvx environment, as the summit harness runs it, because it pins
 # a different keripy.
 stacks = [
-    "imbu @ git+ssh://git@github.com/bakobo/imbu@6c0cfc71e1a68f793cb9656b6d85b64dd4cd64d2",
-    "heti @ git+ssh://git@github.com/bakobo/heti@ed519a21c76554a1a345f0dc02a1a0bdf5623618",
+    "imbu @ git+ssh://git@github.com/bakobo/imbu@963dfec",
+    "heti @ git+ssh://git@github.com/bakobo/heti@b6104e4a10a5eabb96265485553071de9229a6b4",
 ]
 
 [project.scripts]

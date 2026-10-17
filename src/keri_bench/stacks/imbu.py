@@ -1,25 +1,26 @@
-"""The imbu issuer adapter, built against imbu's asynchronous operations (plan item imbu-async).
+"""The imbu issuer adapter, against imbu's asynchronous operations (imbu 963dfec, plan item
+imbu-async, decision Q-EVAG).
 
-imbu's control routes are becoming asynchronous: a mutating request answers 202 with an
-operation, and the operation resource records each lifecycle milestone with the time it happened
-(the imbu-async brief, ~/code/bakobo/utah-keri-adoption/plan/briefs/imbu-async.md, decision
-Q-EVAG). This adapter reads those times as ``reported`` events. It has no synchronous fallback, on
-purpose: a synchronous issuance answers once witnessing is done, so anchored and witnessed could
-only be inferred, and an inferred milestone is never reported (this.i 7wt73dlu).
+A mutating request answers 202 with ``Location: /v1/imbu/operations/{id}`` and the operation in
+the body; the operation records each milestone it owes with the time it happened, stamped by
+whatever observed it rather than by whoever polls (imbu src/imbu/operations.py). This adapter
+reads those times as ``reported`` events. It has no synchronous fallback, on purpose: a
+synchronous issuance answers once witnessing is done, so anchored and witnessed could only be
+inferred, and an inferred milestone is never reported (this.i 7wt73dlu).
 
-What the brief does not pin down is read defensively and named here, so it is easy to correct
-once imbu-async lands:
-- the operation's id comes from the 202 body's ``operation`` (or ``id``), or its Location header;
-- milestones are ``op["milestones"][name]``, integer nanoseconds or ISO 8601, on imbu's wall
-  clock, which on the same host is the harness's ``realtime`` domain with a measured offset;
+What imbu's operation carries, as this adapter reads it:
+- the operation's id is the 202 body's ``id``, or the last segment of its Location header;
+- milestones are ``op["milestones"][name]``, RFC 3339 UTC with microseconds, on imbu's wall
+  clock, which on the same host is the harness's ``realtime`` domain with a measured offset; a
+  milestone owed and not yet reached is null;
+- an issuance owes accepted, anchored, witnessed, published (when a publisher is wired) and
+  finished; imbu stamps no ``constructed`` or ``registry_updated``, so neither is declared here;
 - the operation is finished when ``state`` is ``done``, and failed when it is ``failed``, with
   ``result.said`` and ``result.grant`` (base64) on success;
 - the client's idempotency key travels as the ``Idempotency-Key`` header.
 
-It issues through ``/v1/imbu/issuances``, which puts every credential in one shared registry.
-heti's verifier judges a registry by its head against the Observer, so on that route only the
-newest credential verifies independently (~4sfp); the bench needs imbu to issue one credential
-per registry, as SEDI's pool does, before verification numbers on imbu mean anything.
+Each issuance through ``/v1/imbu/issuances`` gets a registry of its own (imbu @2tdzyh85, Daniel's
+Q-ZSCW), as SEDI's pool does, so every credential verifies independently against the Observer.
 """
 
 from __future__ import annotations
@@ -43,10 +44,10 @@ from .adapters import IMBU, PYTHON, STARTUP, passcode
 
 VERSION = "1"
 WALL = 1_000
-"""imbu's milestone stamps are taken as wall-clock nanoseconds; a microsecond is the resolution
-claimed for them until imbu-async says otherwise."""
+"""imbu stamps milestones in RFC 3339 with microseconds (imbu operations.now), so a microsecond
+is the resolution claimed for them."""
 
-ISSUE_MILESTONES = ("constructed", "registry_updated", "anchored", "witnessed", "published")
+ISSUE_MILESTONES = ("anchored", "witnessed", "published")
 REVOKE_MILESTONES = {"anchored": "revocation_anchored", "witnessed": "revocation_witnessed",
                      "published": "revocation_published"}
 
@@ -109,9 +110,10 @@ class ImbuIssuer(IssuerAdapter):
             "operation_timeout_s": Knob(float, "How long an operation may run before the "
                                         "adapter gives up on it.", unit="s"),
         }),
-        tested_against={"imbu": "imbu-async, not yet landed"})
+        tested_against={"imbu": IMBU})
 
-    OPERATOR_ACTS = "create {record, commitment};destroy commitment"
+    OPERATOR_ACTS = ("create {record, commitment};destroy commitment;create relationship;"
+                     "observe info")
 
     def __init__(self, ctx) -> None:
         super().__init__(ctx)
@@ -123,7 +125,7 @@ class ImbuIssuer(IssuerAdapter):
         """imbu in its own process with the Registrar publisher wired (stacks/issuer.py)."""
         self.key = fiki.Key.generate()
         state = self.ctx.peers[Role.STATE_DISTRIBUTION]
-        args = ["--toad", str(self.ctx.knobs["toad"]), "--registrar", state["registrar"],
+        args = ["--toad", str(self.ctx.knobs["toad"]), "--registrar-url", state["registrar"],
                 "--controller", f"{self.key.aid}={self.OPERATOR_ACTS}",
                 "--control-port", str(free_port())]
         for oobi in self.ctx.peers[Role.WITNESS_POOL]["oobis"]:
@@ -134,7 +136,7 @@ class ImbuIssuer(IssuerAdapter):
                  "BENCH_PUBLISHER_SEED": state["publisher_seed"]}, timeout=STARTUP)
         found = process.announced
         return {"control": found["control"], "oobis": found["oobis"],
-                "registry": found["registry"], "issuer": found["issuer"]}
+                "issuer": found["issuer"]}
 
     async def connect(self):
         self.control = self.ctx.peers[Role.ISSUER]["control"]
@@ -178,9 +180,20 @@ class ImbuIssuer(IssuerAdapter):
                 said: str | None) -> None:
         milestones = op.get("milestones") or {}
         for theirs, ours in names.items():
-            if theirs in milestones:
+            if milestones.get(theirs) is not None:
                 self.ctx.emit(ours, credentials=[credential], t=stamp(milestones[theirs]),
                               attrs={"said": said} if said else None)
+
+    async def meet(self, holder: Mapping[str, Any]) -> None:
+        """imbu resolves the holder's OOBI, so it holds the issuee's key state when it grants:
+        heti seals a blinded registry's salt to the issuee only then (heti ipex._handoff), and
+        without the salt the holder cannot disclose a later revocation (holder.py)."""
+        answer = await self._call("POST", "/v1/imbu/resolutions", {"oobi": holder["oobi"]},
+                                  key=f"meet-{holder['aid']}")
+        if answer.status != 202:
+            raise BenchError(E_REFUSED, f"imbu answered {answer.status} to resolving the "
+                             f"holder, not 202: {answer.body[:300]!r}")
+        await self._finish(operation_id(answer))
 
     async def issue(self, credential: str, holder: Mapping[str, Any]) -> Issued:
         answer = await self._call("POST", "/v1/imbu/issuances",

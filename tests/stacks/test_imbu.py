@@ -1,5 +1,5 @@
-"""The imbu issuer adapter against a stand-in for imbu's asynchronous operations (imbu-async's
-brief), until imbu-async lands; then test_imbu_async_integration takes over."""
+"""The imbu issuer adapter against a stand-in for imbu's asynchronous operations, shaped as imbu
+963dfec answers (src/imbu/operations.py); test_imbu_async runs it against the real imbu."""
 
 import base64
 import json
@@ -29,7 +29,10 @@ class FakeImbu:
         self.requests.append((method, path))
         if method == "POST" and path == "/v1/imbu/issuances":
             request = json.loads(body)
-            return 202, {"operation": f"op-{request['attributes']['benchCredential']}"}
+            return 202, {"id": f"op-{request['attributes']['benchCredential']}",
+                         "state": "pending", "milestones": {"accepted": 1, "anchored": None}}
+        if method == "POST" and path == "/v1/imbu/resolutions":
+            return 202, {"id": "op-meet"}
         if method == "POST" and path == "/v1/imbu/revocations":
             return 202, {"operation": {"id": "op-revoke"}}
         if method == "GET" and path.startswith("/v1/imbu/operations/"):
@@ -38,7 +41,7 @@ class FakeImbu:
             if op == "op-missing":
                 return 404, {"error": "no such operation"}
             if self.reads[op] == 1 or self.outcome == "pending":
-                return 200, {"state": "pending", "milestones": {}}
+                return 200, {"state": "pending", "milestones": {"accepted": 1, "anchored": None}}
             if self.outcome == "failed":
                 return 200, {"state": "failed", "error": {"code": "e.state.pending.witness.r"}}
             if op == "op-revoke":
@@ -46,8 +49,9 @@ class FakeImbu:
                     "anchored": 5_000, "witnessed": "1970-01-01T00:00:00.000007+00:00",
                     "published": 9_000}}
             return 200, {"state": "done", "milestones": {
-                "constructed": 1_000, "registry_updated": 2_000, "anchored": 3_000,
-                "witnessed": "1970-01-01T00:00:00.000004+00:00"},
+                "accepted": 1, "anchored": 3_000,
+                "witnessed": "1970-01-01T00:00:00.000004+00:00", "published": None,
+                "finished": 6_000},
                 "result": {"said": "Esaid", "grant": base64.b64encode(b"grant").decode()}}
         return 404, {}
 
@@ -75,6 +79,7 @@ async def test_issue_and_revoke_report_imbus_own_times(stand_in):
     sink = []
     issuer = adapter(stand_in.url, sink)
     try:
+        await issuer.meet({"aid": "Eholder", "oobi": "http://w/oobi/Eholder"})
         issued = await issuer.issue("c1", {"aid": "Eholder"})
         await issuer.revoke("c1")
     finally:
@@ -82,13 +87,12 @@ async def test_issue_and_revoke_report_imbus_own_times(stand_in):
     assert (issued.said, issued.grant, issued.delivered_by_stack) == ("Esaid", b"grant", False)
     got = [(e.name, e.t, e.method, e.clock, e.role) for e in sink]
     assert got[0][:3] == ("accepted", got[0][1], "observed")
-    assert got[1:5] == [("constructed", 1_000, "reported", W, "issuer"),
-                        ("registry_updated", 2_000, "reported", W, "issuer"),
-                        ("anchored", 3_000, "reported", W, "issuer"),
+    # A milestone owed and null is not reported: published here, which imbu had not reached.
+    assert got[1:3] == [("anchored", 3_000, "reported", W, "issuer"),
                         ("witnessed", 4_000, "reported", W, "witness_pool")]
-    assert [e.name for e in sink[5:]] == ["revocation_requested", "revocation_anchored",
+    assert [e.name for e in sink[3:]] == ["revocation_requested", "revocation_anchored",
                                           "revocation_witnessed", "revocation_published"]
-    assert [e.t for e in sink[6:]] == [5_000, 7_000, 9_000]
+    assert [e.t for e in sink[4:]] == [5_000, 7_000, 9_000]
     assert sink[1].attrs["said"] == "Esaid"
     assert issuer.ctx.shared["said"] == {"c1": "Esaid"}
 
@@ -108,6 +112,9 @@ async def test_a_failed_operation_or_a_refusal_is_a_coded_error(stand_in):
             await issuer._finish("op-missing")
         assert gone.value.code == "e.party.imbu.refused.f"
         issuer.control = stand_in.url + "/elsewhere"
+        with pytest.raises(BenchError) as unmet:
+            await issuer.meet({"aid": "Eholder", "oobi": "http://w/oobi/Eholder"})
+        assert unmet.value.code == "e.party.imbu.refused.f"
         with pytest.raises(BenchError) as refused:
             await issuer.issue("c4", {"aid": "Eholder"})
         assert refused.value.code == "e.party.imbu.refused.f"

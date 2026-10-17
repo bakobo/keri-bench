@@ -54,56 +54,56 @@ class Box:
         return self.verdict
 
 
-async def test_the_verifier_names_refusals_and_judges_status_from_the_observer(monkeypatch):
-    monkeypatch.setattr(verifier, "disclosures", lambda grant: None)
-    admitted = SimpleNamespace(acdc=b"acdc")
+async def test_the_verifier_names_refusals_and_judges_status_from_a_fresh_presentation():
     ok = SimpleNamespace(state="issued", said="Es", registry="Er")
+    admitted = SimpleNamespace(acdc=b"acdc", blinders=None, verdict=ok)
     judge = verifier.Verifier(Box(ok), Facet(admitted), None, 30.0)
     assert (await judge.handle("GET", "/identity", b""))[0] == 200
     assert (await judge.handle("GET", "/nowhere", b""))[0] == 404
     request = json.dumps({"oobi": "o", "grant": base64.b64encode(b"g").decode()}).encode()
     assert (await judge.handle("POST", "/verify/c1", request))[1]["valid"]
-    assert (await judge.handle("GET", "/status/Es", b""))[1] == {"status": "valid"}
-    assert (await judge.handle("GET", "/status/Eother", b""))[1] == {"status": "unknown"}
+
+    async def status(said="Es"):
+        return (await judge.handle("POST", f"/status/{said}", request))[1]["status"]
+
+    assert await status() == "valid"
+    assert await status("Eother") == "unknown"  # never verified here
+    judge.facet = Facet(SimpleNamespace(acdc=b"acdc", blinders=None,
+                                        verdict=SimpleNamespace(said="Eanother")))
+    assert await status() == "unknown"  # a presentation of some other credential
+    judge.facet = Facet(admitted)
     judge.box = Box(Refused())
-    assert (await judge.handle("GET", "/status/Es", b""))[1] == {"status": "revoked"}
+    assert await status() == "revoked"
     judge.box = Box(ValueError("gap"))
-    assert (await judge.handle("GET", "/status/Es", b""))[1] == {"status": "unknown"}
+    assert await status() == "unknown"
     judge.box = Box(SimpleNamespace(state="unknown", said="Es", registry="Er"))
-    assert (await judge.handle("GET", "/status/Es", b""))[1] == {"status": "unknown"}
-    status, body = await judge.handle("POST", "/verify/c2", b'{"oobi": "o", "grant": "!!"}')
-    assert status == 409 and body["valid"] is False
+    assert await status() == "unknown"
+    status_, body = await judge.handle("POST", "/verify/c2", b'{"oobi": "o", "grant": "!!"}')
+    assert status_ == 409 and body["valid"] is False
 
 
-async def test_a_registrar_that_acknowledges_another_snapshot_is_refused(monkeypatch):
-    import fiki
+async def test_the_holder_refuses_a_re_presentation_it_cannot_make():
+    class Source:
+        async def read(self, registry):
+            raise ValueError("the Observer holds no chain for " + registry)
 
-    class Answer:
-        def raise_for_status(self):
-            pass
+    held = holder.Holder(None, None, Source())
+    held.held["c1"] = SimpleNamespace(verdict=SimpleNamespace(registry="Er"))
+    status, body = await held.handle("POST", "/represent/c1", b'{"verifier": "Ev"}')
+    assert (status, body["code"]) == (409, "ValueError")
 
-        def json(self):
-            return {"digest": "other"}
 
-    class Client:
-        def __init__(self, **kw):
-            pass
+async def test_a_holder_that_cannot_present_again_leaves_the_status_unknown(tmp_path):
+    class Holder:
+        async def represent(self, credential, verifier):
+            raise adapters.BenchError("e.party.stack.refused.f", "no")
 
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *exc):
-            pass
-
-        async def post(self, *a, **kw):
-            return Answer()
-
-    import httpx
-    monkeypatch.setattr(httpx, "AsyncClient", Client)
-    publisher = issuer.RegistrarPublisher("http://127.0.0.1:1", key=fiki.Key.generate())
-    snapshot = SimpleNamespace(registry="Er", issuer="Ei", digest="mine", chain=b"c", kel=b"k")
-    with pytest.raises(issuer.AcknowledgementMismatch):
-        await publisher.publish(snapshot)
+    ctx = AdapterContext(adapters.HetiVerifier.declaration, run_dir=tmp_path, knobs={},
+                         peers={}, procs=None, sink=[].append, harness_clock="h",
+                         realtime_clock="r", shared={"said": {"c1": "Es"}, "holder": Holder()})
+    party = adapters.HetiVerifier(ctx)
+    party.me = {"aid": "Ev"}
+    assert await party.status("c1") == {"status": "unknown", "said": "Es"}
 
 
 async def test_waiting_for_a_listener_gives_up_at_its_deadline():

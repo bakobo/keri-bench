@@ -391,6 +391,9 @@ class Run:
             verifier = self.adapters.get(Role.VERIFIER)
             self.holder_identity = await holder.identity() if holder else {}
             self.verifier_identity = await verifier.identity() if verifier else {}
+            issuer = self.adapters.get(Role.ISSUER)
+            if issuer is not None and self.holder_identity:
+                await issuer.meet(self.holder_identity)
             await self._offsets()
             # Everything allocated so far is long-lived; freezing it keeps a full collection
             # during the window from walking it, which showed up as multi-millisecond send lag.

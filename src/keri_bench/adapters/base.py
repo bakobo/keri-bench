@@ -197,6 +197,10 @@ class Adapter:
 
 
 class IssuerAdapter(Adapter):
+    async def meet(self, holder: Mapping[str, Any]) -> None:
+        """Learn the holder before the measured window, as an issuer knows its issuee before it
+        issues; by default there is nothing to learn."""
+
     async def issue(self, credential: str, holder: Mapping[str, Any]) -> Issued:
         raise NotImplementedError
 
