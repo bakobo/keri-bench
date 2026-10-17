@@ -2,3 +2,4 @@
 kind: todo
 created: 2026-10-15T07:17Z
 
+- 2026-10-17T13:46Z Resolved by 2ebc937: imbu 963dfec issues one registry per credential; the stack test verifies and revokes several credentials independently.
