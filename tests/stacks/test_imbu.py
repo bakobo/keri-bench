@@ -24,6 +24,10 @@ class FakeImbu:
         self.reads: dict[str, int] = {}
         self.outcome = "done"
         self.requests = []
+        self.resolves_to = "Eholder"
+        self.issued_milestones = {"accepted": 1, "anchored": 3_000,
+                                  "witnessed": "1970-01-01T00:00:00.000004+00:00",
+                                  "published": 5_500, "finished": 6_000}
 
     async def handle(self, method, path, body):
         self.requests.append((method, path))
@@ -38,6 +42,9 @@ class FakeImbu:
         if method == "GET" and path.startswith("/v1/imbu/operations/"):
             op = path.rsplit("/", 1)[1]
             self.reads[op] = self.reads.get(op, 0) + 1
+            if op == "op-meet":
+                return 200, {"state": "done", "milestones": {"accepted": 1, "finished": 2},
+                             "result": {"aid": self.resolves_to}}
             if op == "op-missing":
                 return 404, {"error": "no such operation"}
             if self.reads[op] == 1 or self.outcome == "pending":
@@ -48,10 +55,7 @@ class FakeImbu:
                 return 200, {"state": "done", "milestones": {
                     "anchored": 5_000, "witnessed": "1970-01-01T00:00:00.000007+00:00",
                     "published": 9_000}}
-            return 200, {"state": "done", "milestones": {
-                "accepted": 1, "anchored": 3_000,
-                "witnessed": "1970-01-01T00:00:00.000004+00:00", "published": None,
-                "finished": 6_000},
+            return 200, {"state": "done", "milestones": self.issued_milestones,
                 "result": {"said": "Esaid", "grant": base64.b64encode(b"grant").decode()}}
         return 404, {}
 
@@ -87,12 +91,12 @@ async def test_issue_and_revoke_report_imbus_own_times(stand_in):
     assert (issued.said, issued.grant, issued.delivered_by_stack) == ("Esaid", b"grant", False)
     got = [(e.name, e.t, e.method, e.clock, e.role) for e in sink]
     assert got[0][:3] == ("accepted", got[0][1], "observed")
-    # A milestone owed and null is not reported: published here, which imbu had not reached.
-    assert got[1:3] == [("anchored", 3_000, "reported", W, "issuer"),
-                        ("witnessed", 4_000, "reported", W, "witness_pool")]
-    assert [e.name for e in sink[3:]] == ["revocation_requested", "revocation_anchored",
+    assert got[1:4] == [("anchored", 3_000, "reported", W, "issuer"),
+                        ("witnessed", 4_000, "reported", W, "witness_pool"),
+                        ("published", 5_500, "reported", W, "state_distribution")]
+    assert [e.name for e in sink[4:]] == ["revocation_requested", "revocation_anchored",
                                           "revocation_witnessed", "revocation_published"]
-    assert [e.t for e in sink[4:]] == [5_000, 7_000, 9_000]
+    assert [e.t for e in sink[5:]] == [5_000, 7_000, 9_000]
     assert sink[1].attrs["said"] == "Esaid"
     assert issuer.ctx.shared["said"] == {"c1": "Esaid"}
 
@@ -111,6 +115,23 @@ async def test_a_failed_operation_or_a_refusal_is_a_coded_error(stand_in):
         with pytest.raises(BenchError) as gone:
             await issuer._finish("op-missing")
         assert gone.value.code == "e.party.imbu.refused.f"
+        stand_in.outcome = "done"
+        stand_in.resolves_to = "Eother"
+        with pytest.raises(BenchError) as stranger:
+            await issuer.meet({"aid": "Eholder", "oobi": "http://w/oobi/Eholder"})
+        assert stranger.value.code == "e.input.format.imbu.operation.f"
+        unpublished = dict(stand_in.issued_milestones)
+        del unpublished["published"]  # an imbu with no publisher owes no published
+        stand_in.issued_milestones = unpublished
+        assert (await issuer.issue("c7", {"aid": "Eholder"})).said == "Esaid"
+        stand_in.issued_milestones = {**unpublished, "published": None}
+        with pytest.raises(BenchError) as unstamped:
+            await issuer.issue("c5", {"aid": "Eholder"})
+        assert unstamped.value.code == "e.input.format.imbu.operation.f"
+        stand_in.issued_milestones = ["anchored"]
+        with pytest.raises(BenchError) as shapeless:
+            await issuer.issue("c6", {"aid": "Eholder"})
+        assert shapeless.value.code == "e.input.format.imbu.operation.f"
         issuer.control = stand_in.url + "/elsewhere"
         with pytest.raises(BenchError) as unmet:
             await issuer.meet({"aid": "Eholder", "oobi": "http://w/oobi/Eholder"})

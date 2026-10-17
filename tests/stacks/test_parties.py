@@ -54,7 +54,9 @@ class Box:
         return self.verdict
 
 
-async def test_the_verifier_names_refusals_and_judges_status_from_a_fresh_presentation():
+async def test_the_verifier_names_refusals_and_judges_status_from_a_fresh_presentation(
+        monkeypatch):
+    monkeypatch.setattr(verifier, "presented", lambda grant: ["Es"])
     ok = SimpleNamespace(state="issued", said="Es", registry="Er")
     admitted = SimpleNamespace(acdc=b"acdc", blinders=None, verdict=ok)
     judge = verifier.Verifier(Box(ok), Facet(admitted), None, 30.0)
@@ -80,6 +82,16 @@ async def test_the_verifier_names_refusals_and_judges_status_from_a_fresh_presen
     assert await status() == "unknown"
     status_, body = await judge.handle("POST", "/verify/c2", b'{"oobi": "o", "grant": "!!"}')
     assert status_ == 409 and body["valid"] is False
+    assert (await judge.handle("POST", "/status/Es", b"{"))[0] == 400
+    # A presentation of another credential, even one admit refuses as revoked, says nothing of
+    # this one.
+    monkeypatch.setattr(verifier, "presented", lambda grant: ["Eanother"])
+    judge.box = Box(Refused())
+    assert await status() == "unknown"
+
+
+def test_a_grant_names_the_credentials_it_conveys_or_nothing():
+    assert verifier.presented(b"not a grant") is None
 
 
 async def test_the_holder_refuses_a_re_presentation_it_cannot_make():

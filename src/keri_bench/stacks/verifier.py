@@ -42,6 +42,19 @@ def count_events(chain: bytes) -> int:
     return count
 
 
+def presented(grant: bytes) -> list | None:
+    """The credential SAIDs a grant says it conveys, its signed ``a.o``; None if it cannot be
+    read. admit checks the claim against the bytes it carries, so a lie here is refused there."""
+    from keri.core import Counter, serdering
+    from keri.kering import Version
+    genus = bytes(Counter.makeGVC(version=Version))
+    body = grant[len(genus):] if grant.startswith(genus) else grant
+    try:
+        return serdering.SerderKERI(raw=bytearray(body)).sad.get("a", {}).get("o")
+    except Exception:
+        return None
+
+
 class Verifier:
     def __init__(self, box, facet, source, freshness: float) -> None:
         self.box, self.facet, self.source, self.freshness = box, facet, source, freshness
@@ -57,7 +70,12 @@ class Verifier:
         if method == "POST" and route == "verify":
             return await self.verify(json.loads(body))
         if method == "POST" and route == "status":
-            return 200, {"status": await self.status(name, json.loads(body))}
+            try:
+                request = json.loads(body)
+            except ValueError:
+                return 400, {"code": "e.input.format.status.f",
+                             "error": "A status request is a JSON presentation."}
+            return 200, {"status": await self.status(name, request)}
         if method == "POST" and route == "sync":
             registries = sorted(set(self.known.values()))
             events = 0
@@ -91,6 +109,10 @@ class Verifier:
             return "unknown"
         try:
             grant = base64.b64decode(request["grant"], validate=True)
+            # Which credential the presentation is of, before admit judges it: admit refuses a
+            # revoked credential, and that refusal must not be read as this one's revocation.
+            if presented(grant) != [said]:
+                return "unknown"
             admitted = await self.facet.admit(grant=grant, recency=party.RECENCY)
             if admitted.verdict.said != said:
                 return "unknown"

@@ -178,11 +178,21 @@ class ImbuIssuer(IssuerAdapter):
 
     def _report(self, op: dict, credential: str, names: Mapping[str, str],
                 said: str | None) -> None:
-        milestones = op.get("milestones") or {}
+        """Report each milestone a finished operation stamped. One it owes (its key is present)
+        and left null is refused rather than skipped: a done operation has reached them all, and
+        a missing stamp would quietly drop the evidence a measurement needs."""
+        milestones = op.get("milestones")
+        if not isinstance(milestones, dict):
+            raise BenchError(E_SHAPE, f"imbu's finished operation carries milestones "
+                             f"{milestones!r}, not an object."[:500])
         for theirs, ours in names.items():
-            if milestones.get(theirs) is not None:
-                self.ctx.emit(ours, credentials=[credential], t=stamp(milestones[theirs]),
-                              attrs={"said": said} if said else None)
+            if theirs not in milestones:
+                continue
+            if milestones[theirs] is None:
+                raise BenchError(E_SHAPE, f"imbu's finished operation owes {theirs} and never "
+                                 f"stamped it.")
+            self.ctx.emit(ours, credentials=[credential], t=stamp(milestones[theirs]),
+                          attrs={"said": said} if said else None)
 
     async def meet(self, holder: Mapping[str, Any]) -> None:
         """imbu resolves the holder's OOBI, so it holds the issuee's key state when it grants:
@@ -193,7 +203,10 @@ class ImbuIssuer(IssuerAdapter):
         if answer.status != 202:
             raise BenchError(E_REFUSED, f"imbu answered {answer.status} to resolving the "
                              f"holder, not 202: {answer.body[:300]!r}")
-        await self._finish(operation_id(answer))
+        resolved = (await self._finish(operation_id(answer))).get("result") or {}
+        if resolved.get("aid") != holder["aid"]:
+            raise BenchError(E_SHAPE, f"imbu resolved the holder's OOBI to "
+                             f"{resolved.get('aid')!r}, not the holder {holder['aid']!r}.")
 
     async def issue(self, credential: str, holder: Mapping[str, Any]) -> Issued:
         answer = await self._call("POST", "/v1/imbu/issuances",
