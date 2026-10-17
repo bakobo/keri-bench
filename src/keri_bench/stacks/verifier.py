@@ -6,8 +6,13 @@ place it takes TEL state from. Routes, each JSON:
 
 - ``POST /verify/<credential>`` with ``{"grant": base64, "oobi": holder OOBI}``: 200 with
   ``{"valid": true, "said", "registry"}``, or 409 with the refusal's code;
-- ``GET /status/<said>``: ``{"status": "valid"|"revoked"|"unknown"}``, judged against the
-  Observer as of now, for a credential this verifier has verified before;
+- ``POST /status/<said>`` with a fresh presentation, ``{"grant", "oobi"}``: ``{"status":
+  "valid"|"revoked"|"unknown"}``, judged against the Observer as of now with the disclosures
+  that presentation carries, for a credential this verifier has verified before. A blinded
+  registry's later state, such as a revocation, reads only with newer disclosures than the first
+  presentation's, so a fresh presentation is how this verifier recognises a revocation (heti
+  this.i, the AdmitResult.blinders node under @0ky6uwqz; the Observer-side blinder feed that
+  would make the holder unnecessary is the unlanded half of heti tick 7vhf);
 - ``POST /sync/<name>``: reads and parses the chain of every registry this verifier has met, as a
   cold verifier's first synchronization does, and answers how many registries and events.
 """
@@ -24,46 +29,38 @@ from . import announce, party, until_terminated
 REVOKED = "e.state.conflict.acdc.revoked."
 
 
-def states(chain: bytes) -> tuple[dict[str, str], int]:
-    """Each credential SAID's latest state in a registry chain, and how many events it holds.
-
-    imbu's simple issuance shares one registry whose ``upd`` events name a credential (``td``)
-    and its state (``ts``); the latest event naming a SAID decides it. This mirrors heti's
-    private ``verifying._chain`` parse, which has no public form.
-    """
+def count_events(chain: bytes) -> int:
+    """How many events a registry chain holds, read as a cold verifier reads them."""
     from keri.core import Counter, serdering
-    from keri.kering import Ilks, Version
+    from keri.kering import Version
     genus = bytes(Counter.makeGVC(version=Version))
     body = chain[len(genus):] if chain.startswith(genus) else chain
-    found, count = {}, 0
+    count = 0
     while body:
-        serder = serdering.SerderACDC(raw=body)
-        body = body[serder.size:]
+        body = body[serdering.SerderACDC(raw=body).size:]
         count += 1
-        if serder.ilk == Ilks.upd and serder.sad.get("td"):
-            found[serder.sad["td"]] = serder.sad.get("ts")
-    return found, count
+    return count
 
 
-def disclosures(grant: bytes) -> list[str] | None:
-    """The blinded-registry disclosures a holder's grant carries, signed in its ``a.blinders``.
-
-    heti's admit reads them but does not hand them back, and ``verify_current_acdc`` needs them
-    to read a blinded registry's state from the Observer: without them the state names no
-    credential, and the check fails as a binding mismatch.
-    """
+def presented(grant: bytes) -> list | None:
+    """The credential SAIDs a grant says it conveys, its signed ``a.o``; None if it cannot be
+    read. admit checks the claim against the bytes it carries, so a lie here is refused there."""
     from keri.core import Counter, serdering
     from keri.kering import Version
     genus = bytes(Counter.makeGVC(version=Version))
     body = grant[len(genus):] if grant.startswith(genus) else grant
-    return serdering.SerderKERI(raw=bytearray(body)).sad.get("a", {}).get("blinders")
+    try:
+        return serdering.SerderKERI(raw=bytearray(body)).sad.get("a", {}).get("o")
+    except Exception:
+        return None
 
 
 class Verifier:
     def __init__(self, box, facet, source, freshness: float) -> None:
         self.box, self.facet, self.source, self.freshness = box, facet, source, freshness
         self.met: set[str] = set()
-        self.known: dict[str, tuple[bytes, list | None, str]] = {}
+        self.known: dict[str, str] = {}
+        """Each credential this verifier has accepted, by SAID, and its registry."""
 
     async def handle(self, method: str, path: str, body: bytes):
         path = path.partition("?")[0]
@@ -72,13 +69,20 @@ class Verifier:
             return 200, {"aid": self.facet.aid, "oobi": self.facet.oobis[0]}
         if method == "POST" and route == "verify":
             return await self.verify(json.loads(body))
-        if method == "GET" and route == "status":
-            return 200, {"status": await self.status(name)}
+        if method == "POST" and route == "status":
+            try:
+                request = json.loads(body)
+            except ValueError:
+                request = None
+            if not isinstance(request, dict) or not isinstance(request.get("grant"), str):
+                return 400, {"code": "e.input.format.status.f",
+                             "error": "A status request is a JSON presentation."}
+            return 200, {"status": await self.status(name, request)}
         if method == "POST" and route == "sync":
-            registries = sorted({registry for _, _, registry in self.known.values()})
+            registries = sorted(set(self.known.values()))
             events = 0
             for registry in registries:
-                events += states((await self.source.read(registry)).chain)[1]
+                events += count_events((await self.source.read(registry)).chain)
             return 200, {"registries": len(registries), "events": events}
         return 404, {"error": f"There is no route {method} {path}."}
 
@@ -89,25 +93,34 @@ class Verifier:
                 self.met.add(request["oobi"])
             grant = base64.b64decode(request["grant"], validate=True)
             admitted = await self.facet.admit(grant=grant, recency=party.RECENCY)
+            # A verifier is not retained as the credential's holder, so the disclosures admit
+            # verified with are the only copy it has (heti AdmitResult.blinders, @9zc89rwz).
             verdict = await self.box.verify_current_acdc(
                 acdc=admitted.acdc, source=self.source, freshness=self.freshness,
-                recency=party.RECENCY, blinders=disclosures(grant))
+                recency=party.RECENCY, blinders=admitted.blinders)
         except Exception as refused:
             return 409, {"valid": False, "code": party.code(refused),
                          "error": str(refused)[:500]}
-        self.known[verdict.said] = (admitted.acdc, disclosures(grant), verdict.registry)
+        self.known[verdict.said] = verdict.registry
         return 200, {"valid": verdict.state == "issued", "said": verdict.said,
                      "registry": verdict.registry}
 
-    async def status(self, said: str) -> str:
-        """What this verifier would say of the credential now, from the Observer alone."""
+    async def status(self, said: str, request: dict) -> str:
+        """What this verifier says of the credential now, from a fresh presentation of it."""
         if said not in self.known:
             return "unknown"
-        acdc, blinders, _ = self.known[said]
         try:
+            grant = base64.b64decode(request["grant"], validate=True)
+            # Which credential the presentation is of, before admit judges it: admit refuses a
+            # revoked credential, and that refusal must not be read as this one's revocation.
+            if presented(grant) != [said]:
+                return "unknown"
+            admitted = await self.facet.admit(grant=grant, recency=party.RECENCY)
+            if admitted.verdict.said != said:
+                return "unknown"
             verdict = await self.box.verify_current_acdc(
-                acdc=acdc, source=self.source, freshness=self.freshness,
-                recency=party.RECENCY, blinders=blinders)
+                acdc=admitted.acdc, source=self.source, freshness=self.freshness,
+                recency=party.RECENCY, blinders=admitted.blinders)
         except Exception as refused:
             return "revoked" if party.code(refused).startswith(REVOKED) else "unknown"
         return "valid" if verdict.state == "issued" else "unknown"

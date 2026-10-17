@@ -34,7 +34,7 @@ uv run keri-bench report runs/smoke/rate-10/rep-1
 
 ## The imbu stack
 
-The real stack's adapters need private bakobo repositories, so they are an extra: `uv sync --extra stacks`, then `uv run pytest tests/stacks`. That stands up real keripy witnesses, the Registrar, heti's Observer, imbu, and a heti holder and verifier, and drives one credential through its whole lifecycle. `scenarios/imbu-smoke.toml` is the KERI-006 smoke run at one home. It needs imbu's asynchronous operations (plan item imbu-async), and its test skips until imbu has them. Each milestone's binding on this stack, and its known gaps, are in [`docs/adapters.md`](docs/adapters.md). The `Stacks` workflow runs all of this weekly.
+The real stack's adapters need private bakobo repositories, so they are an extra: `uv sync --extra stacks`, then `uv run pytest tests/stacks`. That stands up real keripy witnesses, the Registrar, heti's Observer, imbu, and a heti holder and verifier, and drives several credentials, each in its own registry, through their whole lifecycle. `scenarios/imbu-smoke.toml` is the KERI-006 smoke run at one home, against imbu's asynchronous operations. Each milestone's binding on this stack, and its known gaps, are in [`docs/adapters.md`](docs/adapters.md). The `Stacks` workflow runs all of this weekly.
 
 ## Layout
 

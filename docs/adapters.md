@@ -8,7 +8,8 @@ The test plan defines each milestone by the event that counts and leaves stack-s
 |---|---|---|---|
 | `requested` | harness driver | observed, harness | The scheduled send time. |
 | `accepted` | `imbu.issuer` | observed, harness | imbu's 202 answer to the issuance request. |
-| `constructed`, `registry_updated`, `anchored` | `imbu.issuer` | reported, realtime | The times imbu's operation resource records. `constructed` and `registry_updated` are only there if imbu-async stamps them; the bench asked for this through the plan's PM on 2026-10-15. |
+| `anchored` | `imbu.issuer` | reported, realtime | The time imbu's operation resource records, RFC 3339 with microseconds (imbu `src/imbu/operations.py`). |
+| `constructed`, `registry_updated` | none | unobserved | imbu's operation stamps neither, so pair 1's split before anchoring is a named gap. |
 | `witnessed` | `imbu.issuer`, filed under the witness pool | reported, realtime | Receipts reached toad, as imbu's operation records it (`this.i` 0ys878gy). |
 | `published` | `imbu.issuer`, filed under state distribution | reported, realtime | The Registrar acknowledged the snapshot (its 2xx means the snapshot is the new head), as imbu records it. |
 | `grant_sent` | harness relay | observed, harness | imbu returns the grant to its caller and delivers nothing itself, so the harness relays it. The channel is named `harness-relay`. |
@@ -18,7 +19,7 @@ The test plan defines each milestone by the event that counts and leaves stack-s
 | `verified` | `heti.verifier` | observed, harness | The first acceptance by an independent heti lockbox, checking currency against the Observer (`this.i` 27mjdj7q). Refusals are retried until `deadline_s`, and the attempts are recorded. |
 | `revocation_requested` | `imbu.issuer` | observed, harness | The revocation request left the adapter. |
 | `revocation_anchored`, `revocation_witnessed`, `revocation_published` | `imbu.issuer` | reported, realtime | Times from imbu's revocation operation. |
-| `revocation_recognised` | harness monitor | polled, harness | The first poll of the final unbroken run of `stable_polls` polls in which the verifier says revoked. The first poll that said revoked is kept beside it. |
+| `revocation_recognised` | harness monitor | polled, harness | The first poll of the final unbroken run of `stable_polls` polls in which the verifier says revoked. The first poll that said revoked is kept beside it. On this stack each poll is a fresh presentation: the verifier asks the holder to present again on the chain the Observer holds now, and judges that. |
 | `sync_full_started`, `sync_full_done` | `heti.verifier` | observed, harness | A cold read and parse of every registry the verifier has met, after the drain. |
 | `sync_increment_applied` | none | unobserved | No adapter observes it yet, so pair 5's incremental half is a named gap. |
 
@@ -27,13 +28,12 @@ The test plan defines each milestone by the event that counts and leaves stack-s
 - **Witnesses.** These are real keripy witnesses (`keri_bench.stacks.witnesses`), each advertising the harness's proxy, so receipts pass through it.
 - **Registrar.** bakobo/witness's Registrar, run with uvx at the summit harness's pin.
 - **Observer.** heti's Observer, subscribed to the Registrar through the proxy.
-- **imbu.** imbu's own `Service` and control plane, with the Registrar publisher injected as the summit harness does, because `imbu serve` wires none (imbu tick `~3p7h`).
+- **imbu.** imbu's own `Service` and control plane with its own `RegistrarPublisher`, stood up as `imbu serve --registrar-url` stands them up. Every issuance gets a registry of its own (imbu `@2tdzyh85`). Before the measured window imbu resolves the holder's OOBI (`IssuerAdapter.meet`), as an issuer knows its issuee: heti seals a registry's salt to the issuee only when the issuer holds the issuee's key state.
 
 ## Known limits
 
 - **Registrar to Observer.** The Registrar's batches go to the callback address the Observer registers itself, so that one link bypasses the fault proxy.
-- **Shared registry on simple issuance.** imbu's `/v1/imbu/issuances` puts every credential in one shared registry. heti judges a registry by its head against the Observer, so only the newest credential verifies independently (tick `~4sfp`). The bench needs one registry per credential, as SEDI's pool has, before verification numbers on imbu mean anything at more than one credential in flight.
-- **imbu issuer adapter untested against imbu.** It is written against imbu-async's brief and has never run against real imbu. Its integration test skips, with the reason, until imbu has operations.
+- **Revocation is recognised through the holder.** Every registry is blinded, and a presentation's disclosures read the chain only as of that presentation, so a verifier cannot read a later revocation from the Observer alone (heti `this.i`, the `AdmitResult.blinders` node under `@0ky6uwqz`). The verifier therefore polls by asking the holder to present again, and `revocation_published`→`revocation_recognised` includes that round trip. It measures when a verifier would refuse the credential at its next presentation, which is what SEDI's verifiers can do today. An Observer-side blinder feed, the unlanded half of heti tick `7vhf`, would let a verifier check status without the holder, and this binding should move to it when it lands.
 - **Signer census.** It reads `not measured` until heti's external-signer interface exists (plan item heti-signer).
 
 ## The calibration stack

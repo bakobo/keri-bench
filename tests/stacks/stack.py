@@ -1,7 +1,7 @@
 """The imbu stack as a scenario, for the real-stack tests."""
 
 
-def scenario(*, issuer="test.sync-imbu.issuer", stages='["issue", "deliver", "present", '
+def scenario(*, issuer="imbu.issuer", stages='["issue", "deliver", "present", '
              '"verify", "revoke", "sync"]', rate="1.0", duration="3.0", faults=""):
     return f"""scenario_schema = 1
 name = "imbu-stack"

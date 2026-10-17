@@ -30,8 +30,8 @@ from ..procs import free_port
 from ..vocabulary import Role
 
 VERSION = "1"
-HETI = "ed519a21c76554a1a345f0dc02a1a0bdf5623618"
-IMBU = "6c0cfc71e1a68f793cb9656b6d85b64dd4cd64d2"
+HETI = "b6104e4a10a5eabb96265485553071de9229a6b4"
+IMBU = "963dfeced29a02918a9e0c451b0567ab379d5296"
 WITNESS = "452215130900e40aea126b90bdc597569429919f"
 """The bakobo/witness commit the Registrar runs from, the summit harness's pin. It pins another
 keripy than heti does, so it runs in its own uvx environment, as the summit runs it."""
@@ -201,7 +201,25 @@ class HetiHolder(_Party, HolderAdapter):
         tested_against={"heti": HETI})
 
     async def start(self):
-        return await self._spawn()
+        # The verifier's revocation check asks this holder to present again (HetiVerifier.status).
+        self.ctx.shared["holder"] = self
+        return {}
+
+    async def connect(self):
+        """After the Observer, which starts in the state-distribution role's connect, since a
+        re-presentation reads the chain the Observer holds now."""
+        observer = self.ctx.peers[Role.STATE_DISTRIBUTION]
+        return await self._spawn(("--observer-url", observer["observer"], "--observer-aid",
+                                  observer["observer_aid"]))
+
+    async def represent(self, credential: str, verifier: Mapping[str, Any]) -> dict:
+        """A fresh presentation on the Observer's current chain, for a revocation check; not a
+        stage, so it emits nothing."""
+        answer = _check(await self.client.post(
+            f"{self.api()}/represent/{credential}",
+            body=json.dumps({"verifier": verifier["aid"]}).encode()), "re-presentation",
+            credential)
+        return {"grant": answer.json()["grant"], "oobi": self.me["oobi"]}
 
     async def receive(self, issued: Issued) -> None:
         credential = issued.credential
@@ -276,11 +294,20 @@ class HetiVerifier(_Party, VerifierAdapter):
         return True
 
     async def status(self, credential: str):
+        """Asks the holder to present again and judges that presentation: on a blinded registry
+        the first presentation's disclosures cannot read a later revocation (holder.py), so a
+        poll here costs a holder round trip, and revocation_recognised is when a fresh
+        presentation is refused as revoked."""
         said = self.ctx.shared.get("said", {}).get(credential)
         if said is None:
             return {"status": "unknown", "said": None}
-        answer = _check(await self.client.get(f"{self.api()}/status/{said}"), "status",
-                        credential)
+        try:
+            fresh = await self.ctx.shared["holder"].represent(credential, self.me)
+        except BenchError:
+            return {"status": "unknown", "said": said}
+        answer = await self.client.post(f"{self.api()}/status/{said}",
+                                        body=json.dumps(fresh).encode())
+        _check(answer, "status", credential)
         return {"status": answer.json()["status"], "said": said}
 
     async def sync_cold(self) -> None:
