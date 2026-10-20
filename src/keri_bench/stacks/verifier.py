@@ -22,11 +22,13 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+from pathlib import Path
 
 from ..synthetic import http
 from . import announce, party, until_terminated
 
 REVOKED = "e.state.conflict.acdc.revoked."
+KNOWN = "known.json"
 
 
 def count_events(chain: bytes) -> int:
@@ -56,11 +58,15 @@ def presented(grant: bytes) -> list | None:
 
 
 class Verifier:
-    def __init__(self, box, facet, source, freshness: float) -> None:
+    def __init__(self, box, facet, source, freshness: float, spool: Path | None = None) -> None:
         self.box, self.facet, self.source, self.freshness = box, facet, source, freshness
         self.met: set[str] = set()
         self.known: dict[str, str] = {}
-        """Each credential this verifier has accepted, by SAID, and its registry."""
+        """Each credential this verifier has accepted, by SAID, and its registry; kept in the
+        spool too, so a restarted verifier still knows what it verified (this.i 5ed29j5w)."""
+        self.spool = spool
+        if spool is not None and (spool / KNOWN).is_file():
+            self.known = json.loads((spool / KNOWN).read_text())
 
     async def handle(self, method: str, path: str, body: bytes):
         path = path.partition("?")[0]
@@ -102,6 +108,8 @@ class Verifier:
             return 409, {"valid": False, "code": party.code(refused),
                          "error": str(refused)[:500]}
         self.known[verdict.said] = verdict.registry
+        if self.spool is not None:
+            (self.spool / KNOWN).write_text(json.dumps(self.known))
         return 200, {"valid": verdict.state == "issued", "said": verdict.said,
                      "registry": verdict.registry}
 
@@ -129,8 +137,9 @@ class Verifier:
 async def serve(args) -> None:
     from heti.anchored.produce.observed import RegistrySource
     box, facet = await party.open_party(args)
+    args.spool.mkdir(parents=True, exist_ok=True)
     verifier = Verifier(box, facet, RegistrySource(args.observer_url, aid=args.observer_aid),
-                        args.freshness)
+                        args.freshness, args.spool)
     server = await http.serve(verifier.handle, args.port)
     announce(url=f"http://127.0.0.1:{args.port}", aid=facet.aid, oobi=facet.oobis[0])
     async with server:

@@ -10,6 +10,9 @@ harness/src/sedi_harness/procs/state.py at commit ce3b91edc3b32ef0b12c03ec90924c
 Whatever control routes the pinned imbu has are what this process serves; it adds none.
 The passcode comes from ``$BENCH_PASSCODE``, the publisher's seed from ``$BENCH_PUBLISHER_SEED``
 (hex) and the home from ``$IMBU_HOME``.
+
+A home that already exists is reopened rather than initialized, so a crash fault's restart is
+imbu recovering its own home, operations and all (this.i 5ed29j5w).
 """
 
 from __future__ import annotations
@@ -23,12 +26,14 @@ from . import announce, schema
 PROFILE = "bench"
 
 
-def _provision(home, passcode: str) -> tuple[str, tuple[str, ...]]:
-    """What ``imbu learn-schema`` does, before the service holds the home."""
+def _provision(home, passcode: str, *, learn: bool) -> tuple[str, tuple[str, ...]]:
+    """What ``imbu learn-schema`` does, before the service holds the home; a reopened home
+    learned it the first time."""
     from heti.anchored.produce import Lockbox, OwnFacet
     with Lockbox.open(path=home.path, passcode=passcode) as box:
         facet, = [f for f in box.facets() if isinstance(f, OwnFacet)]
-        box.learn_schema(raw=schema.raw())
+        if learn:
+            box.learn_schema(raw=schema.raw())
         return facet.aid, facet.oobis
 
 
@@ -79,9 +84,11 @@ def main(argv=None) -> None:
     args = parser.parse_args(argv)
     passcode = os.environ["BENCH_PASSCODE"]
     home = Home(PROFILE)
-    InProcessAgent(home, passcode).init(recovery=new_recovery_code(), witnesses=args.witness,
-                                        toad=args.toad)
-    issuer, oobis = _provision(home, passcode)
+    fresh = not home.is_home()
+    if fresh:
+        InProcessAgent(home, passcode).init(recovery=new_recovery_code(),
+                                            witnesses=args.witness, toad=args.toad)
+    issuer, oobis = _provision(home, passcode, learn=fresh)
     asyncio.run(serve(args, passcode, issuer, oobis))
 
 

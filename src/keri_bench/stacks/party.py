@@ -25,12 +25,20 @@ def arguments(description: str) -> argparse.ArgumentParser:
     parser.add_argument("--toad", type=int, required=True)
     parser.add_argument("--issuer-oobi", action="append", required=True)
     parser.add_argument("--port", type=int, required=True)
+    parser.add_argument("--spool", type=Path, required=True,
+                        help="where the wrapper keeps what a restart must not forget")
     return parser
 
 
 async def open_party(args):
-    """A new lockbox with one facet witnessed to toad, knowing the issuer and the schema."""
-    from heti.anchored.produce import Lockbox, new_recovery_code
+    """A new lockbox with one facet witnessed to toad, knowing the issuer and the schema; or,
+    after a crash, the same lockbox reopened, which already knows them (this.i 5ed29j5w)."""
+    from heti.anchored.produce import Lockbox, OwnFacet, new_recovery_code
+    if args.lockbox.exists():
+        box = Lockbox.open(path=str(args.lockbox), passcode=os.environ["BENCH_PASSCODE"],
+                           timeout=LOCKBOX_TIMEOUT)
+        facet, = [f for f in box.facets() if isinstance(f, OwnFacet)]
+        return box, facet
     box = Lockbox.create(path=str(args.lockbox), passcode=os.environ["BENCH_PASSCODE"],
                          recovery=new_recovery_code(), timeout=LOCKBOX_TIMEOUT)
     witnesses = [await box.learn_witness(oobi=oobi) for oobi in args.witness]

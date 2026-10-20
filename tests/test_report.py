@@ -390,6 +390,28 @@ def test_a_crash_reports_time_to_ready_and_to_first_success(tmp_path):
     assert fault["time_to_first_success_ns"] == 4050 - 3200
 
 
+def test_a_crash_of_a_role_with_several_processes_is_ready_when_the_last_is(tmp_path):
+    # this.i 5ed29j5w: "state_distribution" names two processes, and "state_distributor"
+    # merely shares a prefix, so it is not one of them.
+    crash = {"kind": "crash", "target": "state_distribution"}
+    events = window(10_000) + simple("c1", 100, 4500) + [
+        ev("fault_started", 2000, attrs=crash),
+        ev("process_killed", 2100, attrs={"process": "state_distribution.registrar"}),
+        ev("process_killed", 2150, attrs={"process": "state_distribution.observer"}),
+        ev("process_killed", 2120, attrs={"process": "state_distributor"}),
+        ev("process_ready", 2600, attrs={"process": "state_distribution.registrar"}),
+        ev("process_ready", 3900, attrs={"process": "state_distribution.observer"}),
+        ev("process_ready", 4000, attrs={"process": "state_distributor"}),
+        ev("fault_ended", 3900, attrs=crash)]
+    [fault] = derive(write_run(tmp_path, events))["faults"]
+    assert fault["time_to_ready_ns"] == 3900 - 2100
+    assert fault["time_to_first_success_ns"] == 4600 - 3900
+    # One of the two never came back: the role was never ready.
+    events = [e for e in events if not (e.name == "process_ready" and e.t == 3900)]
+    [fault] = derive(write_run(tmp_path / "b", events))["faults"]
+    assert fault["time_to_ready_ns"] is None
+
+
 def test_a_crash_with_no_restart_or_no_success_reports_none(tmp_path):
     crash = [ev("fault_started", 2000, attrs={"kind": "crash", "target": "issuer"})]
     never_ready = window() + simple("c1", 100, 1000) + crash + [

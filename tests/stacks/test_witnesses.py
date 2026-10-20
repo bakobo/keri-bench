@@ -46,3 +46,45 @@ def test_the_witness_process_refuses_mismatched_ports_and_addresses(capsys):
     with pytest.raises(SystemExit):
         witnesses.main(["--port", "1", "--port", "2", "--advertise", "http://x"])
     assert "one --advertise per --port" in capsys.readouterr().err
+
+
+async def test_a_killed_witness_restarts_as_the_same_witness_with_its_store(tmp_path):
+    """this.i 5ed29j5w: a restarted witness must be the one every KEL names, and must still
+    hold what it held, or a crash test measures re-provisioning instead of recovery."""
+    port = free_port()
+    link = Link("w1", f"http://127.0.0.1:{port}")
+    await link.start()
+    procs = ProcessController(tmp_path)
+    store = tmp_path / "witnesses"
+    args = ("--port", str(port), "--advertise", link.url, "--seed", "ab" * 14, "--first", "1",
+            "--store", str(store))
+    client = HttpClient(timeout_s=30)
+    try:
+        before = (await procs.start("w1", WITNESSES, args, timeout=120)).announced
+        assert before["oobis"][0].startswith(link.url)
+        assert any(store.rglob("*")), "the witness keeps its keystore under --store"
+        await procs.kill("w1")
+        after = (await procs.restart("w1")).announced
+        assert after["aids"] == before["aids"]
+        assert (await client.get(after["oobis"][0])).status == 200
+    finally:
+        await client.close()
+        await procs.stop_all()
+        await link.stop()
+
+
+async def test_two_seeded_pools_with_different_first_indexes_are_different_witnesses(
+        tmp_path):
+    procs = ProcessController(tmp_path)
+    try:
+        aids = []
+        for index in (0, 1):
+            port = free_port()
+            announced = (await procs.start(
+                f"w{index}", WITNESSES, ("--port", str(port), "--advertise",
+                                         f"http://127.0.0.1:{port}", "--seed", "cd" * 14,
+                                         "--first", str(index)), timeout=120)).announced
+            aids += announced["aids"]
+        assert len(set(aids)) == 2
+    finally:
+        await procs.stop_all()

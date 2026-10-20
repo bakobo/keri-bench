@@ -29,7 +29,7 @@ from ..knobs import Knob, KnobSchema
 from ..procs import free_port
 from ..vocabulary import Role
 
-VERSION = "1"
+VERSION = "2"
 HETI = "b6104e4a10a5eabb96265485553071de9229a6b4"
 IMBU = "963dfeced29a02918a9e0c451b0567ab379d5296"
 WITNESS = "452215130900e40aea126b90bdc597569429919f"
@@ -85,15 +85,22 @@ class HetiWitnessPool(WitnessPoolAdapter):
         tested_against={"heti": HETI})
 
     async def start(self):
-        args = []
+        """One process per witness, ``witness_pool.w<i>``, so a crash can take one witness of
+        the pool or all of them; each keeps its keystore under the run directory and derives
+        its salt from one seed per run, so a restart is the same witness (this.i 5ed29j5w)."""
+        seed = secrets.token_bytes(14).hex()
+        oobis, aids = [], []
         for index in range(self.ctx.knobs["count"]):
             port = free_port()
             front = await self.ctx.front(f"w{index}", f"http://127.0.0.1:{port}")
-            args += ["--port", str(port), "--advertise", front]
-        process = await self.ctx.procs.start(
-            "witness_pool", (PYTHON, "-m", "keri_bench.stacks.witnesses"), tuple(args),
-            timeout=STARTUP)
-        return {"oobis": process.announced["oobis"], "aids": process.announced["aids"]}
+            process = await self.ctx.procs.start(
+                f"witness_pool.w{index}", (PYTHON, "-m", "keri_bench.stacks.witnesses"),
+                ("--port", str(port), "--advertise", front, "--seed", seed, "--first",
+                 str(index), "--store", str(self.ctx.run_dir / "witnesses")),
+                timeout=STARTUP)
+            oobis += process.announced["oobis"]
+            aids += process.announced["aids"]
+        return {"oobis": oobis, "aids": aids}
 
     async def versions(self):
         return {"heti": HETI}
@@ -143,7 +150,8 @@ class RegistrarObserver(StateDistributionAdapter):
                 "--resync", f"{self.ctx.knobs['resync_s']:g}", "--port", str(port)]
         for oobi in self.ctx.peers[Role.WITNESS_POOL]["oobis"]:
             args += ["--witness-oobi", oobi]
-        for oobi in self.ctx.peers[Role.ISSUER]["oobis"][:1]:
+        # One OOBI per imbu home (imbu.ImbuIssuer.start), so the Observer knows every issuer.
+        for oobi in self.ctx.peers[Role.ISSUER]["oobis"]:
             args += ["--issuer-oobi", oobi]
         process = await self.ctx.procs.start(
             "state_distribution.observer", (PYTHON, "-m", "heti.observer"), tuple(args),
@@ -164,10 +172,11 @@ class _Party:
         self.client = HttpClient()
         port = free_port()
         args = ["--lockbox", str(self.ctx.run_dir / self.process_name), "--port", str(port),
-                "--toad", str(self.ctx.knobs["toad"])]
+                "--toad", str(self.ctx.knobs["toad"]),
+                "--spool", str(self.ctx.run_dir / f"{self.process_name}-spool")]
         for oobi in self.ctx.peers[Role.WITNESS_POOL]["oobis"]:
             args += ["--witness", oobi]
-        for oobi in self.ctx.peers[Role.ISSUER]["oobis"][:1]:
+        for oobi in self.ctx.peers[Role.ISSUER]["oobis"]:
             args += ["--issuer-oobi", oobi]
         process = await self.ctx.procs.start(
             self.process_name, (PYTHON, "-m", self.module), tuple(args) + extra,

@@ -287,16 +287,26 @@ def _process_event(run: _Run, name: str, process: str, after: int) -> Event | No
 
 
 def _recovery(run: _Run, target: str, began: int) -> dict:
+    """A crash's target is a process, or a role whose processes are ``<role>.<name>`` (this.i
+    5ed29j5w). It is ready once every process it killed is ready again, so time to ready runs
+    from the first kill to the last of those readies."""
     out: dict[str, int | None] = {"time_to_ready_ns": None, "time_to_first_success_ns": None}
-    killed = _process_event(run, "process_killed", target, began)
-    ready = killed and _process_event(run, "process_ready", target, killed.t)
-    if ready is None:
+    names = {(e.attrs or {}).get("process") for e in run.events if e.name == "process_killed"}
+    kills = [kill for name in sorted(n for n in names if n == target
+                                     or str(n).startswith(target + "."))
+             if (kill := _process_event(run, "process_killed", name, began)) is not None]
+    if not kills:
         return out
-    out["time_to_ready_ns"] = ready.t - killed.t
+    readies = [_process_event(run, "process_ready", (kill.attrs or {})["process"], kill.t)
+               for kill in kills]
+    if any(ready is None for ready in readies):
+        return out
+    ready_t = max(ready.t for ready in readies)
+    out["time_to_ready_ns"] = ready_t - min(kill.t for kill in kills)
     successes = [t for e in run.events if e.name == run.measure[1]
-                 for t in [run.harness_t(e)] if t is not None and t >= ready.t]
+                 for t in [run.harness_t(e)] if t is not None and t >= ready_t]
     if successes:
-        out["time_to_first_success_ns"] = min(successes) - ready.t
+        out["time_to_first_success_ns"] = min(successes) - ready_t
     return out
 
 

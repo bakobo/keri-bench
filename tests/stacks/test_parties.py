@@ -269,3 +269,74 @@ async def test_a_refused_verification_is_retried_until_it_is_accepted(tmp_path):
     finally:
         await party.stop()
         server.close()
+
+
+# --- restart from disk (this.i 5ed29j5w) ----------------------------------------------------
+
+class Admits:
+    """A facet whose admit hands back a held credential and counts how often it was asked."""
+
+    aid, oobis = "Eme", ["http://w/oobi/Eme"]
+
+    def __init__(self):
+        self.admits = 0
+
+    async def admit(self, *, grant, recency):
+        self.admits += 1
+        return SimpleNamespace(acdc=b"acdc:" + grant, tel=b"tel", blinders=b"bl",
+                               verdict=SimpleNamespace(said="Es", registry="Er"))
+
+    def grant(self, *, acdc, tel, recipient, blinders=None):
+        return acdc + b"->" + recipient.encode()
+
+
+async def test_a_restarted_holder_presents_what_it_held_before_the_crash(tmp_path):
+    before = holder.Holder(None, Admits(), spool=tmp_path)
+    assert (await before.handle("POST", "/deliver/c1", b"g1"))[0] == 202
+    assert (await before.handle("POST", "/admit/c1", b""))[0] == 200
+    assert (tmp_path / "c1").read_bytes() == b"g1"
+    # A new process over the same spool: nothing in memory, the grant on disk.
+    facet = Admits()
+    after = holder.Holder(None, facet, spool=tmp_path)
+    status, body = await after.handle("POST", "/present/c1", b'{"verifier": "Ev"}')
+    assert status == 200 and base64.b64decode(body["grant"]) == b"acdc:g1->Ev"
+    assert facet.admits == 1
+    await after.handle("POST", "/present/c1", b'{"verifier": "Ev"}')
+    assert facet.admits == 1  # admitted again once, then remembered
+    # A grant delivered before the crash and never admitted can still be admitted.
+    await before.handle("POST", "/deliver/c2", b"g2")
+    assert (await holder.Holder(None, Admits(), spool=tmp_path).handle(
+        "POST", "/admit/c2", b""))[0] == 200
+
+
+async def test_a_restarted_holder_with_nothing_spooled_or_a_refused_readmit_presents_nothing(
+        tmp_path):
+    empty = holder.Holder(None, Admits(), spool=tmp_path)
+    assert (await empty.handle("POST", "/present/c9", b'{"verifier": "Ev"}'))[0] == 404
+    (tmp_path / "c3").write_bytes(b"g3")
+    refusing = holder.Holder(None, Facet(ValueError("revoked meanwhile")), spool=tmp_path)
+    assert (await refusing.handle("POST", "/represent/c3", b'{"verifier": "Ev"}'))[0] == 404
+    unheld = holder.Holder(None, Facet(SimpleNamespace(verdict=None)), spool=tmp_path)
+    assert (await unheld.handle("POST", "/present/c3", b'{"verifier": "Ev"}'))[0] == 404
+
+
+async def test_a_holder_refuses_to_spool_a_credential_name_that_is_not_a_plain_name(tmp_path):
+    held = holder.Holder(None, Admits(), spool=tmp_path)
+    status, body = await held.handle("POST", "/deliver/../escape", b"g")
+    assert (status, body["code"]) == (400, "e.input.format.credential.f")
+    assert not (tmp_path.parent / "escape").exists()
+    # Without a spool, nothing touches the disk and any name is only a key.
+    assert (await holder.Holder(None, Admits()).handle("POST", "/deliver/a.b", b"g"))[0] == 202
+
+
+async def test_a_restarted_verifier_still_knows_what_it_verified(tmp_path, monkeypatch):
+    monkeypatch.setattr(verifier, "presented", lambda grant: ["Es"])
+    ok = SimpleNamespace(state="issued", said="Es", registry="Er")
+    admitted = SimpleNamespace(acdc=b"a", blinders=None, verdict=ok)
+    first = verifier.Verifier(Box(ok), Facet(admitted), None, 30.0, spool=tmp_path)
+    request = {"oobi": "http://w/oobi/Eh", "grant": base64.b64encode(b"g").decode()}
+    assert (await first.verify(request))[0] == 200
+    again = verifier.Verifier(Box(ok), Facet(admitted), None, 30.0, spool=tmp_path)
+    assert again.known == {"Es": "Er"}
+    assert await again.status("Es", request) == "valid"
+    assert verifier.Verifier(Box(ok), Facet(admitted), None, 30.0).known == {}
