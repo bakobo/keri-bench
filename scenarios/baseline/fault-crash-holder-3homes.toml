@@ -1,0 +1,61 @@
+# October 2026 baseline of today's imbu (bench-baseline). Needs `uv sync --extra stacks`.
+# Every size here is a choice recorded in this.i under "The October 2026 baseline's sizes".
+scenario_schema = 1
+name = "fault-crash-holder-3homes"
+description = "The lifecycle to verified at about half of saturation, three homes, crashing holder at 20 s."
+stages = ["issue", "deliver", "present", "verify"]
+
+[load]
+rates = [2.0]
+duration_s = 60.0
+warmup_s = 0.0
+drain_s = 120.0
+repetitions = 3
+measure = ["requested", "verified"]
+
+[statistics]
+lag_limit_ms = 25.0
+
+[roles.witness_pool]
+adapter = "heti.witness_pool"
+[roles.witness_pool.knobs]
+knob_schema = 1
+count = 3
+
+[roles.state_distribution]
+adapter = "registrar.state_distribution"
+[roles.state_distribution.knobs]
+knob_schema = 1
+window_s = 2.0
+delivery_timeout_s = 1.0
+resync_s = 6.0
+
+[roles.issuer]
+adapter = "imbu.issuer"
+[roles.issuer.knobs]
+knob_schema = 2
+toad = 2
+poll_ms = 50.0
+operation_timeout_s = 60.0
+homes = 3
+clients = 1
+
+[roles.holder]
+adapter = "heti.holder"
+[roles.holder.knobs]
+knob_schema = 1
+toad = 2
+
+[roles.verifier]
+adapter = "heti.verifier"
+[roles.verifier.knobs]
+knob_schema = 1
+toad = 2
+freshness_s = 30.0
+retry_ms = 250.0
+deadline_s = 60.0
+
+[[faults]]
+kind = "crash"
+target = "holder"
+at_s = 20.0
