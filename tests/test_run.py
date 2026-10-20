@@ -66,6 +66,17 @@ def test_planning_refuses_a_crash_of_an_unconfigured_role(tmp_path):
     assert refused.value.code == "e.input.range.scenario.fault.target.f"
 
 
+def test_a_crash_may_name_one_process_of_a_configured_role(tmp_path):
+    names = ("state_distribution", "issuer")
+    ok = scenario(stages='["issue"]', names=names,
+                  faults='[[faults]]\nkind = "crash"\ntarget = "issuer.w0"\nat_s = 0.1\n')
+    assert runner.plan(load(tmp_path, ok)).scenario.faults[0].target == "issuer.w0"
+    bad = ok.replace('"issuer.w0"', '"holder.w0"')
+    with pytest.raises(BenchError) as refused:
+        runner.plan(load(tmp_path, bad))
+    assert refused.value.code == "e.input.range.scenario.fault.target.f"
+
+
 def test_the_registry_refuses_unknown_and_uninstalled_adapters(monkeypatch):
     with pytest.raises(BenchError) as unknown:
         registry.lookup("nobody.issuer")
@@ -462,3 +473,103 @@ async def test_a_crash_restarts_every_process_of_the_role_even_one_already_down(
     run.harness_clock, run.sink = "monotonic@b", (lambda event: None)
     await run._fault(Fault("crash", "issuer", 0.0), run.clock())
     assert killed == ["issuer"] and restarted == ["issuer", "issuer.helper"]
+
+
+# --- preseed, soak stop and store size (this.i 9yx6cg92, 7f9jfc99) ---------------------------
+
+def soak_scenario(*, rate="20.0", duration="0.3", stop=None, preseed=None, soak=True):
+    text = fake_scenario(0.0).replace("rates = [20.0]", f"rates = [{rate}]").replace(
+        "duration_s = 0.3", f"duration_s = {duration}")
+    if stop is not None:
+        text += f"[stop]\ncredentials = {stop}\n"
+    if preseed is not None:
+        text += f"[preseed]\ncredentials = {preseed}\nconcurrency = 2\n"
+    if soak:
+        text += "[soak]\nbucket = 2\nper_credentials = 1000\nsample_s = 0.05\n"
+    return text
+
+
+async def soak_events(tmp_path, text, rate=20.0, shared=None, monkeypatch=None):
+    if shared is not None:
+        original = runner.Run.__init__
+
+        def seeded(self, *args, **kw):
+            original(self, *args, **kw)
+            self.shared.update(shared)
+
+        monkeypatch.setattr(runner.Run, "__init__", seeded)
+    report = await runner.run_once(load(tmp_path, text), tmp_path / "out", rate=rate,
+                                   repetition=1, harness_commit="test")
+    _, events = read_timeline(tmp_path / "out" / f"rate-{rate:g}" / "rep-1" / "timeline.jsonl")
+    return report, events
+
+
+async def test_a_preseed_issues_through_the_stack_before_the_window_opens(tmp_path, fakes):
+    report, events = await soak_events(tmp_path, soak_scenario(preseed=5))
+    names = [e.name for e in events]
+    assert names.index("preseed_ended") < names.index("run_started")
+    started, = [e.attrs for e in events if e.name == "preseed_started"]
+    ended, = [e.attrs for e in events if e.name == "preseed_ended"]
+    assert started == {"requested": 5, "concurrency": 2}
+    assert (ended["requested"], ended["failed"]) == (5, 0) and ended["elapsed_ns"] > 0
+    seeded = {c for e in events if e.name == "constructed" for c in e.credentials
+              if c.startswith("p")}
+    assert seeded == {f"p{i:07d}" for i in range(5)}
+    assert not any(c.startswith("p") for e in events if e.name == "requested"
+                   for c in e.credentials)
+    assert report["window"]["credentials"] == 6
+    assert report["drift"]["preseeded"] == 5
+    record = json.loads((tmp_path / "out" / "rate-20" / "rep-1" / "provenance.json")
+                        .read_text())
+    assert record["run"]["preseed"] == {"credentials": 5, "concurrency": 2}
+    assert record["run"]["soak"] == {"bucket": 2, "per_credentials": 1000, "sample_s": 0.05,
+                                     "stop_credentials": None}
+
+
+async def test_a_failed_preseed_issuance_is_counted_not_fatal(tmp_path, fakes, monkeypatch):
+    report, events = await soak_events(
+        tmp_path, soak_scenario(preseed=3), shared={"refuse": {"p0000001"}},
+        monkeypatch=monkeypatch)
+    ended, = [e.attrs for e in events if e.name == "preseed_ended"]
+    assert (ended["requested"], ended["failed"]) == (3, 1)
+    assert ended["first_error"] == "ConnectionError: the issuer refused p0000001"
+    assert report["drift"]["preseeded"] == 2
+
+
+async def test_a_soak_stops_once_enough_credentials_complete(tmp_path, fakes):
+    report, events = await soak_events(tmp_path, soak_scenario(duration="5.0", stop=4))
+    stopped, = [e.attrs for e in events if e.name == "stop_reached"]
+    assert stopped == {"reason": "credentials", "completed": 4}
+    requested = sum(1 for e in events if e.name == "requested")
+    assert 4 <= requested < 20  # 100 were scheduled over 5 s
+    assert report["run"]["soak"]["stop_credentials"] == 4
+
+
+async def test_a_soak_that_runs_out_of_time_says_so(tmp_path, fakes):
+    _, events = await soak_events(tmp_path, soak_scenario(stop=1000))
+    stopped, = [e.attrs for e in events if e.name == "stop_reached"]
+    # Counted when the schedule ended, before the last request's lifecycle has had a turn.
+    assert stopped["reason"] == "duration" and stopped["completed"] in (5, 6)
+
+
+async def test_a_soak_samples_the_issuers_store_until_the_drain_ends(tmp_path, fakes):
+    report, events = await soak_events(tmp_path, soak_scenario(duration="0.4"))
+    sizes = [e.attrs["bytes"] for e in events if e.name == "footprint"]
+    assert len(sizes) >= 3 and sizes == sorted(sizes) and sizes[0] == 0
+    assert "stop_reached" not in {e.name for e in events}
+    assert any(b["store_bytes"] for b in report["drift"]["buckets"])
+
+
+async def test_an_issuer_that_cannot_size_its_store_writes_no_samples(tmp_path, fakes,
+                                                                      monkeypatch):
+    from fake_adapters import FakeIssuer
+    from keri_bench.adapters.base import IssuerAdapter
+    monkeypatch.setattr(FakeIssuer, "footprint", IssuerAdapter.footprint)
+    _, events = await soak_events(tmp_path, soak_scenario())
+    assert "footprint" not in {e.name for e in events}
+
+
+async def test_a_run_without_a_soak_samples_nothing_and_has_no_soak_section(tmp_path, fakes):
+    report, events = await soak_events(tmp_path, soak_scenario(soak=False))
+    assert {"footprint", "stop_reached", "preseed_started"}.isdisjoint(e.name for e in events)
+    assert "soak" not in report["run"] and "preseed" not in report["run"]

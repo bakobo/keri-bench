@@ -899,3 +899,123 @@ def test_a_pair_seen_only_during_warmup_is_a_gap(tmp_path):
                            run=run_section(warmup_s=0.00005)))
     assert got["window"]["credentials"] == 1
     assert got["observability"]["pairs"]["anchor_vs_witness"]["measurable"] is False
+
+
+# --- soak drift (this.i 7f9jfc99) -----------------------------------------------------------
+
+S = 1_000_000_000
+
+
+def hdr(v):
+    """The quoted upper bound of v's slot, by hand: 2048 exact sub-buckets, then width 2**b
+    for b = bit_length(v) - 11 (the layout tests/test_stats.py checks)."""
+    b = max(0, v.bit_length() - 11)
+    return (v >> b << b) + (1 << b) - 1
+
+
+def soak_run(tmp_path, latencies, *, preseed=None, footprints=(), bucket=2, per=10):
+    """Credentials requested one per second, each verified after the given latency (ms)."""
+    events = [ev("run_started", 0), ev("run_ended", len(latencies) * S)]
+    if preseed is not None:
+        events.append(ev("preseed_ended", -S, attrs={"requested": preseed[0],
+                                                       "failed": preseed[1]}))
+    for t, size in footprints:
+        events.append(ev("footprint", t, attrs={"bytes": size}))
+    for i, ms in enumerate(latencies):
+        if ms is None:
+            events.append(ev("requested", i * S, [f"c{i}"]))
+            continue
+        events += simple(f"c{i}", i * S, ms * MS)
+    soak = {"bucket": bucket, "per_credentials": per}
+    return derive(write_run(tmp_path, events, run=run_section(soak=soak)))
+
+
+def test_a_run_without_a_soak_has_no_drift_section(tmp_path):
+    out = derive(write_run(tmp_path, window() + simple("c1", 0, 1000)))
+    assert "drift" not in out
+
+
+def test_drift_buckets_credentials_in_request_order_and_fits_each_position(tmp_path):
+    # Buckets of two: latencies (10, 30), (50, 70), (90, 110) ms. Each bucket's p50 is its lower
+    # value, its p99 its upper (nearest rank). Store positions: preseed 100 - 4 failed = 96,
+    # plus the bucket's midpoint credential index 1, 3, 5 -> 97, 99, 101. Elapsed: requests at
+    # 1, 3, 5 s. p50s 10, 50, 90 ms rise 40 ms per 2 credentials = 20 ms per credential, 200 ms
+    # per 10 credentials; per hour, 20 ms/s * 3600. Bytes: samples 1000 at 0 s and 3000 at 3 s;
+    # the bucket at 1 s reads 1000, at 3 s and 5 s reads 3000.
+    out = soak_run(tmp_path, [10, 30, 50, 70, 90, 110], preseed=(100, 4),
+                   footprints=[(0, 1000), (3 * S, 3000)])["drift"]
+    assert (out["bucket"], out["per_credentials"], out["preseeded"]) == (2, 10, 96)
+    assert [(b["store_credentials"], b["elapsed_s"], b["store_bytes"], b["credentials"])
+            for b in out["buckets"]] == [(97, 1.0, 1000, 2), (99, 3.0, 3000, 2),
+                                         (101, 5.0, 3000, 2)]
+    assert [b["p50_ns"] for b in out["buckets"]] == [hdr(10 * MS), hdr(50 * MS), hdr(90 * MS)]
+    assert [b["p99_ns"] for b in out["buckets"]] == [hdr(30 * MS), hdr(70 * MS), hdr(110 * MS)]
+    # The fit runs on the quoted upper bounds, which sit within 0.1% of the hand values.
+    p50 = out["slopes"]["p50"]
+    assert p50["store_credentials"]["slope_ns"] == pytest.approx(200 * MS, rel=1e-3)
+    assert p50["store_credentials"]["low_ns"] < p50["store_credentials"]["slope_ns"] \
+        < p50["store_credentials"]["high_ns"]
+    assert p50["store_credentials"]["n"] == 3
+    assert p50["elapsed"]["slope_ns"] == pytest.approx(20 * MS * 3600, rel=1e-3)
+    assert out["slopes"]["p99"]["store_credentials"]["slope_ns"] == \
+        pytest.approx(200 * MS, rel=1e-3)
+    # Bytes fit: x = 1000, 3000, 3000 against 10, 50, 90 ms; xbar 7000/3, a hand OLS slope of
+    # (sum dx*dy)/(sum dx^2) = (-4000/3*-40 + 2000/3*0 + 2000/3*40)/(16e6/9+4e6/9+4e6/9) ms per
+    # byte = 80000/(24e6/9) = 0.03 ms per byte, so 0.03 * 2**20 ms per MiB.
+    assert p50["store_bytes"]["slope_ns"] == pytest.approx(0.03 * MS * 2**20, rel=1e-3)
+    assert out["units"] == {"store_credentials": "per 10 credentials", "elapsed": "per hour",
+                            "store_bytes": "per MiB"}
+
+
+def test_a_bucket_counts_its_censored_credentials_and_a_partial_bucket_is_dropped(tmp_path):
+    out = soak_run(tmp_path, [10, None, 30, 40, 50, 60, 70])["drift"]
+    assert [(b["credentials"], b["missing"]) for b in out["buckets"]] == [(1, 1), (2, 0),
+                                                                          (2, 0)]
+    assert out["preseeded"] == 0
+    assert out["buckets"][0]["store_bytes"] is None
+
+
+def test_too_few_buckets_or_no_size_samples_leave_a_slope_not_measured(tmp_path):
+    out = soak_run(tmp_path, [10, 20, 30, 40])["drift"]
+    assert len(out["buckets"]) == 2
+    for axis, n in (("store_credentials", 2), ("elapsed", 2), ("store_bytes", 0)):
+        assert out["slopes"]["p50"][axis] == {
+            "measured": False,
+            "reason": f"A slope's confidence interval needs at least three points, and {n} "
+                      f"were given."}
+    flat = soak_run(tmp_path, [10, 20, 30, 40, 50, 60], footprints=[(0, 5)])["drift"]
+    assert flat["slopes"]["p50"]["store_bytes"]["measured"] is False
+    assert flat["slopes"]["p50"]["store_bytes"]["reason"] == \
+        "Every x is the same, so no slope can be fitted."
+
+
+def test_a_bucket_with_no_completed_credential_is_left_out_of_the_fit(tmp_path):
+    out = soak_run(tmp_path, [None, None, 10, 20, 30, 40, 50, 60])["drift"]
+    assert out["buckets"][0]["p50_ns"] is None and out["buckets"][0]["credentials"] == 0
+    assert out["slopes"]["p50"]["store_credentials"]["n"] == 3
+
+
+def test_the_markdown_carries_the_drift_slopes_and_the_bucket_table(tmp_path):
+    soak_run(tmp_path, [10, 30, 50, 70, 90, 110], footprints=[(0, 1000), (3 * S, 3000)])
+    report.write_report(tmp_path, generator_commit="gc")
+    text = (tmp_path / "report.md").read_text()
+    assert "## Soak drift" in text
+    fit = json.loads((tmp_path / "report.json").read_text())["drift"]["slopes"]["p50"]
+    assert f"| p50 | per 10 credentials | {round(fit['store_credentials']['slope_ns'])} ns" \
+        in text
+    assert f"| 3 | 3.0 | 3000 | 2 | 0 | {hdr(50 * MS)} ns | {hdr(70 * MS)} ns |" in text
+    soak_run(tmp_path, [10, 20, 30, 40])
+    report.write_report(tmp_path, generator_commit="gc")
+    assert "not measured: A slope's confidence interval needs at least three points" in \
+        (tmp_path / "report.md").read_text()
+
+
+def test_a_bucket_leaves_out_an_interval_it_cannot_place(tmp_path):
+    # c1's verified is on a stack clock with no measured offset, so it is not measured.
+    events = window(6 * S) + [ev("requested", i * S, [f"c{i}"]) for i in range(6)]
+    events += [ev("verified", i * S + 10 * MS, [f"c{i}"], method="polled", resolution=500)
+               for i in range(6) if i != 1]
+    events.append(ev("verified", S + 10 * MS, ["c1"], clock=SK, resolution=500))
+    out = derive(write_run(tmp_path, events, run=run_section(
+        soak={"bucket": 2, "per_credentials": 10})))["drift"]
+    assert [b["credentials"] for b in out["buckets"]] == [1, 2, 2]

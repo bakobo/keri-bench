@@ -111,9 +111,10 @@ def plan(scenario: Scenario) -> Plan:
                                  f"each milestone from exactly one source (this.i 0ys878gy).")
             sources[milestone] = declaration.adapter
     for fault in scenario.faults:
-        if fault.kind == "crash" and fault.target not in scenario.roles:
+        # A crash names a role, or one process of it as <role>.<process> (this.i 5ed29j5w).
+        if fault.kind == "crash" and fault.target.split(".")[0] not in scenario.roles:
             raise BenchError(E_FAULT_TARGET, f"The crash fault targets {fault.target!r}, which "
-                             f"is not a configured role.")
+                             f"is neither a configured role nor one of its processes.")
     return Plan(scenario, classes, knobs, harness)
 
 
@@ -136,6 +137,8 @@ class Run:
     recognitions: dict[str, list] = field(default_factory=dict)
     watching: set = field(default_factory=set)
     credentials: list[str] = field(default_factory=list)
+    completed: set = field(default_factory=set)
+    stopped: bool = False
 
     # --- events ---
 
@@ -315,9 +318,57 @@ class Run:
                               attrs={"first_seen": seen[0], "polls": len(polls),
                                      "relapsed": len(seen) > tail})
 
+    def _write(self, event: Event) -> None:
+        """Write an event; on a soak with a credential stop, end the schedule once that many of
+        the window's credentials have reached the measure's end (this.i 9yx6cg92)."""
+        self.writer.write(event)
+        stop = self.plan.scenario.stop
+        if stop is None or self.stopped or event.name != self.plan.scenario.load.measure[1]:
+            return
+        self.completed.update(c for c in event.credentials if c in self.fired)
+        if len(self.completed) >= stop.credentials:
+            self.stopped = True
+            self.loop_driver.stop()
+            self._harness_event("stop_reached", attrs={"reason": "credentials",
+                                                       "completed": len(self.completed)})
+
+    async def _preseed(self) -> None:
+        """Fill the store by issuing through the stack before the window (this.i 9yx6cg92)."""
+        rule = self.plan.scenario.preseed
+        if rule is None:
+            return
+        issuer = self.adapters[Role.ISSUER]
+        gate = asyncio.Semaphore(rule.concurrency)
+        failures: list[str] = []
+        began = self.clock()
+        self._harness_event("preseed_started", attrs={"requested": rule.credentials,
+                                                      "concurrency": rule.concurrency})
+
+        async def one(index: int) -> None:
+            async with gate:
+                try:
+                    await issuer.issue(f"p{index:07d}", self.holder_identity)
+                except Exception as failed:
+                    failures.append(f"{type(failed).__name__}: {failed}"[:500])
+
+        await asyncio.gather(*(one(i) for i in range(rule.credentials)))
+        attrs = {"requested": rule.credentials, "failed": len(failures),
+                 "elapsed_ns": self.clock() - began}
+        if failures:
+            attrs["first_error"] = failures[0]
+        self._harness_event("preseed_ended", attrs=attrs)
+
+    async def _sample_footprint(self) -> None:
+        """Sample the issuer's store size every ``sample_s`` until cancelled."""
+        issuer = self.adapters[Role.ISSUER]
+        while (size := await issuer.footprint()) is not None:
+            self._harness_event("footprint", attrs={"bytes": size})
+            await asyncio.sleep(self.plan.scenario.soak.sample_s)
+
     def _fire(self, index: int, scheduled: int) -> None:
         credential = f"c{index:06d}"
         self.credentials.append(credential)
+        self.fired.add(credential)
         self.driver.emit("requested", credentials=[credential], t=scheduled)
         self._harness_event("dispatched", credentials=[credential])
         task = asyncio.get_running_loop().create_task(self._lifecycle(credential))
@@ -365,10 +416,11 @@ class Run:
         self.run_dir.mkdir(parents=True, exist_ok=True)
         self.harness_clock = clocks.harness_domain()
         self.realtime_clock = clocks.realtime_domain()
-        writer = TimelineWriter(self.run_dir / "timeline.jsonl",
-                                Header(harness_commit=self.harness_commit,
-                                       harness_clock=self.harness_clock))
-        self.sink = writer.write
+        writer = self.writer = TimelineWriter(self.run_dir / "timeline.jsonl",
+                                              Header(harness_commit=self.harness_commit,
+                                                     harness_clock=self.harness_clock))
+        self.sink = self._write
+        self.fired: set[str] = set()
         self.procs = ProcessController(
             self.run_dir, clock=self.clock,
             on_event=lambda name, t, attrs: self._harness_event(
@@ -394,6 +446,10 @@ class Run:
             issuer = self.adapters.get(Role.ISSUER)
             if issuer is not None and self.holder_identity:
                 await issuer.meet(self.holder_identity)
+            await self._preseed()
+            sampler = None
+            if self.plan.scenario.soak is not None:
+                sampler = asyncio.get_running_loop().create_task(self._sample_footprint())
             await self._offsets()
             # Everything allocated so far is long-lived; freezing it keeps a full collection
             # during the window from walking it, which showed up as multi-millisecond send lag.
@@ -403,7 +459,12 @@ class Run:
             self._harness_event("run_started", t=window_start)
             faults = [asyncio.get_running_loop().create_task(self._fault(f, window_start))
                       for f in self.plan.scenario.faults]
-            await OpenLoopDriver(self.rate, load.duration_s, clock=self.clock).run(self._fire)
+            self.loop_driver = OpenLoopDriver(self.rate, load.duration_s, clock=self.clock)
+            await self.loop_driver.run(self._fire)
+            if self.plan.scenario.stop is not None and not self.stopped:
+                self.stopped = True
+                self._harness_event("stop_reached", attrs={"reason": "duration",
+                                                           "completed": len(self.completed)})
             self._harness_event("run_ended")
             gc.unfreeze()
             # Lifecycles still running when the drain ends are cancelled; the report counts them
@@ -419,6 +480,9 @@ class Run:
                     self._harness_event("fault_failed", attrs={
                         "kind": fault.kind, "target": fault.target,
                         "error": str(outcome)[:500]})
+            if sampler is not None:
+                sampler.cancel()
+                await asyncio.gather(sampler, return_exceptions=True)
             await asyncio.gather(*self.watching, return_exceptions=True)
             if self.plan.scenario.recognition is not None:
                 self._recognitions()
@@ -477,6 +541,16 @@ class Run:
         for declaration in self.plan.harness:
             declarations[declaration.adapter] = declaration.describe()
         extra = {"measurement_cost": cost, "calibration": _calibration(self.calibration)}
+        shape = {}
+        if scenario.soak is not None:
+            shape["soak"] = {"bucket": scenario.soak.bucket,
+                             "per_credentials": scenario.soak.per_credentials,
+                             "sample_s": scenario.soak.sample_s,
+                             "stop_credentials": scenario.stop.credentials
+                             if scenario.stop else None}
+        if scenario.preseed is not None:
+            shape["preseed"] = {"credentials": scenario.preseed.credentials,
+                                "concurrency": scenario.preseed.concurrency}
         if reconciliation is not None:
             extra["reconciliation"] = reconciliation
         return provenance.build(
@@ -489,7 +563,8 @@ class Run:
                  "warmup_s": scenario.load.warmup_s, "duration_s": scenario.load.duration_s,
                  "lag_limit_ms": scenario.statistics.lag_limit_ms,
                  "measure": list(scenario.load.measure), "stages": list(scenario.stages),
-                 "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)"},
+                 "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+                 **shape},
             **extra)
 
 

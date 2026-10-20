@@ -68,6 +68,10 @@ HARNESS_EVENTS: dict[str, str] = {
     "run_ended": "The measured window ended.",
     "stage_failed": "A credential's lifecycle stage failed; attrs name the stage and the error.",
     "fault_failed": "A scheduled fault could not be applied; the run is refused.",
+    "preseed_started": "The harness began filling the store before the window (this.i 9yx6cg92).",
+    "preseed_ended": "The preseed finished; attrs give how many were requested and failed.",
+    "footprint": "One sample of the bytes the issuer's store occupies (this.i 7f9jfc99).",
+    "stop_reached": "A soak's schedule ended; attrs say whether credentials or time ended it.",
 }
 """Events the harness itself writes. They share the timeline with milestones but never a name."""
 

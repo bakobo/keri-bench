@@ -143,10 +143,48 @@ def test_an_oversized_scenario_is_refused_before_it_is_parsed(tmp_path, monkeypa
 
 
 def test_a_soak_stop_rule_is_read_when_present(tmp_path):
-    scenario = load_scenario(write(tmp_path, GOOD + "\n[stop]\ncredentials = 1000\n"
-                                   "duration_s = 60.0\n"))
-    assert (scenario.stop.credentials, scenario.stop.duration_s) == (1000, 60.0)
+    scenario = load_scenario(write(tmp_path, GOOD + "\n[stop]\ncredentials = 1000\n"))
+    assert scenario.stop.credentials == 1000
     assert load_scenario(write(tmp_path, GOOD)).stop is None
+
+
+SOAK = "\n[soak]\nbucket = 50\nper_credentials = 1000\nsample_s = 5.0\n"
+PRESEED = "\n[preseed]\ncredentials = 200\nconcurrency = 4\n"
+
+
+def test_soak_and_preseed_tables_are_read_when_present(tmp_path):
+    scenario = load_scenario(write(tmp_path, GOOD + SOAK + PRESEED))
+    assert (scenario.soak.bucket, scenario.soak.per_credentials, scenario.soak.sample_s) == \
+        (50, 1000, 5.0)
+    assert (scenario.preseed.credentials, scenario.preseed.concurrency) == (200, 4)
+    plain = load_scenario(write(tmp_path, GOOD))
+    assert plain.soak is None and plain.preseed is None
+
+
+@pytest.mark.parametrize("extra, code", [
+    ("\n[stop]\n", "e.input.missing.scenario.field.f"),
+    ("\n[stop]\ncredentials = 0\n", "e.input.range.scenario.stop.f"),
+    ("\n[stop]\ncredentials = 1.5\n", "e.input.range.scenario.stop.f"),
+    ("\n[stop]\ncredentials = true\n", "e.input.range.scenario.stop.f"),
+    ("\n[stop]\ncredentials = 9\nduration_s = 60.0\n", "e.input.range.scenario.field.f"),
+    (SOAK.replace("bucket = 50", "bucket = 1"), "e.input.range.scenario.soak.f"),
+    (SOAK.replace("bucket = 50", ""), "e.input.missing.scenario.field.f"),
+    (SOAK.replace("per_credentials = 1000", "per_credentials = 0"),
+     "e.input.range.scenario.soak.f"),
+    (SOAK.replace("sample_s = 5.0", "sample_s = -1.0"), "e.input.range.scenario.soak.f"),
+    (SOAK.replace("sample_s = 5.0", "sample_s = nan"), "e.input.range.scenario.soak.f"),
+    (SOAK + "whimsy = 1\n", "e.input.range.scenario.field.f"),
+    (PRESEED.replace("credentials = 200", "credentials = 0"),
+     "e.input.range.scenario.preseed.f"),
+    (PRESEED.replace("concurrency = 4", "concurrency = 2.5"),
+     "e.input.range.scenario.preseed.f"),
+    (PRESEED.replace("concurrency = 4", ""), "e.input.missing.scenario.field.f"),
+    (PRESEED + "whimsy = 1\n", "e.input.range.scenario.field.f"),
+])
+def test_bad_stop_soak_or_preseed_tables_are_refused_with_a_code(tmp_path, extra, code):
+    with pytest.raises(BenchError) as refused:
+        load_scenario(write(tmp_path, GOOD + extra))
+    assert refused.value.code == code
 
 
 def test_a_scenario_that_never_revokes_needs_no_recognition_rule(tmp_path):
