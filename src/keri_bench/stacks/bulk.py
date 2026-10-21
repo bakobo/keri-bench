@@ -31,7 +31,7 @@ from ..vocabulary import Role
 from . import sedi
 from .adapters import IMBU, PYTHON, STARTUP, passcode
 from .imbu import (E_DEPLOYMENT, E_REFUSED, ISSUE_MILESTONES, VERSION, WALL, Client, Home,
-                   ImbuIssuer, operation_id)
+                   ImbuIssuer, operation_id, stamp)
 
 E_UNSUPPORTED = "e.feature.unsupported.imbu.bulk.revoke.f"
 POOL_BATCH = 1000
@@ -66,6 +66,8 @@ class ImbuBulkIssuer(ImbuIssuer):
         super().__init__(ctx)
         self.citizens = HttpClient()
         self.citizens_url = ""
+        self.pool: list[dict] = []
+        """Each registry-pool provisioning, with imbu's own accepted and finished stamps."""
 
     async def start(self):
         knobs = self.ctx.knobs
@@ -139,9 +141,13 @@ class ImbuBulkIssuer(ImbuIssuer):
             made = 0
             while made < self.ctx.knobs["pool"]:
                 count = min(POOL_BATCH, self.ctx.knobs["pool"] - made)
-                await self._settle(home, await self._call(
+                op = await self._settle(home, await self._call(
                     home, home.operator, "POST", "/v1/imbu/registry-pool", {"count": count},
                     key=f"pool-{made}"), "provisioning registries")
+                stamps = op.get("milestones") or {}
+                self.pool.append({"home": home.index, "registries": count,
+                                  **{f"{name}_ns": stamp(stamps[name])
+                                     for name in ("accepted", "finished") if name in stamps}})
                 made += count
 
     async def issue(self, credential: str, holder: Mapping[str, Any]) -> Issued:
@@ -167,8 +173,10 @@ class ImbuBulkIssuer(ImbuIssuer):
         raise BenchError(E_UNSUPPORTED, "The bulk issuer does not revoke: bulk-steady measures "
                          "issuance, and a ceremony's credentials have no one SAID to revoke.")
 
-    async def census(self) -> None:
-        return None
+    async def census(self) -> dict:
+        """No signer is counted here, but registry inception is: each pool provisioning,
+        stamped by imbu on its realtime clock, so its rate is apart from issuance's."""
+        return {"signers": [], "pool": self.pool}
 
     async def stop(self) -> None:
         await self.citizens.close()

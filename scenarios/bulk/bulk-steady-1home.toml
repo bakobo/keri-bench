@@ -1,0 +1,58 @@
+# bulk-steady of today's imbu (bench-baseline-2). Needs `uv sync --extra stacks`.
+# The ceremony is this.i 4f987y88 and its sizes are the decision beneath it.
+scenario_schema = 1
+name = "bulk-steady-1home"
+description = "The SEDI proofed bulk ceremony, 3 copies, 2 citizens, 1 home(s), stepped to saturation."
+stages = ["issue"]
+
+[load]
+rates = [0.05, 0.075, 0.1, 0.125, 0.15, 0.2]
+duration_s = 120.0
+warmup_s = 20.0
+drain_s = 180.0
+repetitions = 3
+measure = ["requested", "published"]
+
+[statistics]
+lag_limit_ms = 25.0
+
+[roles.witness_pool]
+adapter = "heti.witness_pool"
+[roles.witness_pool.knobs]
+knob_schema = 1
+count = 3
+
+[roles.state_distribution]
+adapter = "registrar.state_distribution"
+[roles.state_distribution.knobs]
+knob_schema = 1
+window_s = 2.0
+delivery_timeout_s = 1.0
+resync_s = 6.0
+
+[roles.issuer]
+adapter = "imbu.bulk_issuer"
+[roles.issuer.knobs]
+knob_schema = 1
+toad = 2
+poll_ms = 100.0
+operation_timeout_s = 120.0
+homes = 1
+clients = 2
+copies = 3
+pool = 300
+
+[roles.holder]
+adapter = "heti.holder"
+[roles.holder.knobs]
+knob_schema = 1
+toad = 2
+
+[roles.verifier]
+adapter = "heti.verifier"
+[roles.verifier.knobs]
+knob_schema = 1
+toad = 2
+freshness_s = 30.0
+retry_ms = 250.0
+deadline_s = 60.0

@@ -526,7 +526,9 @@ def _census(record: dict) -> tuple[Any, str | None]:
             if problem and reason is None:
                 reason = (f"The signer's profile check failed for {role} signer {index}: "
                           f"{problem}.")
-        out[role] = {"signers": signers}
+        # Whatever else the adapter counted, such as a registry pool, is carried as it said.
+        out[role] = {**{k: v for k, v in section.items() if k != "signers"},
+                     "signers": signers}
         out["ok"] = out["ok"] and all(s["ok"] for s in signers)
     return out, reason
 

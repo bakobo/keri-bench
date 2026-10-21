@@ -1227,3 +1227,10 @@ def test_the_markdown_shows_the_census_and_its_check(tmp_path):
     assert "## Signer census" in text
     assert "| issuer | 0 | sign 3 | 1 | 2 | 2.0 | 10.0 ms (10.0 configured) ok | not exercised |" \
         in text
+
+
+def test_what_else_an_adapter_counted_beside_its_signers_is_carried_into_the_report(tmp_path):
+    pool = [{"home": 0, "registries": 200, "accepted_ns": 5, "finished_ns": 36_000_000_005}]
+    out = derive(write_run(tmp_path, window() + simple("c1", 0, 9),
+                           census={"issuer": {"signers": [], "pool": pool}}))["census"]
+    assert out["issuer"] == {"signers": [], "pool": pool} and out["ok"] is True

@@ -150,6 +150,8 @@ async def test_the_sedi_bulk_ceremony_issues_a_pair_per_copy_and_the_management_
     assert {e.attrs["credentials"] for e in published} == {4}
     assert {e.attrs["client"] for e in published} == {0, 1}
     assert report["intervals"]["requested->published"]["measured"] is True
+    pool, = report["census"]["issuer"]["pool"]
+    assert pool["registries"] == 8 and pool["finished_ns"] > pool["accepted_ns"]
 
 
 async def test_a_crashed_bulk_home_reopens_and_the_ceremony_goes_on(tmp_path):

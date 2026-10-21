@@ -67,7 +67,6 @@ async def test_a_refused_resolution_pool_or_ceremony_is_a_coded_error(stands):
         with pytest.raises(BenchError) as revoked:
             await adapter.revoke("c1")
         assert revoked.value.code == "e.feature.unsupported.imbu.bulk.revoke.f"
-        assert await adapter.census() is None
     finally:
         await adapter.stop()
 
@@ -84,3 +83,10 @@ def test_a_bulk_issuer_without_a_proofing_agent_is_a_usage_error(capsys):
         issuer.main(["--witness", "w", "--toad", "1", "--registrar-url", "r", "--controller",
                      "c", "--control-port", "1", "--bulk"])
     assert "--proofer" in capsys.readouterr().err
+
+
+async def test_the_census_carries_each_pool_provisioning_imbu_stamped():
+    adapter = bulk.ImbuBulkIssuer(context())
+    adapter.pool = [{"home": 0, "registries": 5, "accepted_ns": 1, "finished_ns": 2}]
+    assert await adapter.census() == {"signers": [], "pool": adapter.pool}
+    await adapter.stop()
