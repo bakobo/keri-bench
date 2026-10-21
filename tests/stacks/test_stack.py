@@ -103,9 +103,10 @@ async def test_imbu_signs_through_the_throttled_signer_and_the_census_counts_it(
     assert home["latency"]["configured_ms"] == 20.0
     assert home["counts"]["incept"] == 1
     # Every answer imbu gave the adapter is one signature; the inception event is one more; and
-    # each credential costs two, hand-traced on imbu ccc8f6c and still so at 8512c1d: the ixn anchoring its registry's
-    # inception and its issuance (coalesced, heti @69ln7vtw), and the grant. A change here is a
-    # change in what an HSM is asked to do per credential (test plan, Part B #11).
+    # each credential costs two, hand-traced on imbu ccc8f6c and unchanged at 8512c1d: the ixn
+    # anchoring its registry's inception and its issuance (coalesced, heti @69ln7vtw), and the
+    # grant. A change here is a change in what an HSM is asked to do per credential (test
+    # plan, Part B #11).
     assert home["counts"]["sign"] == home["signed_responses"] + 1 + home["other_signatures"]
     assert home["per_issuance"] == 2.0
 
