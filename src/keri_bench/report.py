@@ -289,7 +289,8 @@ def _process_event(run: _Run, name: str, process: str, after: int) -> Event | No
 def _recovery(run: _Run, target: str, began: int) -> dict:
     """A crash's target is a process, or a role whose processes are ``<role>.<name>`` (this.i
     5ed29j5w). It is ready once every process it killed is ready again, so time to ready runs
-    from the first kill to the last of those readies."""
+    from the first kill to the last of those readies. The first success is any credential's,
+    not only one the crashed process served (~76aw)."""
     out: dict[str, int | None] = {"time_to_ready_ns": None, "time_to_first_success_ns": None}
     names = {(e.attrs or {}).get("process") for e in run.events if e.name == "process_killed"}
     kills = [kill for name in sorted(n for n in names if n == target
@@ -527,7 +528,15 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         reconciliation = {"summary": summary(outcomes),
                           "credentials": {c: outcomes[c].to_dict() for c in sorted(outcomes)}}
     failures = _failures(events)
-    refused = driver["reason"] if not driver["ok"] else failures["fault_failed"]
+    seeded = [e.attrs or {} for e in events if e.name == "preseed_ended"]
+    preseed = {"requested": sum(a.get("requested", 0) for a in seeded),
+               "failed": sum(a.get("failed", 0) for a in seeded)} if seeded else None
+    # A soak that did not start from the store it declared is refused (this.i 9yx6cg92).
+    preseed_failed = (f"The preseed asked for {preseed['requested']} credentials and "
+                      f"{preseed['failed']} failed, so the soak did not start from the store it "
+                      f"declared.") if preseed and preseed["failed"] else None
+    refused = driver["reason"] if not driver["ok"] else (failures["fault_failed"]
+                                                         or preseed_failed)
     out = {
         "report_schema": REPORT_SCHEMA, "generator_commit": generator_commit,
         "timeline_schema": header.timeline_schema,
@@ -546,6 +555,10 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
     }
     if "soak" in run.run:
         out["drift"] = _drift(run)
+    if preseed is not None:
+        out["preseed"] = preseed
+    if preseed_failed:
+        out["warnings"].append(f"The run is refused. {preseed_failed}")
     if failures["fault_failed"]:
         out["warnings"].append(f"The run is refused. {failures['fault_failed']}")
     if failures["count"]:

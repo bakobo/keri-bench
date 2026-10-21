@@ -77,7 +77,7 @@ Each scenario runs the lifecycle to `verified` (issue, deliver, present, verify)
 | crashed | homes | ready s | first success s | p50 before s | p50 after s | p99 after s | done / resumed / lost / unanswered |
 |---|---|---|---|---|---|---|---|
 | imbu (every home) | 1 | 1.35–1.63 | 3.49–4.35 | 2.27–2.79 | 3.18–3.26 | 4.80–5.08 | 33 / 3 / 72 / 0 |
-| imbu home h0 of 3 | 3 | 1.29–1.76 | 0.21–3.60 | 1.96–2.42 | 2.37–2.56 | 3.66–4.12 | 80 / 4 / 24 / 0 |
+| imbu home h0 of 3 | 3 | 1.29–1.76 | 0.21–3.60 (h0's own: 5.38–6.03) | 1.96–2.42 | 2.37–2.56 | 3.66–4.12 | 80 / 4 / 24 / 0 |
 | one witness of 3 (toad 2) | 1 | 1.04–1.10 | 0.30–0.44 | 2.39–2.61 | 3.31–3.57 | 4.63–5.24 | 102 / 6 / 0 / 0 |
 | one witness of 3 (toad 2) | 3 | 1.01–1.12 | 0.47–1.64 | 1.95–2.17 | 2.61–2.78 | 3.78–4.01 | 102 / 6 / 0 / 0 |
 | all three witnesses | 1 | 3.08–3.13 | 1.23–1.71 | 2.34–2.63 | 3.46–3.63 | 4.40–4.59 | 99 / 9 / 0 / 0 |
@@ -90,6 +90,8 @@ Each scenario runs the lifecycle to `verified` (issue, deliver, present, verify)
 | verifier | 3 | 1.02–1.11 | 1.02–1.37 | 2.36–2.41 | 2.30–2.56 | 3.73–4.35 | 102 / 6 / 0 / 0 |
 
 What this shows:
+
+- **The first success after a crash is the deployment's, not the crashed process's.** For one home of three, the report's first success came from the other homes, which never stopped, in 0.2 to 3.6 s. h0's own first credential after its restart completed 5.4 to 6.0 s after it was ready, read from the committed timelines by the `home` attribute on its events. The report does not yet make that distinction itself (tick `~76aw`).
 
 - **One witness of three at toad 2 costs almost nothing.** No credential was lost, and the next one completed 0.3 to 1.6 s after the witness was back, which is what the pool is for. The whole pool took about 3.1 s to come back; nothing was lost, and the credentials in flight resumed.
 - **Losing the holder loses the one or two grants in flight to it.** Delivery of those grants failed while it was down, and nothing redelivers them. The harness relays grants itself here, because imbu does not deliver them (`docs/adapters.md`), so this measures the relay as much as the holder.
@@ -143,7 +145,7 @@ The signature census and `hsm-sweep` are not measured; see below.
 Each of these is named, not inferred:
 
 - **`hsm-sweep` and the signer census.** imbu `963dfec` pins heti `b6104e4`, from before heti's external-signer interface (heti `utah/next` `6a898b8`), and never signs through it. So there was no seam to put a throttled signer in, and no signer to count the operations of. imbu-prj has since landed the seam on imbu `utah/next` (`ccc8f6c`, heti `f568f7e`), and both are plan item bench-baseline-2. The census row in every report reads "not measured".
-- **`bulk-steady`.** imbu's only bulk route is the SEDI proofed ceremony: a proofing agent's signed IAR per ceremony, a citizen SMAID anchoring its nonce, Core and Residence pairs to distinct holder AIDs, a Utah-root agency credential that imbu checks through a second Registrar and Observer, and a provisioned registry pool. Porting that from the summit harness is a build of its own, and it moved to bench-baseline-2 by the PM's decision of 2026-10-20.
+- **`bulk-steady`** (tick `~42si`). imbu's only bulk route is the SEDI proofed ceremony: a proofing agent's signed IAR per ceremony, a citizen SMAID anchoring its nonce, Core and Residence pairs to distinct holder AIDs, a Utah-root agency credential that imbu checks through a second Registrar and Observer, and a provisioned registry pool. Porting that from the summit harness is a build of its own, and it moved to bench-baseline-2 by the PM's decision of 2026-10-20.
 - **Construction separately from registry update (pair 1).** imbu stamps neither `constructed` nor `registry_updated`, so both are `unobserved` in every report's observability matrix. Throughput here is end-to-end issuance instead.
 - **Incremental synchronization (pair 5's second half).** No adapter observes `sync_increment_applied`.
 - **Revocation recognition (pair 6), proof generation against independent verification (pair 3), and delivery against storage (pair 4) under load.** No scenario in this matrix revokes. The restart scenarios measure verification only end to end, and the per-pair intervals are in each crash run's report. `scenarios/imbu-smoke.toml` exercises revocation at low rate, but that is not a baseline.

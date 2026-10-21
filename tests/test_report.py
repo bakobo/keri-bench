@@ -1053,3 +1053,17 @@ def test_a_size_sample_older_than_two_intervals_is_not_used(tmp_path):
     out = soak_run(tmp_path, [10, 30, 50, 70, 90, 110], footprints=[(0, 500), (S, 1000)],
                    sample_s=1.0)["drift"]
     assert [b["store_bytes"] for b in out["buckets"]] == [1000, 1000, None]
+
+
+def test_a_preseed_that_lost_credentials_refuses_the_run(tmp_path):
+    # The soak was declared to start from a store of 100; 4 never made it in, so its numbers
+    # describe a store nobody asked for (hostile review of bench-baseline, finding 2).
+    out = soak_run(tmp_path, [10, 30, 50, 70, 90, 110], preseed=(100, 4))
+    assert out["refused"] is True
+    assert out["refused_reason"] == ("The preseed asked for 100 credentials and 4 failed, so "
+                                     "the soak did not start from the store it declared.")
+    assert out["preseed"] == {"requested": 100, "failed": 4}
+    assert any("preseed" in w for w in out["warnings"])
+    clean = soak_run(tmp_path / "b", [10, 30, 50, 70, 90, 110], preseed=(100, 0))
+    assert clean["refused"] is False and clean["preseed"] == {"requested": 100, "failed": 0}
+    assert "preseed" not in derive(write_run(tmp_path / "c", window() + simple("c1", 0, 9)))
