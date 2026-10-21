@@ -3,7 +3,7 @@
 
 def scenario(*, issuer="imbu.issuer", stages='["issue", "deliver", "present", '
              '"verify", "revoke", "sync"]', rate="1.0", duration="3.0", faults="", homes=1,
-             clients=1, count=2):
+             clients=1, count=2, signer="lockbox", latency='"n/a"', signer_rate='"n/a"'):
     return f"""scenario_schema = 1
 name = "imbu-stack"
 stages = {stages}
@@ -37,12 +37,15 @@ resync_s = 6.0
 [roles.issuer]
 adapter = "{issuer}"
 [roles.issuer.knobs]
-knob_schema = 2
+knob_schema = 3
 toad = 2
 poll_ms = 50.0
 operation_timeout_s = 60.0
 homes = {homes}
 clients = {clients}
+signer = "{signer}"
+signer_latency_ms = {latency}
+signer_rate = {signer_rate}
 
 [roles.holder]
 adapter = "heti.holder"

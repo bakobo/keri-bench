@@ -79,3 +79,32 @@ async def test_every_role_crashed_once_restarts_from_disk_and_issues_again(tmp_p
              for c in e.credentials}
     verified = {c for e in events if e.name == "verified" for c in e.credentials}
     assert later and later <= verified
+
+
+async def test_imbu_signs_through_the_throttled_signer_and_the_census_counts_it(tmp_path):
+    """this.i 2p26rn9h: an external signer at 20 ms per operation, capped at 20 starts a
+    second; every signature imbu makes goes through it, and the report counts and checks them."""
+    path = tmp_path / "scenario.toml"
+    path.write_text(scenario(stages='["issue", "deliver", "present", "verify"]', rate="1.0",
+                             duration="3.0", signer="external", latency="20.0",
+                             signer_rate="20.0"))
+    report = await runner.run_once(load_scenario(path), tmp_path / "out", rate=1.0,
+                                   repetition=1, harness_commit="test")
+    _, events = read_timeline(tmp_path / "out" / "rate-1" / "rep-1" / "timeline.jsonl")
+    assert [e.attrs for e in events if e.name == "stage_failed"] == []
+    census = report["census"]
+    home, = census["issuer"]["signers"]
+    # Whether the 5% check passes depends on how busy the host is; that it judges the medians
+    # it reports does not.
+    lat, rate = home["latency"], home["rate"]
+    assert lat["ok"] == (abs(lat["median_ms"] - 20.0) <= 1.0)
+    assert not rate["exercised"] or rate["ok"] == (abs(rate["median_spacing_ms"] - 50.0) <= 2.5)
+    assert report["refused"] is not census["ok"]
+    assert home["latency"]["configured_ms"] == 20.0
+    assert home["counts"]["incept"] == 1
+    # Every answer imbu gave the adapter is one signature; the inception event is one more; and
+    # each credential costs two, hand-traced on imbu ccc8f6c: the ixn anchoring its registry's
+    # inception and its issuance (coalesced, heti @69ln7vtw), and the grant. A change here is a
+    # change in what an HSM is asked to do per credential (test plan, Part B #11).
+    assert home["counts"]["sign"] == home["signed_responses"] + 1 + home["other_signatures"]
+    assert home["per_issuance"] == 2.0

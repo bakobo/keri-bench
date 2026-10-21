@@ -472,7 +472,8 @@ def _signer_census(entry: dict) -> tuple[dict, str | None]:
     for kind, *_ in ops:
         counts[kind] = counts.get(kind, 0) + 1
     signatures = counts.get("sign", 0)
-    other = signatures - entry["signed_responses"]
+    # Every inception is signed once as well, which is the identifier's, not any credential's.
+    other = signatures - entry["signed_responses"] - counts.get("incept", 0)
     issued = entry["issuances"]
     configured = entry["latency_ms"]
     median = (round(statistics.median(f - s for _, _, s, f in ops) / 1e6, 3) if ops else None)
@@ -484,8 +485,11 @@ def _signer_census(entry: dict) -> tuple[dict, str | None]:
         latency_ok = abs(median - configured) <= PROFILE_TOLERANCE * configured
     rate = entry["rate"]
     rate_out: dict[str, Any] = {"configured_per_s": rate, "exercised": False, "ok": True}
+    # An operation was held by the cap when it asked before the device's next start was free.
     starts = sorted((s, r) for _, r, s, _ in ops)
-    spacings = [s - before for (before, _), (s, r) in zip(starts, starts[1:]) if s > r]
+    gap = 0 if rate is None else 1e9 / rate
+    spacings = [s - before for (before, _), (s, r) in zip(starts, starts[1:])
+                if r < before + gap]
     if rate is not None and spacings:
         spacing = round(statistics.median(spacings) / 1e6, 3)
         want = 1000.0 / rate

@@ -42,6 +42,7 @@ from pathlib import Path
 from typing import Any
 
 import fiki  # the stacks extra; registry.lookup names it when it is missing
+from keri.core.signing import Salter
 
 from ..adapters.base import Declaration, IssuerAdapter, Issued, Observation
 from ..errors import BenchError
@@ -51,7 +52,7 @@ from ..procs import free_port
 from ..vocabulary import Role
 from .adapters import IMBU, PYTHON, STARTUP, passcode
 
-VERSION = "2"
+VERSION = "3"
 WALL = 1_000
 """imbu stamps milestones in RFC 3339 with microseconds (imbu operations.now), so a microsecond
 is the resolution claimed for them."""
@@ -65,6 +66,8 @@ E_FAILED = "e.party.imbu.operation.f"
 E_SHAPE = "e.input.format.imbu.operation.f"
 E_TIMEOUT = "e.env.imbu.operation.r"
 E_DEPLOYMENT = "e.input.range.imbu.deployment.f"
+E_SIGNER = "e.input.range.imbu.signer.f"
+NA = "n/a"
 
 
 def stamp(value: Any) -> int:
@@ -115,6 +118,34 @@ class Home:
     index: int
     control: str = ""
     clients: list[Client] = field(default_factory=list)
+    signer_port: int | None = None
+    signed: int = 0
+    """Answers imbu signed with the principal's key: one signature each (this.i 2p26rn9h)."""
+    issuances: int = 0
+
+
+def check_signer(knobs) -> None:
+    """Refuse a signer the adapter cannot build, before any process starts."""
+    kind, latency, rate = knobs["signer"], knobs["signer_latency_ms"], knobs["signer_rate"]
+    if kind == "lockbox" and (latency, rate) == (NA, NA):
+        return
+    if kind == "external" and (latency == NA or latency >= 0) and (rate == NA or rate > 0):
+        return
+    raise BenchError(E_SIGNER, f"The imbu issuer's signer is {kind!r} with latency {latency!r} "
+                     f"ms and rate {rate!r}; it must be lockbox with both n/a, or external with "
+                     f"a latency that is n/a or not negative and a rate that is n/a or positive.")
+
+
+def signer_args(knobs, *, port: int) -> list[str]:
+    """The issuer process's signer arguments (stacks/issuer.py); none for the lockbox."""
+    if knobs["signer"] != "external":
+        return []
+    args = ["--signer", "external", "--signer-port", str(port)]
+    if knobs["signer_latency_ms"] != NA:
+        args += ["--signer-latency-ms", str(knobs["signer_latency_ms"])]
+    if knobs["signer_rate"] != NA:
+        args += ["--signer-rate", str(knobs["signer_rate"])]
+    return args
 
 
 class ImbuIssuer(IssuerAdapter):
@@ -127,7 +158,7 @@ class ImbuIssuer(IssuerAdapter):
             **{name: Observation("reported", "realtime", WALL)
                for name in REVOKE_MILESTONES.values()},
         },
-        knobs=KnobSchema(2, {
+        knobs=KnobSchema(3, {
             "toad": Knob(int, "Witness receipts imbu requires before an event is settled."),
             "poll_ms": Knob(float, "How often the adapter reads an operation until it finishes; "
                             "the milestone times come from imbu, not from this poll.",
@@ -138,6 +169,12 @@ class ImbuIssuer(IssuerAdapter):
                           "the deployment (this.i 2lkqz9mq)."),
             "clients": Knob(int, "How many controllers each home serves, each with its own key "
                             "and connection pool."),
+            "signer": Knob(str, "lockbox: the principal's keys are in the lockbox; external: "
+                           "heti's ThrottledSigner holds them (this.i 2p26rn9h)."),
+            "signer_latency_ms": Knob(float, "The external signer's latency per operation.",
+                                      allow_na=True, unit="ms"),
+            "signer_rate": Knob(float, "The external signer's cap on operation starts per "
+                                "second.", allow_na=True, unit="/s"),
         }),
         tested_against={"imbu": IMBU})
 
@@ -157,6 +194,7 @@ class ImbuIssuer(IssuerAdapter):
         if homes < 1 or clients < 1:
             raise BenchError(E_DEPLOYMENT, f"The imbu issuer needs at least one home and one "
                              f"client per home, not {homes} and {clients}.")
+        check_signer(self.ctx.knobs)
         state = self.ctx.peers[Role.STATE_DISTRIBUTION]
         found = []
         for index in range(homes):
@@ -167,11 +205,15 @@ class ImbuIssuer(IssuerAdapter):
                 args += ["--controller", f"{client.key.aid}={self.OPERATOR_ACTS}"]
             for oobi in self.ctx.peers[Role.WITNESS_POOL]["oobis"]:
                 args += ["--witness", oobi]
+            home.signer_port = free_port()
+            args += signer_args(self.ctx.knobs, port=home.signer_port)
             process = await self.ctx.procs.start(
                 f"issuer.h{index}", (PYTHON, "-m", "keri_bench.stacks.issuer"), tuple(args),
                 env={"BENCH_PASSCODE": passcode(),
                      "IMBU_HOME": str(self.ctx.run_dir / "imbu" / f"h{index}"),
-                     "BENCH_PUBLISHER_SEED": state["publisher_seed"]}, timeout=STARTUP)
+                     "BENCH_PUBLISHER_SEED": state["publisher_seed"],
+                     # One salt per home for the run, so a restart attaches the same keys.
+                     "BENCH_SIGNER_SALT": Salter().qb64}, timeout=STARTUP)
             self.homes.append(home)
             found.append(process.announced)
         # One OOBI per home: what the Observer, holder and verifier resolve to know each issuer.
@@ -219,7 +261,23 @@ class ImbuIssuer(IssuerAdapter):
                    "Content-Type": "application/json"}
         if key is not None:
             headers["Idempotency-Key"] = key
-        return await client.http.request(method, url, body=body, headers=headers)
+        answer = await client.http.request(method, url, body=body, headers=headers)
+        if any(name.lower() == "signature" for name in answer.headers):
+            home.signed += 1
+        return answer
+
+    async def census(self) -> dict | None:
+        """Each home's external signer's record, with the answers imbu signed and the
+        issuances it accepted (this.i 2p26rn9h); None when the lockbox signs."""
+        if self.ctx.knobs["signer"] != "external":
+            return None
+        signers = []
+        for home in self.homes:
+            answer = await home.clients[0].http.get(
+                f"http://127.0.0.1:{home.signer_port}/signer")
+            signers.append({**answer.json(), "signed_responses": home.signed,
+                            "issuances": home.issuances})
+        return {"signers": signers}
 
     async def _finish(self, home: Home, client: Client, operation: str) -> dict:
         knobs = self.ctx.knobs
@@ -286,6 +344,7 @@ class ImbuIssuer(IssuerAdapter):
         if answer.status != 202:
             raise BenchError(E_REFUSED, f"imbu answered {answer.status} to an issuance, not "
                              f"202: {answer.body[:300]!r}")
+        home.issuances += 1
         self.ctx.emit("accepted", credentials=[credential], attrs=where)
         op = await self._finish(home, client, operation_id(answer))
         result = op.get("result") or {}

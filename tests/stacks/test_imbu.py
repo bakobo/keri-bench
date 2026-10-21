@@ -14,7 +14,8 @@ from keri_bench.stacks import imbu
 from keri_bench.synthetic import http
 
 H, W = "monotonic@b", "realtime@h"
-KNOBS = {"toad": 1, "poll_ms": 1.0, "operation_timeout_s": 2.0, "homes": 1, "clients": 1}
+KNOBS = {"toad": 1, "poll_ms": 1.0, "operation_timeout_s": 2.0, "homes": 1, "clients": 1,
+         "signer": "lockbox", "signer_latency_ms": "n/a", "signer_rate": "n/a"}
 
 
 class FakeImbu:
@@ -65,16 +66,16 @@ class FakeImbu:
 @pytest.fixture
 async def stand_in():
     fake = FakeImbu()
-    server = await http.serve(fake.handle, 0)
+    server = await http.serve(fake.handle, 0, headers={"Signature": "sig1=:x:"})
     fake.url = f"http://127.0.0.1:{server.sockets[0].getsockname()[1]}"
     yield fake
     server.close()
     await server.wait_closed()
 
 
-def adapter(url, sink, shared=None, *, urls=None, clients=1, run_dir=None):
+def adapter(url, sink, shared=None, *, urls=None, clients=1, run_dir=None, knobs=None):
     urls = urls or [url]
-    knobs = {**KNOBS, "homes": len(urls), "clients": clients}
+    knobs = {**KNOBS, "homes": len(urls), "clients": clients, **(knobs or {})}
     ctx = AdapterContext(imbu.ImbuIssuer.declaration, run_dir=run_dir, knobs=knobs, peers={},
                          procs=None, sink=sink.append, harness_clock=H, realtime_clock=W,
                          shared=shared)
@@ -266,3 +267,66 @@ async def test_a_file_that_vanishes_while_the_store_is_sized_is_not_counted(tmp_
 
     monkeypatch.setattr(imbu.os.path, "getsize", racing)
     assert await issuer.footprint() == 10
+
+
+async def test_the_adapter_counts_the_answers_imbu_signed_and_the_issuances_it_accepted(
+        stand_in):
+    issuer = adapter(stand_in.url, [])
+    try:
+        await issuer.meet({"aid": "Eholder", "oobi": "http://w/oobi/Eholder"})
+        await issuer.issue("c1", {"aid": "Eholder"})
+    finally:
+        await issuer.stop()
+    home = issuer.homes[0]
+    # resolution POST, its poll, the issuance POST and its two polls: five signed answers.
+    assert (home.signed, home.issuances) == (5, 1)
+
+
+async def test_a_lockbox_signer_has_no_census_and_an_external_one_reads_each_home(tmp_path):
+    issuer = adapter("http://unused", [])
+    assert await issuer.census() is None
+    ops = [["sign", 1, 2, 3]]
+
+    async def stats(method, path, body):
+        return 200, {"latency_ms": 5.0, "rate": None, "operations": ops}
+
+    server = await http.serve(stats, 0)
+    try:
+        external = adapter("http://unused", [], knobs={"signer": "external",
+                                                        "signer_latency_ms": 5.0})
+        home = external.homes[0]
+        home.signer_port = server.sockets[0].getsockname()[1]
+        home.signed, home.issuances = 7, 2
+        assert await external.census() == {"signers": [{
+            "latency_ms": 5.0, "rate": None, "operations": ops, "signed_responses": 7,
+            "issuances": 2}]}
+        await external.stop()
+    finally:
+        server.close()
+        await server.wait_closed()
+
+
+@pytest.mark.parametrize("knobs", [
+    {"signer": "lockbox", "signer_latency_ms": 5.0},
+    {"signer": "lockbox", "signer_rate": 10.0},
+    {"signer": "hardware"},
+    {"signer": "external", "signer_latency_ms": -1.0},
+    {"signer": "external", "signer_rate": 0.0},
+])
+async def test_a_signer_the_adapter_cannot_build_is_refused_before_anything_starts(knobs):
+    ctx = AdapterContext(imbu.ImbuIssuer.declaration, run_dir=None, knobs={**KNOBS, **knobs},
+                         peers={}, procs=None, sink=[].append, harness_clock=H,
+                         realtime_clock=W)
+    with pytest.raises(BenchError) as refused:
+        await imbu.ImbuIssuer(ctx).start()
+    assert refused.value.code == "e.input.range.imbu.signer.f"
+
+
+def test_each_home_s_signer_arguments_follow_its_knobs():
+    knobs = {**KNOBS, "signer": "external", "signer_latency_ms": 30.0, "signer_rate": "n/a"}
+    assert imbu.signer_args(knobs, port=4000) == [
+        "--signer", "external", "--signer-port", "4000", "--signer-latency-ms", "30.0"]
+    assert imbu.signer_args({**knobs, "signer_latency_ms": "n/a", "signer_rate": 8.0},
+                            port=1) == ["--signer", "external", "--signer-port", "1",
+                                        "--signer-rate", "8.0"]
+    assert imbu.signer_args(KNOBS, port=1) == []

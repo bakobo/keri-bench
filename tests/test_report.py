@@ -1158,9 +1158,10 @@ def test_the_census_counts_by_kind_and_sets_signatures_against_responses(tmp_pat
     out = census_run(tmp_path, [signer(ops, responses=5, issuances=2)])["census"]
     home, = out["issuer"]["signers"]
     assert home["counts"] == {"incept": 1, "sign": 9}
-    # 9 signatures, 5 of them answers to the adapter's requests: 4 left for 2 credentials.
+    # 9 signatures: 5 answers to the adapter's requests and 1 the inception event's, which
+    # leaves 3 for 2 credentials.
     assert (home["signed_responses"], home["other_signatures"], home["per_issuance"]) == \
-        (5, 4, 2.0)
+        (5, 3, 1.5)
     assert home["latency"] == {"configured_ms": 10.0, "median_ms": 10.05, "ok": True}
     assert home["rate"] == {"configured_per_s": None, "exercised": False, "ok": True}
     assert home["ok"] is True and out["ok"] is True
@@ -1196,6 +1197,11 @@ def test_the_cap_is_checked_on_the_starts_it_delayed(tmp_path):
     assert home["rate"] == {"configured_per_s": 10.0, "exercised": True,
                             "median_spacing_ms": 100.0, "ok": True}
     tight = [["sign", 0, 0, MS_], ["sign", 0, 80 * MS_, 81 * MS_]]
+    # Asked for 5 ms after the device was free again: late by the loop, not held by the cap.
+    late = [["sign", 0, 0, MS_], ["sign", 105 * MS_, 105 * MS_ + 50_000, 106 * MS_]]
+    home, = census_run(tmp_path / "d", [signer(late, latency_ms=1.0, rate=10.0)])["census"][
+        "issuer"]["signers"]
+    assert home["rate"]["exercised"] is False
     report = census_run(tmp_path / "b", [signer(tight, latency_ms=1.0, rate=10.0)])
     assert report["refused"] is True
     assert "spacing median 80.0 ms against 100.0 ms" in report["refused_reason"]
@@ -1219,4 +1225,5 @@ def test_the_markdown_shows_the_census_and_its_check(tmp_path):
     report.write_report(tmp_path, generator_commit="gc")
     text = (tmp_path / "report.md").read_text()
     assert "## Signer census" in text
-    assert "| issuer | 0 | sign 3 | 1 | 2 | 2.0 | 10.0 ms (10.0 configured) ok | not exercised |" in text
+    assert "| issuer | 0 | sign 3 | 1 | 2 | 2.0 | 10.0 ms (10.0 configured) ok | not exercised |" \
+        in text

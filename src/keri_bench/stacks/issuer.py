@@ -13,6 +13,12 @@ The passcode comes from ``$BENCH_PASSCODE``, the publisher's seed from ``$BENCH_
 
 A home that already exists is reopened rather than initialized, so a crash fault's restart is
 imbu recovering its own home, operations and all (this.i 5ed29j5w).
+
+With ``--signer external`` the principal's keys are held by heti's ThrottledSigner over a
+SoftwareSigner whose salt is ``$BENCH_SIGNER_SALT``, at ``--signer-latency-ms`` per operation and
+at most ``--signer-rate`` starts per second; it mints the principal on a fresh home, is attached
+on every start (imbu ``Service.attach_signer``), and its record is served at ``GET /signer`` on
+``--signer-port`` (stacks/signer.py, this.i 2p26rn9h).
 """
 
 from __future__ import annotations
@@ -47,7 +53,19 @@ async def start_listener(server) -> asyncio.Task:
     return task
 
 
-async def serve(args, passcode: str, issuer: str, oobis) -> None:
+def external_signer(args, *, fresh: bool):
+    """The counting, throttled signer that holds the principal's keys, or None for the lockbox.
+    Key 0 of the run's salt, whether it mints the principal now or meets it again on restart."""
+    if args.signer != "external":
+        return None
+    from heti.anchored.produce import SoftwareSigner
+
+    from .signer import counting
+    inner = SoftwareSigner(salt=os.environ["BENCH_SIGNER_SALT"], index=None if fresh else 0)
+    return counting(inner, latency_ms=args.signer_latency_ms, rate=args.signer_rate)
+
+
+async def serve(args, passcode: str, issuer: str, oobis, signer=None) -> None:
     import fiki
     import uvicorn
     from imbu.control import create_app
@@ -62,12 +80,19 @@ async def serve(args, passcode: str, issuer: str, oobis) -> None:
         publisher=RegistrarPublisher(args.registrar_url, key=fiki.Key.from_seed(
             bytes.fromhex(os.environ["BENCH_PUBLISHER_SEED"]))))
     with service:
+        if signer is not None:
+            from ..synthetic import http
+            from .signer import handler
+            await service.attach_signer(aid=issuer, signer=signer)
+            await http.serve(handler(signer), args.signer_port)
         server = uvicorn.Server(uvicorn.Config(create_app(service), host="127.0.0.1",
                                                port=args.control_port, log_level="warning"))
         task = await start_listener(server)
         announce(issuer=issuer, oobis=list(oobis),
                  control=f"http://127.0.0.1:{args.control_port}")
-        await task  # uvicorn exits on SIGTERM; then the service closes
+        # uvicorn exits on SIGTERM; then the service closes, and the process's exit closes the
+        # signer's record port with it.
+        await task
 
 
 def main(argv=None) -> None:
@@ -81,15 +106,23 @@ def main(argv=None) -> None:
     parser.add_argument("--registrar-url", required=True)
     parser.add_argument("--controller", action="append", required=True)
     parser.add_argument("--control-port", type=int, required=True)
+    parser.add_argument("--signer", choices=("lockbox", "external"), default="lockbox")
+    parser.add_argument("--signer-latency-ms", type=float)
+    parser.add_argument("--signer-rate", type=float)
+    parser.add_argument("--signer-port", type=int)
     args = parser.parse_args(argv)
+    if args.signer == "external" and args.signer_port is None:
+        parser.error("an external signer needs --signer-port for its record")
     passcode = os.environ["BENCH_PASSCODE"]
     home = Home(PROFILE)
     fresh = not home.is_home()
+    signer = external_signer(args, fresh=fresh)
     if fresh:
         InProcessAgent(home, passcode).init(recovery=new_recovery_code(),
-                                            witnesses=args.witness, toad=args.toad)
+                                            witnesses=args.witness, toad=args.toad,
+                                            signer=signer)
     issuer, oobis = _provision(home, passcode, learn=fresh)
-    asyncio.run(serve(args, passcode, issuer, oobis))
+    asyncio.run(serve(args, passcode, issuer, oobis, signer))
 
 
 if __name__ == "__main__":
