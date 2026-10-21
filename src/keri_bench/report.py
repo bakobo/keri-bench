@@ -413,9 +413,11 @@ def _failures(events) -> dict:
 def _preseed(run: _Run, declared: dict | None) -> tuple[dict | None, str | None]:
     """What the timeline says the preseed did, and why the run is refused if it did not fill
     the store the run declared before the window opened (this.i 9yx6cg92): more than one
-    record, a record of an undeclared preseed or none of a declared one, counts that are not
+    record, a record off the harness clock, a record of an undeclared preseed or none of a
+    declared one, counts that are not
     whole numbers or not possible, a count short of the declaration, a failure, or a preseed
-    that finished after the window opened."""
+    that finished after the window opened. preseed_started and the declaration's own type are
+    not checked (~2ac4)."""
     seeded = [e for e in run.events if e.name == "preseed_ended"]
     wanted = declared.get("credentials") if isinstance(declared, dict) else None
     unknown = "so the store the soak started from is unknown."
@@ -428,6 +430,9 @@ def _preseed(run: _Run, declared: dict | None) -> tuple[dict | None, str | None]
             return None, None
         return None, (f"The run declared a preseed of {wanted} credentials and its timeline "
                       f"records none, {tail}")
+    if seeded[0].clock != run.header.harness_clock:
+        return None, (f"The preseed's record is on the clock {seeded[0].clock}, not the "
+                      f"harness's, so when it finished is unknown.")
     attrs = seeded[0].attrs or {}
     requested, failed = attrs.get("requested"), attrs.get("failed")
     if type(requested) is not int or type(failed) is not int:

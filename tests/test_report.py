@@ -1118,3 +1118,14 @@ def test_a_preseed_late_repeated_undeclared_or_impossible_refuses_the_run(tmp_pa
     out = derive(write_run(tmp_path, preseed_events(*ended), run=run_section(
         soak={"bucket": 2, "per_credentials": 10}, **extra)))
     assert out["refused"] is True and out["refused_reason"] == reason
+
+
+def test_a_preseed_record_on_another_clock_refuses_the_run(tmp_path):
+    events = window(6 * S) + simple("c1", 0, 9) + [
+        ev("preseed_ended", -S, clock=SK, attrs={"requested": 5, "failed": 0})]
+    out = derive(write_run(tmp_path, events, run=run_section(
+        soak={"bucket": 2, "per_credentials": 10},
+        preseed={"credentials": 5, "concurrency": 1})))
+    assert out["refused"] is True
+    assert out["refused_reason"] == ("The preseed's record is on the clock stack:imbu, not "
+                                     "the harness's, so when it finished is unknown.")
