@@ -192,7 +192,10 @@ class ImbuIssuer(IssuerAdapter):
         total = 0
         for root, _, files in os.walk(Path(self.ctx.run_dir) / "imbu"):
             for name in files:
-                total += os.path.getsize(os.path.join(root, name))
+                try:
+                    total += os.path.getsize(os.path.join(root, name))
+                except FileNotFoundError:
+                    pass  # removed between the listing and the stat, as SQLite's journals are
         return total
 
     def _deal(self, credential: str) -> tuple[Home, Client]:

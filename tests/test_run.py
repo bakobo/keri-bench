@@ -646,3 +646,21 @@ async def test_a_run_without_a_soak_samples_nothing_and_has_no_soak_section(tmp_
     report, events = await soak_events(tmp_path, soak_scenario(soak=False))
     assert {"footprint", "stop_reached", "preseed_started"}.isdisjoint(e.name for e in events)
     assert "soak" not in report["run"] and "preseed" not in report["run"]
+
+
+async def test_a_store_size_that_cannot_be_read_is_recorded_and_sampling_goes_on(
+        tmp_path, fakes, monkeypatch):
+    from fake_adapters import FakeIssuer
+    calls = []
+
+    async def flaky(self):
+        calls.append(1)
+        if len(calls) == 2:
+            raise OSError("the store moved")
+        return 100 * len(calls)
+
+    monkeypatch.setattr(FakeIssuer, "footprint", flaky)
+    _, events = await soak_events(tmp_path, soak_scenario(duration="0.4"))
+    failed = [e.attrs for e in events if e.name == "footprint_failed"]
+    assert failed == [{"error": "OSError: the store moved"}]
+    assert len([e for e in events if e.name == "footprint"]) >= 2

@@ -432,6 +432,7 @@ def _drift(run: _Run) -> dict:
     seeded = [e.attrs for e in run.events if e.name == "preseed_ended"]
     preseeded = sum(a["requested"] - a["failed"] for a in seeded)
     samples = sorted((e.t, e.attrs["bytes"]) for e in run.events if e.name == "footprint")
+    stale = round(2 * soak["sample_s"] * 1e9) if "sample_s" in soak else None
     ordered = sorted(run.window, key=lambda c: run.requested[c])
     start, end = run.measure
     buckets = []
@@ -444,7 +445,8 @@ def _drift(run: _Run) -> dict:
         for result in results:
             if isinstance(result, Interval):
                 histogram.record(_reported(result))
-        before = [b for t, b in samples if t <= at]
+        # A size older than two sampling intervals is stale, not this bucket's size.
+        before = [b for t, b in samples if t <= at and (stale is None or at - t <= stale)]
         buckets.append({
             "index": len(buckets), "credentials": histogram.count, "missing": missing,
             "store_credentials": preseeded + middle,

@@ -935,7 +935,8 @@ def hdr(v):
     return (v >> b << b) + (1 << b) - 1
 
 
-def soak_run(tmp_path, latencies, *, preseed=None, footprints=(), bucket=2, per=10):
+def soak_run(tmp_path, latencies, *, preseed=None, footprints=(), bucket=2, per=10,
+             sample_s=None):
     """Credentials requested one per second, each verified after the given latency (ms)."""
     events = [ev("run_started", 0), ev("run_ended", len(latencies) * S)]
     if preseed is not None:
@@ -949,6 +950,8 @@ def soak_run(tmp_path, latencies, *, preseed=None, footprints=(), bucket=2, per=
             continue
         events += simple(f"c{i}", i * S, ms * MS)
     soak = {"bucket": bucket, "per_credentials": per}
+    if sample_s is not None:
+        soak["sample_s"] = sample_s
     return derive(write_run(tmp_path, events, run=run_section(soak=soak)))
 
 
@@ -1041,3 +1044,12 @@ def test_a_bucket_leaves_out_an_interval_it_cannot_place(tmp_path):
     out = derive(write_run(tmp_path, events, run=run_section(
         soak={"bucket": 2, "per_credentials": 10})))["drift"]
     assert [b["credentials"] for b in out["buckets"]] == [1, 2, 2]
+
+
+def test_a_size_sample_older_than_two_intervals_is_not_used(tmp_path):
+    # Samples every 1 s were meant; the last one arrived at 1 s. Buckets centre at 1, 3 and 5 s:
+    # the first reads 1000; at 3 s the sample is 2 s old, still within two intervals; at 5 s
+    # it is 4 s old, so that bucket has no size rather than a stale one.
+    out = soak_run(tmp_path, [10, 30, 50, 70, 90, 110], footprints=[(0, 500), (S, 1000)],
+                   sample_s=1.0)["drift"]
+    assert [b["store_bytes"] for b in out["buckets"]] == [1000, 1000, None]

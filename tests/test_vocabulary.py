@@ -27,7 +27,7 @@ def test_milestone_names_are_snake_case_and_never_reuse_a_reserved_name():
 def test_harness_events_are_separate_from_milestones():
     assert not set(v.HARNESS_EVENTS) & set(v.MILESTONES)
     assert {"dispatched", "clock_offset", "fault_started", "fault_ended", "process_killed",
-            "process_ready", "preseed_started", "preseed_ended", "footprint",
+            "process_ready", "preseed_started", "preseed_ended", "footprint", "footprint_failed",
             "stop_reached"} <= set(v.HARNESS_EVENTS)
 
 

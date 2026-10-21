@@ -249,3 +249,20 @@ def test_stamps_are_nanoseconds():
     assert imbu.stamp(12) == 12
     assert imbu.stamp("1970-01-01T00:00:01.5+00:00") == 1_500_000_000
     assert imbu.stamp("1970-01-02T00:00:00Z") == 86_400 * 1_000_000_000
+
+
+async def test_a_file_that_vanishes_while_the_store_is_sized_is_not_counted(tmp_path,
+                                                                           monkeypatch):
+    issuer = adapter("http://unused", [], run_dir=tmp_path)
+    (tmp_path / "imbu" / "h0").mkdir(parents=True)
+    (tmp_path / "imbu" / "h0" / "kept").write_bytes(b"x" * 10)
+    (tmp_path / "imbu" / "h0" / "ops.sqlite3-journal").write_bytes(b"y" * 99)
+    real = imbu.os.path.getsize
+
+    def racing(path):
+        if path.endswith("-journal"):
+            raise FileNotFoundError(path)  # SQLite removed it between the listing and the stat
+        return real(path)
+
+    monkeypatch.setattr(imbu.os.path, "getsize", racing)
+    assert await issuer.footprint() == 10

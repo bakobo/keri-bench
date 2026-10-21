@@ -367,10 +367,20 @@ class Run:
         self._harness_event("preseed_ended", attrs=attrs)
 
     async def _sample_footprint(self) -> None:
-        """Sample the issuer's store size every ``sample_s`` until cancelled."""
+        """Sample the issuer's store size every ``sample_s`` until cancelled. A sample that
+        cannot be read is recorded and sampling goes on: one that died silently once left a
+        soak's later buckets with a stale size (October 2026 baseline)."""
         issuer = self.adapters[Role.ISSUER]
-        while (size := await issuer.footprint()) is not None:
-            self._harness_event("footprint", attrs={"bytes": size})
+        while True:
+            try:
+                size = await issuer.footprint()
+            except Exception as failed:
+                self._harness_event("footprint_failed", attrs={
+                    "error": f"{type(failed).__name__}: {failed}"[:500]})
+            else:
+                if size is None:
+                    return
+                self._harness_event("footprint", attrs={"bytes": size})
             await asyncio.sleep(self.plan.scenario.soak.sample_s)
 
     def _fire(self, index: int, scheduled: int) -> None:
