@@ -2177,7 +2177,7 @@
     "fault_failed": null
   },
   "faults": [],
-  "generator_commit": "541b3d446d2bdb253e8faaec4130aff09ef04318",
+  "generator_commit": "0780847eac80c9b1e85fe67b2e1094a4c7ad2c85",
   "harness_commit": "8d69e59c54c2db6f6a6cd1a9a156d83101ddaeaf",
   "incomplete": {
     "count": 1108,
@@ -3793,6 +3793,10 @@
         "measurable": false
       }
     }
+  },
+  "preseed": {
+    "failed": 0,
+    "requested": 1200
   },
   "reconciliation": "not measured",
   "refused": false,

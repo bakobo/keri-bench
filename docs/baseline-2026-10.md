@@ -11,7 +11,7 @@ KERI-006 asks for "Load and soak tests covering throughput, persistence, concurr
 | Stack | imbu `963dfec` (async operations), heti `b6104e4`, keripy `2.1.0.dev1` through heti, bakobo/witness Registrar `4522151`, heti Observer, three keripy witnesses at toad 2, one heti holder, one independent heti verifier |
 | Topologies | 1 home and 3 homes (`this.i` 2lkqz9mq), each with 1 client and with 4 clients per home |
 | Host | kelun: 8 cores (Intel Haswell, no TSX), 23 GB, Linux 7.0, Python 3.14.6. One host for every role, shared with other workers' test runs, everything at nice 19 |
-| Harness | keri-bench `8d69e59` for every run. The soaks' reports were rebuilt from their timelines by `541b3d4`, after a fault in the size sampler was fixed (see [First pass](#what-the-first-pass-got-wrong)). The calibration passed at `8d69e59`: saturation within 0.4%, every injected interval within its budget (`results/baseline-2026-10/calibration/calibration.json`) |
+| Harness | keri-bench `8d69e59` for every run. The soaks' reports were rebuilt from their timelines by `0780847`, after a fault in the size sampler was fixed (see [First pass](#what-the-first-pass-got-wrong)). The calibration passed at `8d69e59`: saturation within 0.4%, every injected interval within its budget (`results/baseline-2026-10/calibration/calibration.json`) |
 | Dates | 2026-10-21, 01:14 to 07:12 UTC |
 | Sizes | Chosen from probes and recorded before the runs, in `this.i` 82r8lxy5, with the corrections in 2hn3mn3j |
 
