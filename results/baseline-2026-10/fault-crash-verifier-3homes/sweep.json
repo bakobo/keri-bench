@@ -1,0 +1,32 @@
+{
+  "scenario": "fault-crash-verifier-3homes",
+  "measure": [
+    "requested",
+    "verified"
+  ],
+  "steps": [
+    {
+      "offered": 0.6,
+      "runs": 3,
+      "achieved": {
+        "n": 3,
+        "min": 0.5657099772767966,
+        "max": 0.5828534824739917,
+        "mean": 0.5771383808610864,
+        "stdev": 0.009897287869600068
+      },
+      "p99_ns": {
+        "n": 3,
+        "min": 4060086271,
+        "max": 4353687551,
+        "mean": 4162147668.3333335,
+        "stdev": 165997672.8980568
+      }
+    }
+  ],
+  "saturation": null,
+  "refused": [],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 6
+}
