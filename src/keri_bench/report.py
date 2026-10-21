@@ -482,7 +482,8 @@ def _signer_census(entry: dict) -> tuple[dict, str | None]:
               and (configured is None or configured >= 0)
               and (entry["rate"] is None or entry["rate"] > 0)
               and all(type(n) is int and n >= 0
-                      for n in (entry["signed_responses"], entry["issuances"])))
+                      for n in (entry["signed_responses"], entry["issuances"]))
+              and all(type(t) is int for op in ops for t in op[1:]))
     # Every inception is signed once as well, which is the identifier's, not any credential's.
     other = (signatures - entry["signed_responses"] - counts.get("incept", 0)) if finite else 0
     median = (round(statistics.median(f - s for _, _, s, f in ops) / 1e6, 3) if ops else None)

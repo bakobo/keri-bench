@@ -90,6 +90,7 @@ Past saturation goodput collapses, as on the plain route: operations pass their 
 What bulk-steady does not show:
 
 - **The far node is read locally.** The Utah agent credential that every Core names is issued by a facet in imbu's own home. A deployment whose agent credential lives on another issuer's registry adds one far-Observer read per ceremony, and this does not measure it.
+- **Two of every eight credentials are counted on imbu's word.** imbu's result names the copy pairs, each SAID checked distinct and new, but not the management pair, which it issues to the citizen and keeps. Counting 8 credentials a ceremony rests on that design (tick `~7soc`); on the copies alone, credentials a second are three quarters of the figures above.
 - **Nothing is delivered.** Copy holders are fresh keys' AIDs, so neither delivery to six holders nor their admission is in these numbers.
 - **The citizen's own work is inside every interval.** That is the IAR, the anchoring of its nonce and the SMAID's signatures, as a citizen's wallet's would be.
 - **A crashed bulk home can refuse the ceremony it was running.** In the stack test that crashes one, a ceremony imbu resumed after the restart failed `e.state.conflict.registry.reconciliation.f`: the reserved registry could not be reconciled with the issuance evidence imbu had kept. New ceremonies went on. bulk-steady itself schedules no crash, so this is an observation from a test, reported to the plan's PM, not a measurement.

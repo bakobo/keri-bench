@@ -1248,6 +1248,11 @@ def test_a_profile_that_is_not_finite_refuses_the_run(tmp_path):
     assert report["refused"] is True and "not a finite profile" in report["refused_reason"]
 
 
+def test_operations_whose_times_are_not_integers_are_not_a_device_record(tmp_path):
+    report = census_run(tmp_path, [signer([["sign", True, True, True]], latency_ms=None)])
+    assert report["refused"] is True
+
+
 @pytest.mark.parametrize("change", [{"rate": 0.0}, {"rate": -1.0}, {"latency_ms": -2.0},
                                     {"responses": -1}, {"issuances": -1}, {"rate": True},
                                     {"latency_ms": True}, {"responses": "1"},

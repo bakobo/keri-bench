@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import secrets
 from collections.abc import Mapping
 from typing import Any
@@ -39,7 +40,30 @@ POOL_BATCH = 1000
 """imbu provisions at most this many registries per registry-pool request."""
 
 
-def copies_issued(op: dict, *, copies: int) -> str:
+SAID = re.compile(r"[A-Za-z0-9_-]{44}")
+"""A SAID in CESR text, as imbu names a registry or a credential."""
+
+
+def registries_made(op: dict, *, count: int) -> int:
+    """How many distinct registries a finished pool provisioning names, refused unless it is
+    the count asked for: done is not evidence of what was done."""
+    result = op.get("result")
+    made = result.get("registries") if isinstance(result, dict) else None
+    if not isinstance(made, list) or len(made) != count or len(set(made)) != count or \
+            not all(isinstance(r, str) and SAID.fullmatch(r) for r in made):
+        raise BenchError(E_SHAPE, f"imbu's finished pool provisioning does not name {count} "
+                         f"distinct registries: {result!r}"[:500])
+    return count
+
+
+def resolved(op: dict, *, aid: str) -> None:
+    result = op.get("result")
+    if not isinstance(result, dict) or result.get("aid") != aid:
+        raise BenchError(E_SHAPE, f"imbu resolved a party of the ceremony to {result!r}, not "
+                         f"{aid!r}."[:500])
+
+
+def copies_issued(op: dict, *, copies: int, seen: set) -> str:
     """The first copy's Core SAID, once the ceremony's result names a Core and a Residence SAID
     for every copy asked for; stamps alone are not evidence the credentials exist."""
     result = op.get("result")
@@ -49,13 +73,16 @@ def copies_issued(op: dict, *, copies: int) -> str:
                                            and isinstance(pair[kind].get("said"), str)
                                            and pair[kind]["said"]
                                            for kind in ("core", "residence"))
-            for pair in made):
+            for pair in made) or not all(SAID.fullmatch(pair[kind]["said"]) for pair in made
+                                         for kind in ("core", "residence")):
         raise BenchError(E_SHAPE, f"imbu's finished ceremony does not name a Core and a "
                          f"Residence for each of its {copies} copies: {result!r}"[:500])
     saids = [pair[kind]["said"] for pair in made for kind in ("core", "residence")]
-    if len(set(saids)) != len(saids):
-        raise BenchError(E_SHAPE, f"imbu's finished ceremony names one credential twice: "
-                         f"{saids!r}"[:500])
+    if len(set(saids)) != len(saids) or seen.intersection(saids):
+        raise BenchError(E_SHAPE, f"imbu's finished ceremony names a credential twice or one "
+                         f"an earlier ceremony issued: {saids!r}"[:500])
+    seen.update(saids)
+    # The management pair imbu retains is not in the result; counting it rests on imbu (~7soc).
     return made[0]["core"]["said"]
 
 
@@ -88,6 +115,8 @@ class ImbuBulkIssuer(ImbuIssuer):
         self.citizens = HttpClient()
         self.citizens_url = ""
         self.token = ""
+        self.issued: set[str] = set()
+        """Every credential SAID a ceremony has named, so none is counted twice."""
         self.pool: list[dict] = []
         """Each registry-pool provisioning, with imbu's own accepted and finished stamps."""
 
@@ -159,10 +188,10 @@ class ImbuBulkIssuer(ImbuIssuer):
         cast = [self.cast["proofer"], *self.cast["citizens"]]
         for home in self.homes:
             for party in cast:
-                await self._settle(home, await self._call(
+                resolved(await self._settle(home, await self._call(
                     home, home.operator, "POST", "/v1/imbu/resolutions",
                     {"oobi": party["oobi"]}, key=f"meet-{party['aid']}"),
-                    "resolving a party of the ceremony")
+                    "resolving a party of the ceremony"), aid=party["aid"])
             made = 0
             while made < self.ctx.knobs["pool"]:
                 count = min(POOL_BATCH, self.ctx.knobs["pool"] - made)
@@ -170,7 +199,8 @@ class ImbuBulkIssuer(ImbuIssuer):
                     home, home.operator, "POST", "/v1/imbu/registry-pool", {"count": count},
                     key=f"pool-{made}"), "provisioning registries")
                 stamps = op.get("milestones") or {}
-                self.pool.append({"home": home.index, "registries": count,
+                self.pool.append({"home": home.index,
+                                  "registries": registries_made(op, count=count),
                                   **{f"{name}_ns": stamp(stamps[name])
                                      for name in ("accepted", "finished") if name in stamps}})
                 made += count
@@ -191,7 +221,7 @@ class ImbuBulkIssuer(ImbuIssuer):
         home.issuances += 1
         self.ctx.emit("accepted", credentials=[credential], attrs=where)
         op = await self._finish(home, client, operation_id(answer))
-        said = copies_issued(op, copies=copies)
+        said = copies_issued(op, copies=copies, seen=self.issued)
         self._report(op, credential, {name: name for name in ISSUE_MILESTONES},
                      {**where, "credentials": 2 * (copies + 1)})
         return Issued(credential, said, None, delivered_by_stack=False)

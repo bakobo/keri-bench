@@ -288,6 +288,8 @@ async def test_a_lockbox_signer_has_no_census_and_an_external_one_reads_each_hom
     ops = [["sign", 1, 2, 3]]
 
     async def stats(method, path, body):
+        if method == "POST":
+            return 500, {"latency_ms": 5.0, "rate": None, "operations": ops}
         return 200, {"latency_ms": 5.0, "rate": None, "operations": ops}
 
     server = await http.serve(stats, 0)
@@ -300,6 +302,14 @@ async def test_a_lockbox_signer_has_no_census_and_an_external_one_reads_each_hom
         assert await external.census() == {"signers": [{
             "latency_ms": 5.0, "rate": None, "operations": ops, "signed_responses": 7,
             "issuances": 2}]}
+        # A record that is not this scenario's profile is not this run's signer.
+        wrong = adapter("http://unused", [], knobs={"signer": "external",
+                                                     "signer_latency_ms": 120.0})
+        wrong.homes[0].signer_port = home.signer_port
+        with pytest.raises(BenchError) as stranger:
+            await wrong.census()
+        assert stranger.value.code == "e.input.format.imbu.signer.f"
+        await wrong.stop()
         await external.stop()
     finally:
         server.close()

@@ -113,7 +113,39 @@ async def test_the_census_carries_each_pool_provisioning_imbu_stamped():
 def test_a_ceremony_whose_result_does_not_name_every_copy_is_refused(result):
     """Finding 2: milestone stamps are not evidence that the credentials exist."""
     with pytest.raises(BenchError) as refused:
-        bulk.copies_issued({"result": result}, copies=1)
+        bulk.copies_issued({"result": result}, copies=1, seen=set())
     assert refused.value.code == "e.input.format.imbu.operation.f"
+    core, residence = "E" + "c" * 43, "E" + "r" * 43
     assert bulk.copies_issued({"result": {"copies": [
-        {"core": {"said": "Ec"}, "residence": {"said": "Er"}}]}}, copies=1) == "Ec"
+        {"core": {"said": core}, "residence": {"said": residence}}]}}, copies=1,
+        seen=set()) == core
+
+
+
+def test_a_pool_or_resolution_result_that_does_not_show_its_work_is_refused():
+    """Second reader, finding 1: done is not evidence of what was done."""
+    good = "E" + "a" * 43
+    assert bulk.registries_made({"result": {"registries": [good] * 1 + ["E" + "b" * 43]}},
+                                count=2) == 2
+    for result in (None, {}, {"registries": []}, {"registries": [good]},
+                   {"registries": [good, good]}):
+        with pytest.raises(BenchError):
+            bulk.registries_made({"result": result}, count=2)
+    assert bulk.resolved({"result": {"aid": "Ep"}}, aid="Ep") is None
+    for result in (None, {}, {"aid": "Eother"}):
+        with pytest.raises(BenchError):
+            bulk.resolved({"result": result}, aid="Ep")
+
+
+def test_a_ceremony_naming_malformed_or_already_seen_saids_is_refused():
+    """Second reader, finding 2."""
+    def pair(core, residence):
+        return {"result": {"copies": [{"core": {"said": core}, "residence": {"said": residence}}]}}
+    a, b, c, d = ("E" + x * 43 for x in "abcd")
+    seen = set()
+    assert bulk.copies_issued(pair(a, b), copies=1, seen=seen) == a
+    with pytest.raises(BenchError):
+        bulk.copies_issued(pair(a, c), copies=1, seen=seen)  # a was issued already
+    with pytest.raises(BenchError):
+        bulk.copies_issued(pair(" ", d), copies=1, seen=seen)
+    assert seen == {a, b}

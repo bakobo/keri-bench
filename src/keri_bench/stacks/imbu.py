@@ -68,6 +68,7 @@ E_SHAPE = "e.input.format.imbu.operation.f"
 E_TIMEOUT = "e.env.imbu.operation.r"
 E_DEPLOYMENT = "e.input.range.imbu.deployment.f"
 E_SIGNER = "e.input.range.imbu.signer.f"
+E_SIGNER_RECORD = "e.input.format.imbu.signer.f"
 NA = "n/a"
 
 
@@ -285,10 +286,19 @@ class ImbuIssuer(IssuerAdapter):
         if self.ctx.knobs["signer"] != "external":
             return None
         signers = []
+        wanted = {name: None if self.ctx.knobs[f"signer_{name}"] == NA
+                  else self.ctx.knobs[f"signer_{name}"] for name in ("latency_ms", "rate")}
         for home in self.homes:
             answer = await home.clients[0].http.get(
                 f"http://127.0.0.1:{home.signer_port}/signer")
-            signers.append({**answer.json(), "signed_responses": home.signed,
+            record = answer.json() if answer.status == 200 else None
+            # The record must be this run's signer, at the profile the scenario set.
+            if not isinstance(record, dict) or \
+                    {name: record.get(name) for name in wanted} != wanted:
+                raise BenchError(E_SIGNER_RECORD, f"Home {home.index}'s signer answered "
+                                 f"{answer.status} with a record that is not the profile "
+                                 f"{wanted}: {answer.body[:200]!r}")
+            signers.append({**record, "signed_responses": home.signed,
                             "issuances": home.issuances})
         return {"signers": signers}
 
