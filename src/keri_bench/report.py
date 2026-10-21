@@ -410,29 +410,44 @@ def _failures(events) -> dict:
             "fault_failed": fault_failed}
 
 
-def _preseed(events, declared: dict | None) -> tuple[dict | None, str | None]:
+def _preseed(run: _Run, declared: dict | None) -> tuple[dict | None, str | None]:
     """What the timeline says the preseed did, and why the run is refused if it did not fill
-    the store the run declared (this.i 9yx6cg92): a failure, a count short of the declaration,
-    no record of a declared preseed, or counts that are not whole numbers."""
-    seeded = [e.attrs or {} for e in events if e.name == "preseed_ended"]
-    counts = [(a.get("requested"), a.get("failed")) for a in seeded]
-    if any(type(n) is not int for pair in counts for n in pair):
-        requested, failed = counts[0] if len(counts) == 1 else ("?", "?")
-        return None, (f"The preseed's counts are not whole numbers ({requested!r} requested, "
-                      f"{failed!r} failed), so the store the soak started from is unknown.")
-    preseed = {"requested": sum(r for r, _ in counts),
-               "failed": sum(f for _, f in counts)} if seeded else None
+    the store the run declared before the window opened (this.i 9yx6cg92): more than one
+    record, a record of an undeclared preseed or none of a declared one, counts that are not
+    whole numbers or not possible, a count short of the declaration, a failure, or a preseed
+    that finished after the window opened."""
+    seeded = [e for e in run.events if e.name == "preseed_ended"]
     wanted = declared.get("credentials") if isinstance(declared, dict) else None
+    unknown = "so the store the soak started from is unknown."
     tail = "so the soak did not start from the store it declared."
-    if wanted is not None and preseed is None:
+    if len(seeded) > 1:
+        return None, (f"The timeline records {len(seeded)} preseeds where a run has at most "
+                      f"one, {unknown}")
+    if not seeded:
+        if wanted is None:
+            return None, None
         return None, (f"The run declared a preseed of {wanted} credentials and its timeline "
                       f"records none, {tail}")
-    if wanted is not None and preseed["requested"] != wanted:
+    attrs = seeded[0].attrs or {}
+    requested, failed = attrs.get("requested"), attrs.get("failed")
+    if type(requested) is not int or type(failed) is not int:
+        return None, (f"The preseed's counts are not whole numbers ({requested!r} requested, "
+                      f"{failed!r} failed), {unknown}")
+    if requested < 0 or not 0 <= failed <= requested:
+        return None, (f"The preseed's counts are not possible ({requested} requested, {failed} "
+                      f"failed), {unknown}")
+    preseed = {"requested": requested, "failed": failed}
+    if wanted is None:
+        return preseed, (f"The timeline records a preseed of {requested} credentials the run "
+                         f"never declared, {tail}")
+    if requested != wanted:
         return preseed, (f"The run declared a preseed of {wanted} credentials and its timeline "
-                         f"records {preseed['requested']} requested, {tail}")
-    if preseed is not None and preseed["failed"]:
-        return preseed, (f"The preseed asked for {preseed['requested']} credentials and "
-                         f"{preseed['failed']} failed, {tail}")
+                         f"records {requested} requested, {tail}")
+    if failed:
+        return preseed, (f"The preseed asked for {requested} credentials and {failed} failed, "
+                         f"{tail}")
+    if seeded[0].t >= run.start:
+        return preseed, f"The preseed finished after the measured window opened, {tail}"
     return preseed, None
 
 
@@ -553,7 +568,7 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         reconciliation = {"summary": summary(outcomes),
                           "credentials": {c: outcomes[c].to_dict() for c in sorted(outcomes)}}
     failures = _failures(events)
-    preseed, preseed_failed = _preseed(events, run.run.get("preseed"))
+    preseed, preseed_failed = _preseed(run, run.run.get("preseed"))
     refused = driver["reason"] if not driver["ok"] else (failures["fault_failed"]
                                                          or preseed_failed)
     out = {

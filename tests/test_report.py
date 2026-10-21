@@ -1092,3 +1092,29 @@ def test_a_malformed_preseed_on_a_run_that_declared_none_is_refused_not_a_crash(
     out = derive(write_run(tmp_path, events))
     assert out["refused"] is True
     assert out["refused_reason"].startswith("The preseed's counts are not whole numbers")
+
+
+def preseed_events(*ended, at=-S):
+    return window(6 * S) + simple("c1", 0, 9) + [
+        ev("preseed_ended", t, attrs={"requested": r, "failed": f}) for (r, f, t) in
+        [(r, f, at) if len(x) == 2 else x for x in ended for (r, f) in [x[:2]]]]
+
+
+@pytest.mark.parametrize("ended, declared, reason", [
+    ([(100, 0, 7 * S)], 100, "The preseed finished after the measured window opened, so the "
+                             "soak did not start from the store it declared."),
+    ([(50, 0), (50, 0)], 100, "The timeline records 2 preseeds where a run has at most one, so "
+                              "the store the soak started from is unknown."),
+    ([(50, 0)], None, "The timeline records a preseed of 50 credentials the run never "
+                      "declared, so the soak did not start from the store it declared."),
+    ([(-5, 0)], -5, "The preseed's counts are not possible (-5 requested, 0 failed), so the "
+                    "store the soak started from is unknown."),
+    ([(5, 6)], 5, "The preseed's counts are not possible (5 requested, 6 failed), so the store "
+                  "the soak started from is unknown."),
+])
+def test_a_preseed_late_repeated_undeclared_or_impossible_refuses_the_run(tmp_path, ended,
+                                                                          declared, reason):
+    extra = {"preseed": {"credentials": declared, "concurrency": 2}} if declared else {}
+    out = derive(write_run(tmp_path, preseed_events(*ended), run=run_section(
+        soak={"bucket": 2, "per_credentials": 10}, **extra)))
+    assert out["refused"] is True and out["refused_reason"] == reason
