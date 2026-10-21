@@ -1,0 +1,32 @@
+{
+  "scenario": "fault-crash-state-distribution-1home",
+  "measure": [
+    "requested",
+    "verified"
+  ],
+  "steps": [
+    {
+      "offered": 0.6,
+      "runs": 3,
+      "achieved": {
+        "n": 3,
+        "min": 0.565709439814898,
+        "max": 0.5657107197131235,
+        "mean": 0.5657101758756301,
+        "stdev": 6.612466990769779e-07
+      },
+      "p99_ns": {
+        "n": 3,
+        "min": 5121245183,
+        "max": 5632950271,
+        "mean": 5322571775.0,
+        "stdev": 272726534.45492035
+      }
+    }
+  ],
+  "saturation": null,
+  "refused": [],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 6
+}

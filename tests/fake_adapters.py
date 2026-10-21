@@ -23,12 +23,19 @@ class FakeIssuer(IssuerAdapter):
 
     async def issue(self, credential, holder):
         await asyncio.sleep(self.ctx.knobs["issue_s"])
+        if credential in self.ctx.shared.get("refuse", ()):
+            raise ConnectionError(f"the issuer refused {credential}")
+        self.ctx.shared["issued"] = self.ctx.shared.get("issued", 0) + 1
         self.ctx.emit("constructed", credentials=[credential])
         self.ctx.emit("grant_sent", credentials=[credential])
         return Issued(credential, f"E{credential}", None, delivered_by_stack=True)
 
     async def versions(self):
         return {"fake": "1"}
+
+    async def footprint(self):
+        """A store that grows 100 bytes per credential issued."""
+        return 100 * self.ctx.shared.get("issued", 0)
 
 
 class FakeHolder(HolderAdapter):

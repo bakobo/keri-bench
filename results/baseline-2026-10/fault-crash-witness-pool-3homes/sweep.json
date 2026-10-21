@@ -1,0 +1,32 @@
+{
+  "scenario": "fault-crash-witness-pool-3homes",
+  "measure": [
+    "requested",
+    "verified"
+  ],
+  "steps": [
+    {
+      "offered": 0.6,
+      "runs": 3,
+      "achieved": {
+        "n": 3,
+        "min": 0.5657108684779809,
+        "max": 0.582853322596664,
+        "mean": 0.5771389227903154,
+        "stdev": 0.009896985357325703
+      },
+      "p99_ns": {
+        "n": 3,
+        "min": 4768923647,
+        "max": 4907335679,
+        "mean": 4826245801.666667,
+        "stdev": 72202154.61578651
+      }
+    }
+  ],
+  "saturation": null,
+  "refused": [],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 6
+}

@@ -42,6 +42,9 @@ E_STAGES = "e.input.range.scenario.stages.f"
 E_FAULT = "e.input.range.scenario.fault.f"
 E_FAULT_MISSING = "e.input.missing.scenario.fault.f"
 E_RECOGNITION = "e.input.range.scenario.recognition.f"
+E_STOP = "e.input.range.scenario.stop.f"
+E_SOAK = "e.input.range.scenario.soak.f"
+E_PRESEED = "e.input.range.scenario.preseed.f"
 
 
 @dataclass(frozen=True)
@@ -90,8 +93,30 @@ class Recognition:
 
 @dataclass(frozen=True)
 class Stop:
-    credentials: int | None
-    duration_s: float | None
+    """A soak ends at whichever comes first: this many credentials reaching the measure's end
+    milestone, or ``[load] duration_s`` (this.i 9yx6cg92)."""
+
+    credentials: int
+
+
+@dataclass(frozen=True)
+class Soak:
+    """How a soak's drift is computed (this.i 7f9jfc99)."""
+
+    bucket: int
+    """Consecutive credentials, in request order, per bucket."""
+    per_credentials: int
+    """The slope is reported per this many credentials of store growth."""
+    sample_s: float
+    """How often the issuer's store size is sampled."""
+
+
+@dataclass(frozen=True)
+class Preseed:
+    """Credentials issued through the stack before the window opens (this.i 9yx6cg92)."""
+
+    credentials: int
+    concurrency: int
 
 
 @dataclass(frozen=True)
@@ -107,6 +132,8 @@ class Scenario:
     recognition: Recognition | None
     text: str
     sha256: str
+    soak: Soak | None = None
+    preseed: Preseed | None = None
 
 
 def _need(table: Mapping, key: str, where: str) -> Any:
@@ -216,6 +243,56 @@ def _recognition(table: Mapping | None, stages: tuple[str, ...]) -> Recognition 
     return Recognition(float(poll), stable)
 
 
+def _count(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _only(table: Mapping, fields: set[str], where: str) -> None:
+    unknown = set(table) - fields
+    if unknown:
+        raise BenchError(E_UNKNOWN_FIELD, f"{where} has {sorted(unknown)}, which the harness "
+                         f"does not read.")
+
+
+def _stop(table: Mapping | None) -> Stop | None:
+    if table is None:
+        return None
+    _only(table, {"credentials"}, "[stop]")
+    credentials = _need(table, "credentials", "[stop]")
+    if not (_count(credentials) and credentials >= 1):
+        raise BenchError(E_STOP, f"[stop] credentials must be a positive whole number, not "
+                         f"{credentials!r}; the soak's duration is [load] duration_s.")
+    return Stop(credentials)
+
+
+def _soak(table: Mapping | None) -> Soak | None:
+    if table is None:
+        return None
+    _only(table, {"bucket", "per_credentials", "sample_s"}, "[soak]")
+    bucket = _need(table, "bucket", "[soak]")
+    per = _need(table, "per_credentials", "[soak]")
+    sample = _need(table, "sample_s", "[soak]")
+    if not (_count(bucket) and bucket >= 2 and _count(per) and per >= 1
+            and _number(sample) and sample > 0):
+        raise BenchError(E_SOAK, "[soak] bucket must be a whole number of at least 2 (a "
+                         "bucket of one has no percentile), per_credentials a positive whole "
+                         "number, and sample_s a positive number of seconds.")
+    return Soak(bucket, per, float(sample))
+
+
+def _preseed(table: Mapping | None) -> Preseed | None:
+    if table is None:
+        return None
+    _only(table, {"credentials", "concurrency"}, "[preseed]")
+    credentials = _need(table, "credentials", "[preseed]")
+    concurrency = _need(table, "concurrency", "[preseed]")
+    if not (_count(credentials) and credentials >= 1 and _count(concurrency)
+            and concurrency >= 1):
+        raise BenchError(E_PRESEED, "[preseed] credentials and concurrency must be positive "
+                         "whole numbers.")
+    return Preseed(credentials, concurrency)
+
+
 def load_scenario(path: Path) -> Scenario:
     raw = Path(path).read_bytes()
     if len(raw) > MAX_BYTES:
@@ -229,7 +306,6 @@ def load_scenario(path: Path) -> Scenario:
     if schema != SCENARIO_SCHEMA:
         raise BenchError(E_SCHEMA, f"{path} uses scenario schema {schema!r}; this harness reads "
                          f"schema {SCENARIO_SCHEMA}.")
-    stop = table.get("stop")
     stages = _stages(_need(table, "stages", "top level"))
     return Scenario(
         name=_need(table, "name", "top level"), description=table.get("description", ""),
@@ -238,5 +314,6 @@ def load_scenario(path: Path) -> Scenario:
         statistics=_statistics(table.get("statistics", {})),
         roles=_roles(_need(table, "roles", "top level")),
         faults=tuple(_fault(f) for f in table.get("faults", [])),
-        stop=Stop(stop.get("credentials"), stop.get("duration_s")) if stop else None,
+        stop=_stop(table.get("stop")), soak=_soak(table.get("soak")),
+        preseed=_preseed(table.get("preseed")),
         text=text, sha256=hashlib.sha256(raw).hexdigest())

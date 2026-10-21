@@ -14,7 +14,7 @@ from keri_bench.stacks import imbu
 from keri_bench.synthetic import http
 
 H, W = "monotonic@b", "realtime@h"
-KNOBS = {"toad": 1, "poll_ms": 1.0, "operation_timeout_s": 2.0}
+KNOBS = {"toad": 1, "poll_ms": 1.0, "operation_timeout_s": 2.0, "homes": 1, "clients": 1}
 
 
 class FakeImbu:
@@ -72,12 +72,16 @@ async def stand_in():
     await server.wait_closed()
 
 
-def adapter(url, sink, shared=None):
-    ctx = AdapterContext(imbu.ImbuIssuer.declaration, run_dir=None, knobs=KNOBS, peers={},
+def adapter(url, sink, shared=None, *, urls=None, clients=1, run_dir=None):
+    urls = urls or [url]
+    knobs = {**KNOBS, "homes": len(urls), "clients": clients}
+    ctx = AdapterContext(imbu.ImbuIssuer.declaration, run_dir=run_dir, knobs=knobs, peers={},
                          procs=None, sink=sink.append, harness_clock=H, realtime_clock=W,
                          shared=shared)
     issuer = imbu.ImbuIssuer(ctx)
-    issuer.key, issuer.control = fiki.Key.generate(), url
+    issuer.homes = [imbu.Home(h, control, [imbu.Client(fiki.Key.generate())
+                                           for _ in range(clients)])
+                    for h, control in enumerate(urls)]
     return issuer
 
 
@@ -116,7 +120,7 @@ async def test_a_failed_operation_or_a_refusal_is_a_coded_error(stand_in):
             await issuer.issue("c3", {"aid": "Eholder"})
         assert late.value.code == "e.env.imbu.operation.r"
         with pytest.raises(BenchError) as gone:
-            await issuer._finish("op-missing")
+            await issuer._finish(issuer.homes[0], issuer.homes[0].clients[0], "op-missing")
         assert gone.value.code == "e.party.imbu.refused.f"
         stand_in.outcome = "done"
         stand_in.resolves_to = "Eother"
@@ -145,7 +149,7 @@ async def test_a_failed_operation_or_a_refusal_is_a_coded_error(stand_in):
         with pytest.raises(BenchError) as shapeless:
             await issuer.issue("c6", {"aid": "Eholder"})
         assert shapeless.value.code == "e.input.format.imbu.operation.f"
-        issuer.control = stand_in.url + "/elsewhere"
+        issuer.homes[0].control = stand_in.url + "/elsewhere"
         with pytest.raises(BenchError) as unmet:
             await issuer.meet({"aid": "Eholder", "oobi": "http://w/oobi/Eholder"})
         assert unmet.value.code == "e.party.imbu.refused.f"
@@ -157,6 +161,68 @@ async def test_a_failed_operation_or_a_refusal_is_a_coded_error(stand_in):
             await issuer.revoke("c4")
     finally:
         await issuer.stop()
+
+
+@pytest.fixture
+async def second():
+    fake = FakeImbu()
+    server = await http.serve(fake.handle, 0)
+    fake.url = f"http://127.0.0.1:{server.sockets[0].getsockname()[1]}"
+    yield fake
+    server.close()
+    await server.wait_closed()
+
+
+async def test_credentials_are_dealt_across_homes_then_clients_and_revoked_where_issued(
+        stand_in, second):
+    sink = []
+    issuer = adapter(None, sink, urls=[stand_in.url, second.url], clients=2)
+    try:
+        await issuer.meet({"aid": "Eholder", "oobi": "http://w/oobi/Eholder"})
+        for i in range(5):
+            await issuer.issue(f"c{i}", {"aid": "Eholder"})
+        await issuer.revoke("c3")
+    finally:
+        await issuer.stop()
+    # Both homes resolved the holder before anything was issued.
+    assert ("POST", "/v1/imbu/resolutions") in stand_in.requests
+    assert ("POST", "/v1/imbu/resolutions") in second.requests
+    accepted = [(e.credentials[0], e.attrs["home"], e.attrs["client"])
+                for e in sink if e.name == "accepted"]
+    # Home first, then client: c0 h0k0, c1 h1k0, c2 h0k1, c3 h1k1, c4 h0k0.
+    assert accepted == [("c0", 0, 0), ("c1", 1, 0), ("c2", 0, 1), ("c3", 1, 1), ("c4", 0, 0)]
+    anchored = {e.credentials[0]: e.attrs["home"] for e in sink if e.name == "anchored"}
+    assert anchored == {"c0": 0, "c1": 1, "c2": 0, "c3": 1, "c4": 0}
+    assert sum(1 for r in stand_in.requests if r == ("POST", "/v1/imbu/issuances")) == 3
+    # c3 was issued by the second home, so only it is asked to revoke.
+    assert ("POST", "/v1/imbu/revocations") in second.requests
+    assert ("POST", "/v1/imbu/revocations") not in stand_in.requests
+    revoked = [e for e in sink if e.name == "revocation_anchored"]
+    assert revoked[0].attrs == {"home": 1, "client": 1, "adapter": "imbu.issuer"}
+    # Each client signs with its own key.
+    keys = {c.key.aid for home in issuer.homes for c in home.clients}
+    assert len(keys) == 4
+
+
+@pytest.mark.parametrize("homes, clients", [(0, 1), (1, 0), (-1, 2)])
+async def test_a_deployment_with_no_home_or_no_client_is_refused_before_it_starts(homes,
+                                                                                  clients):
+    ctx = AdapterContext(imbu.ImbuIssuer.declaration, run_dir=None,
+                         knobs={**KNOBS, "homes": homes, "clients": clients}, peers={},
+                         procs=None, sink=[].append, harness_clock=H, realtime_clock=W)
+    with pytest.raises(BenchError) as refused:
+        await imbu.ImbuIssuer(ctx).start()
+    assert refused.value.code == "e.input.range.imbu.deployment.f"
+
+
+async def test_the_footprint_is_every_byte_under_every_home(tmp_path):
+    issuer = adapter("http://unused", [], run_dir=tmp_path)
+    assert await issuer.footprint() == 0
+    (tmp_path / "imbu" / "h0" / "db").mkdir(parents=True)
+    (tmp_path / "imbu" / "h0" / "db" / "data.mdb").write_bytes(b"x" * 300)
+    (tmp_path / "imbu" / "h1").mkdir()
+    (tmp_path / "imbu" / "h1" / "ops.sqlite3").write_bytes(b"y" * 45)
+    assert await issuer.footprint() == 345
 
 
 def answer(body, headers=None):
@@ -183,3 +249,20 @@ def test_stamps_are_nanoseconds():
     assert imbu.stamp(12) == 12
     assert imbu.stamp("1970-01-01T00:00:01.5+00:00") == 1_500_000_000
     assert imbu.stamp("1970-01-02T00:00:00Z") == 86_400 * 1_000_000_000
+
+
+async def test_a_file_that_vanishes_while_the_store_is_sized_is_not_counted(tmp_path,
+                                                                           monkeypatch):
+    issuer = adapter("http://unused", [], run_dir=tmp_path)
+    (tmp_path / "imbu" / "h0").mkdir(parents=True)
+    (tmp_path / "imbu" / "h0" / "kept").write_bytes(b"x" * 10)
+    (tmp_path / "imbu" / "h0" / "ops.sqlite3-journal").write_bytes(b"y" * 99)
+    real = imbu.os.path.getsize
+
+    def racing(path):
+        if path.endswith("-journal"):
+            raise FileNotFoundError(path)  # SQLite removed it between the listing and the stat
+        return real(path)
+
+    monkeypatch.setattr(imbu.os.path, "getsize", racing)
+    assert await issuer.footprint() == 10

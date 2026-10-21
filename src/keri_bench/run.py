@@ -49,9 +49,17 @@ E_SOURCE = "e.state.conflict.run.milestone-source.f"
 E_FAULT_TARGET = "e.input.range.scenario.fault.target.f"
 E_NOT_VERIFIED = "e.proof.presentation.f"
 E_STATUS = "e.party.verifier.status.f"
+E_ATTEMPTS = "e.input.range.sweep.attempts.f"
 
 HARNESS_VERSION = "1"
 OFFSET_READS = 15
+RECONCILE_CONCURRENCY = 4
+RECONCILE_ATTEMPTS = 3
+RECONCILE_PAUSE_S = 1.0
+"""Reconciliation asks a few questions at a time and asks a failed one again: on the imbu stack
+each status question makes the one holder present again and the one verifier admit and verify,
+so 32 at once timed out and a credential that was verified was counted lost (found in the
+October 2026 baseline). One the verifier never answers is unanswered, not lost."""
 
 
 def _harness_declaration(adapter: str, role: Role, milestones: dict) -> Declaration:
@@ -111,9 +119,10 @@ def plan(scenario: Scenario) -> Plan:
                                  f"each milestone from exactly one source (this.i 0ys878gy).")
             sources[milestone] = declaration.adapter
     for fault in scenario.faults:
-        if fault.kind == "crash" and fault.target not in scenario.roles:
+        # A crash names a role, or one process of it as <role>.<process> (this.i 5ed29j5w).
+        if fault.kind == "crash" and fault.target.split(".")[0] not in scenario.roles:
             raise BenchError(E_FAULT_TARGET, f"The crash fault targets {fault.target!r}, which "
-                             f"is not a configured role.")
+                             f"is neither a configured role nor one of its processes.")
     return Plan(scenario, classes, knobs, harness)
 
 
@@ -136,6 +145,8 @@ class Run:
     recognitions: dict[str, list] = field(default_factory=dict)
     watching: set = field(default_factory=set)
     credentials: list[str] = field(default_factory=list)
+    completed: set = field(default_factory=set)
+    stopped: bool = False
 
     # --- events ---
 
@@ -315,9 +326,67 @@ class Run:
                               attrs={"first_seen": seen[0], "polls": len(polls),
                                      "relapsed": len(seen) > tail})
 
+    def _write(self, event: Event) -> None:
+        """Write an event; on a soak with a credential stop, end the schedule once that many of
+        the window's credentials have reached the measure's end (this.i 9yx6cg92)."""
+        self.writer.write(event)
+        stop = self.plan.scenario.stop
+        if stop is None or self.stopped or event.name != self.plan.scenario.load.measure[1]:
+            return
+        self.completed.update(c for c in event.credentials if c in self.fired)
+        if len(self.completed) >= stop.credentials:
+            self.stopped = True
+            self.loop_driver.stop()
+            self._harness_event("stop_reached", attrs={"reason": "credentials",
+                                                       "completed": len(self.completed)})
+
+    async def _preseed(self) -> None:
+        """Fill the store by issuing through the stack before the window (this.i 9yx6cg92)."""
+        rule = self.plan.scenario.preseed
+        if rule is None:
+            return
+        issuer = self.adapters[Role.ISSUER]
+        gate = asyncio.Semaphore(rule.concurrency)
+        failures: list[str] = []
+        began = self.clock()
+        self._harness_event("preseed_started", attrs={"requested": rule.credentials,
+                                                      "concurrency": rule.concurrency})
+
+        async def one(index: int) -> None:
+            async with gate:
+                try:
+                    await issuer.issue(f"p{index:07d}", self.holder_identity)
+                except Exception as failed:
+                    failures.append(f"{type(failed).__name__}: {failed}"[:500])
+
+        await asyncio.gather(*(one(i) for i in range(rule.credentials)))
+        attrs = {"requested": rule.credentials, "failed": len(failures),
+                 "elapsed_ns": self.clock() - began}
+        if failures:
+            attrs["first_error"] = failures[0]
+        self._harness_event("preseed_ended", attrs=attrs)
+
+    async def _sample_footprint(self) -> None:
+        """Sample the issuer's store size every ``sample_s`` until cancelled. A sample that
+        cannot be read is recorded and sampling goes on: one that died silently once left a
+        soak's later buckets with a stale size (October 2026 baseline)."""
+        issuer = self.adapters[Role.ISSUER]
+        while True:
+            try:
+                size = await issuer.footprint()
+            except Exception as failed:
+                self._harness_event("footprint_failed", attrs={
+                    "error": f"{type(failed).__name__}: {failed}"[:500]})
+            else:
+                if size is None:
+                    return
+                self._harness_event("footprint", attrs={"bytes": size})
+            await asyncio.sleep(self.plan.scenario.soak.sample_s)
+
     def _fire(self, index: int, scheduled: int) -> None:
         credential = f"c{index:06d}"
         self.credentials.append(credential)
+        self.fired.add(credential)
         self.driver.emit("requested", credentials=[credential], t=scheduled)
         self._harness_event("dispatched", credentials=[credential])
         task = asyncio.get_running_loop().create_task(self._lifecycle(credential))
@@ -365,10 +434,11 @@ class Run:
         self.run_dir.mkdir(parents=True, exist_ok=True)
         self.harness_clock = clocks.harness_domain()
         self.realtime_clock = clocks.realtime_domain()
-        writer = TimelineWriter(self.run_dir / "timeline.jsonl",
-                                Header(harness_commit=self.harness_commit,
-                                       harness_clock=self.harness_clock))
-        self.sink = writer.write
+        writer = self.writer = TimelineWriter(self.run_dir / "timeline.jsonl",
+                                              Header(harness_commit=self.harness_commit,
+                                                     harness_clock=self.harness_clock))
+        self.sink = self._write
+        self.fired: set[str] = set()
         self.procs = ProcessController(
             self.run_dir, clock=self.clock,
             on_event=lambda name, t, attrs: self._harness_event(
@@ -394,6 +464,10 @@ class Run:
             issuer = self.adapters.get(Role.ISSUER)
             if issuer is not None and self.holder_identity:
                 await issuer.meet(self.holder_identity)
+            await self._preseed()
+            sampler = None
+            if self.plan.scenario.soak is not None:
+                sampler = asyncio.get_running_loop().create_task(self._sample_footprint())
             await self._offsets()
             # Everything allocated so far is long-lived; freezing it keeps a full collection
             # during the window from walking it, which showed up as multi-millisecond send lag.
@@ -403,7 +477,12 @@ class Run:
             self._harness_event("run_started", t=window_start)
             faults = [asyncio.get_running_loop().create_task(self._fault(f, window_start))
                       for f in self.plan.scenario.faults]
-            await OpenLoopDriver(self.rate, load.duration_s, clock=self.clock).run(self._fire)
+            self.loop_driver = OpenLoopDriver(self.rate, load.duration_s, clock=self.clock)
+            await self.loop_driver.run(self._fire)
+            if self.plan.scenario.stop is not None and not self.stopped:
+                self.stopped = True
+                self._harness_event("stop_reached", attrs={"reason": "duration",
+                                                           "completed": len(self.completed)})
             self._harness_event("run_ended")
             gc.unfreeze()
             # Lifecycles still running when the drain ends are cancelled; the report counts them
@@ -419,6 +498,9 @@ class Run:
                     self._harness_event("fault_failed", attrs={
                         "kind": fault.kind, "target": fault.target,
                         "error": str(outcome)[:500]})
+            if sampler is not None:
+                sampler.cancel()
+                await asyncio.gather(sampler, return_exceptions=True)
             await asyncio.gather(*self.watching, return_exceptions=True)
             if self.plan.scenario.recognition is not None:
                 self._recognitions()
@@ -441,24 +523,28 @@ class Run:
         return report.write_report(self.run_dir, generator_commit=self.harness_commit)
 
     async def _reconcile(self) -> dict | None:
+        # A run that never verified has nothing to ask a verifier about, and without its answer
+        # no credential has a fate, so there is no reconciliation (this.i 82r8lxy5).
         verifier = self.adapters.get(Role.VERIFIER)
-        pool = self.adapters.get(Role.WITNESS_POOL)
-        if verifier is None and pool is None:
+        if verifier is None or "verify" not in self.plan.scenario.stages:
             return None
-        gate = asyncio.Semaphore(32)
+        pool = self.adapters.get(Role.WITNESS_POOL)
+        gate = asyncio.Semaphore(RECONCILE_CONCURRENCY)
 
         async def ask(call, credential):
             async with gate:
-                try:
-                    return await call(credential)
-                except Exception:
-                    return None
+                for attempt in range(RECONCILE_ATTEMPTS):
+                    try:
+                        return await call(credential)
+                    except Exception:
+                        if attempt + 1 < RECONCILE_ATTEMPTS:
+                            await asyncio.sleep(RECONCILE_PAUSE_S)
+                return None
 
-        verdicts = await asyncio.gather(*(ask(verifier.status, c) for c in self.credentials)) \
-            if verifier else []
+        verdicts = await asyncio.gather(*(ask(verifier.status, c) for c in self.credentials))
         anchors = await asyncio.gather(*(ask(pool.anchors, c) for c in self.credentials)) \
             if pool else []
-        return {"verifier": {c: v or {"status": "unknown", "said": None}
+        return {"verifier": {c: v or {"status": "unknown", "said": None, "unanswered": True}
                              for c, v in zip(self.credentials, verdicts)},
                 "anchors": dict(zip(self.credentials, anchors))}
 
@@ -477,6 +563,16 @@ class Run:
         for declaration in self.plan.harness:
             declarations[declaration.adapter] = declaration.describe()
         extra = {"measurement_cost": cost, "calibration": _calibration(self.calibration)}
+        shape = {}
+        if scenario.soak is not None:
+            shape["soak"] = {"bucket": scenario.soak.bucket,
+                             "per_credentials": scenario.soak.per_credentials,
+                             "sample_s": scenario.soak.sample_s,
+                             "stop_credentials": scenario.stop.credentials
+                             if scenario.stop else None}
+        if scenario.preseed is not None:
+            shape["preseed"] = {"credentials": scenario.preseed.credentials,
+                                "concurrency": scenario.preseed.concurrency}
         if reconciliation is not None:
             extra["reconciliation"] = reconciliation
         return provenance.build(
@@ -489,7 +585,8 @@ class Run:
                  "warmup_s": scenario.load.warmup_s, "duration_s": scenario.load.duration_s,
                  "lag_limit_ms": scenario.statistics.lag_limit_ms,
                  "measure": list(scenario.load.measure), "stages": list(scenario.stages),
-                 "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)"},
+                 "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+                 **shape},
             **extra)
 
 
@@ -545,13 +642,26 @@ def summarize(scenario: Scenario, reports: dict[float, list[dict]]) -> dict:
 
 
 async def sweep(scenario: Scenario, out: Path, *, harness_commit: str,
-                calibration: Path | None = None) -> dict:
+                calibration: Path | None = None, attempts: int | None = None) -> dict:
+    """Every load step, until it has the scenario's repetitions accepted or has made
+    ``attempts`` runs (by default exactly the repetitions). On a shared host a run the driver
+    check refuses says nothing about the stack, so another is run; every refused run is still
+    kept and listed."""
+    wanted = scenario.load.repetitions
+    attempts = wanted if attempts is None else attempts
+    if attempts < wanted:
+        raise BenchError(E_ATTEMPTS, f"A sweep needs at least as many attempts per step as the "
+                         f"scenario's {wanted} repetitions, not {attempts}.")
     reports: dict[float, list[dict]] = defaultdict(list)
     for rate in scenario.load.rates:
-        for repetition in range(1, scenario.load.repetitions + 1):
+        for repetition in range(1, attempts + 1):
             reports[rate].append(await run_once(scenario, out, rate=rate, repetition=repetition,
                                                 harness_commit=harness_commit,
                                                 calibration=calibration))
+            if sum(1 for r in reports[rate] if not r.get("refused")) >= wanted:
+                break
     summary = summarize(scenario, reports)
+    summary["attempts"] = attempts
+    Path(out).mkdir(parents=True, exist_ok=True)
     (Path(out) / "sweep.json").write_text(json.dumps(summary, indent=2) + "\n")
     return summary

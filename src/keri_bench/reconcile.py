@@ -1,7 +1,8 @@
 """Reconciliation: what became of every credential the timeline names (test plan, Faults; B #9).
 
 After a run the independent verifier and the witness pool's KELs are asked about each credential.
-Each one is done, resumed (done, but its lifecycle overlapped a fault), or lost, and is flagged
+Each one is done, resumed (done, but its lifecycle overlapped a fault), lost, or unanswered (the
+verifier was asked and never answered, so its fate is unknown rather than lost), and is flagged
 when it was anchored twice or seen under two SAIDs. Those double effects are a first-class metric
 in duplicate-fault scenarios. This module is a pure function of what was asked and answered.
 """
@@ -66,7 +67,7 @@ def classify(events: Iterable[Event], verifier: Mapping[str, Mapping],
                  if e.attrs and isinstance(e.attrs.get("said"), str)}
         if answer.get("said") is not None:
             saids.add(str(answer["said"]))
-        fate = "lost"
+        fate = "unanswered" if answer.get("unanswered") is True else "lost"
         if status in _DONE:
             fate = "done"
             requested = [e for e in own if e.name == "requested"]
@@ -85,6 +86,10 @@ def summary(outcomes: Mapping[str, Outcome]) -> dict[str, int]:
     counts = {"total": len(outcomes)}
     for fate in FATES:
         counts[fate] = sum(1 for o in outcomes.values() if o.fate == fate)
+    # Only when there is one, so a report derived before this fate existed is unchanged.
+    unanswered = sum(1 for o in outcomes.values() if o.fate == "unanswered")
+    if unanswered:
+        counts["unanswered"] = unanswered
     for flag in FLAGS:
         counts[flag] = sum(1 for o in outcomes.values() if getattr(o, flag))
     return counts

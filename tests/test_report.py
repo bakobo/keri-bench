@@ -390,6 +390,28 @@ def test_a_crash_reports_time_to_ready_and_to_first_success(tmp_path):
     assert fault["time_to_first_success_ns"] == 4050 - 3200
 
 
+def test_a_crash_of_a_role_with_several_processes_is_ready_when_the_last_is(tmp_path):
+    # this.i 5ed29j5w: "state_distribution" names two processes, and "state_distributor"
+    # merely shares a prefix, so it is not one of them.
+    crash = {"kind": "crash", "target": "state_distribution"}
+    events = window(10_000) + simple("c1", 100, 4500) + [
+        ev("fault_started", 2000, attrs=crash),
+        ev("process_killed", 2100, attrs={"process": "state_distribution.registrar"}),
+        ev("process_killed", 2150, attrs={"process": "state_distribution.observer"}),
+        ev("process_killed", 2120, attrs={"process": "state_distributor"}),
+        ev("process_ready", 2600, attrs={"process": "state_distribution.registrar"}),
+        ev("process_ready", 3900, attrs={"process": "state_distribution.observer"}),
+        ev("process_ready", 4000, attrs={"process": "state_distributor"}),
+        ev("fault_ended", 3900, attrs=crash)]
+    [fault] = derive(write_run(tmp_path, events))["faults"]
+    assert fault["time_to_ready_ns"] == 3900 - 2100
+    assert fault["time_to_first_success_ns"] == 4600 - 3900
+    # One of the two never came back: the role was never ready.
+    events = [e for e in events if not (e.name == "process_ready" and e.t == 3900)]
+    [fault] = derive(write_run(tmp_path / "b", events))["faults"]
+    assert fault["time_to_ready_ns"] is None
+
+
 def test_a_crash_with_no_restart_or_no_success_reports_none(tmp_path):
     crash = [ev("fault_started", 2000, attrs={"kind": "crash", "target": "issuer"})]
     never_ready = window() + simple("c1", 100, 1000) + crash + [
@@ -899,3 +921,211 @@ def test_a_pair_seen_only_during_warmup_is_a_gap(tmp_path):
                            run=run_section(warmup_s=0.00005)))
     assert got["window"]["credentials"] == 1
     assert got["observability"]["pairs"]["anchor_vs_witness"]["measurable"] is False
+
+
+# --- soak drift (this.i 7f9jfc99) -----------------------------------------------------------
+
+S = 1_000_000_000
+
+
+def hdr(v):
+    """The quoted upper bound of v's slot, by hand: 2048 exact sub-buckets, then width 2**b
+    for b = bit_length(v) - 11 (the layout tests/test_stats.py checks)."""
+    b = max(0, v.bit_length() - 11)
+    return (v >> b << b) + (1 << b) - 1
+
+
+def soak_run(tmp_path, latencies, *, preseed=None, footprints=(), bucket=2, per=10,
+             sample_s=None, declared=None):
+    """Credentials requested one per second, each verified after the given latency (ms)."""
+    events = [ev("run_started", 0), ev("run_ended", len(latencies) * S)]
+    if preseed is not None:
+        events.append(ev("preseed_ended", -S, attrs={"requested": preseed[0],
+                                                       "failed": preseed[1]}))
+    for t, size in footprints:
+        events.append(ev("footprint", t, attrs={"bytes": size}))
+    for i, ms in enumerate(latencies):
+        if ms is None:
+            events.append(ev("requested", i * S, [f"c{i}"]))
+            continue
+        events += simple(f"c{i}", i * S, ms * MS)
+    soak = {"bucket": bucket, "per_credentials": per}
+    if sample_s is not None:
+        soak["sample_s"] = sample_s
+    if declared is None and preseed is not None:
+        declared = preseed[0]
+    extra = {"preseed": {"credentials": declared, "concurrency": 2}} if declared else {}
+    return derive(write_run(tmp_path, events, run=run_section(soak=soak, **extra)))
+
+
+def test_a_run_without_a_soak_has_no_drift_section(tmp_path):
+    out = derive(write_run(tmp_path, window() + simple("c1", 0, 1000)))
+    assert "drift" not in out
+
+
+def test_drift_buckets_credentials_in_request_order_and_fits_each_position(tmp_path):
+    # Buckets of two: latencies (10, 30), (50, 70), (90, 110) ms. Each bucket's p50 is its lower
+    # value, its p99 its upper (nearest rank). Store positions: preseed 100 - 4 failed = 96,
+    # plus the bucket's midpoint credential index 1, 3, 5 -> 97, 99, 101. Elapsed: requests at
+    # 1, 3, 5 s. p50s 10, 50, 90 ms rise 40 ms per 2 credentials = 20 ms per credential, 200 ms
+    # per 10 credentials; per hour, 20 ms/s * 3600. Bytes: samples 1000 at 0 s and 3000 at 3 s;
+    # the bucket at 1 s reads 1000, at 3 s and 5 s reads 3000.
+    out = soak_run(tmp_path, [10, 30, 50, 70, 90, 110], preseed=(100, 4),
+                   footprints=[(0, 1000), (3 * S, 3000)])["drift"]
+    assert (out["bucket"], out["per_credentials"], out["preseeded"]) == (2, 10, 96)
+    assert [(b["store_credentials"], b["elapsed_s"], b["store_bytes"], b["credentials"])
+            for b in out["buckets"]] == [(97, 1.0, 1000, 2), (99, 3.0, 3000, 2),
+                                         (101, 5.0, 3000, 2)]
+    assert [b["p50_ns"] for b in out["buckets"]] == [hdr(10 * MS), hdr(50 * MS), hdr(90 * MS)]
+    assert [b["p99_ns"] for b in out["buckets"]] == [hdr(30 * MS), hdr(70 * MS), hdr(110 * MS)]
+    # The fit runs on the quoted upper bounds, which sit within 0.1% of the hand values.
+    p50 = out["slopes"]["p50"]
+    assert p50["store_credentials"]["slope_ns"] == pytest.approx(200 * MS, rel=1e-3)
+    assert p50["store_credentials"]["low_ns"] < p50["store_credentials"]["slope_ns"] \
+        < p50["store_credentials"]["high_ns"]
+    assert p50["store_credentials"]["n"] == 3
+    assert p50["elapsed"]["slope_ns"] == pytest.approx(20 * MS * 3600, rel=1e-3)
+    assert out["slopes"]["p99"]["store_credentials"]["slope_ns"] == \
+        pytest.approx(200 * MS, rel=1e-3)
+    # Bytes fit: x = 1000, 3000, 3000 against 10, 50, 90 ms; xbar 7000/3, a hand OLS slope of
+    # (sum dx*dy)/(sum dx^2) = (-4000/3*-40 + 2000/3*0 + 2000/3*40)/(16e6/9+4e6/9+4e6/9) ms per
+    # byte = 80000/(24e6/9) = 0.03 ms per byte, so 0.03 * 2**20 ms per MiB.
+    assert p50["store_bytes"]["slope_ns"] == pytest.approx(0.03 * MS * 2**20, rel=1e-3)
+    assert out["units"] == {"store_credentials": "per 10 credentials", "elapsed": "per hour",
+                            "store_bytes": "per MiB"}
+
+
+def test_a_bucket_counts_its_censored_credentials_and_a_partial_bucket_is_dropped(tmp_path):
+    out = soak_run(tmp_path, [10, None, 30, 40, 50, 60, 70])["drift"]
+    assert [(b["credentials"], b["missing"]) for b in out["buckets"]] == [(1, 1), (2, 0),
+                                                                          (2, 0)]
+    assert out["preseeded"] == 0
+    assert out["buckets"][0]["store_bytes"] is None
+
+
+def test_too_few_buckets_or_no_size_samples_leave_a_slope_not_measured(tmp_path):
+    out = soak_run(tmp_path, [10, 20, 30, 40])["drift"]
+    assert len(out["buckets"]) == 2
+    for axis, n in (("store_credentials", 2), ("elapsed", 2), ("store_bytes", 0)):
+        assert out["slopes"]["p50"][axis] == {
+            "measured": False,
+            "reason": f"A slope's confidence interval needs at least three points, and {n} "
+                      f"were given."}
+    flat = soak_run(tmp_path, [10, 20, 30, 40, 50, 60], footprints=[(0, 5)])["drift"]
+    assert flat["slopes"]["p50"]["store_bytes"]["measured"] is False
+    assert flat["slopes"]["p50"]["store_bytes"]["reason"] == \
+        "Every x is the same, so no slope can be fitted."
+
+
+def test_a_bucket_with_no_completed_credential_is_left_out_of_the_fit(tmp_path):
+    out = soak_run(tmp_path, [None, None, 10, 20, 30, 40, 50, 60])["drift"]
+    assert out["buckets"][0]["p50_ns"] is None and out["buckets"][0]["credentials"] == 0
+    assert out["slopes"]["p50"]["store_credentials"]["n"] == 3
+
+
+def test_the_markdown_carries_the_drift_slopes_and_the_bucket_table(tmp_path):
+    soak_run(tmp_path, [10, 30, 50, 70, 90, 110], footprints=[(0, 1000), (3 * S, 3000)])
+    report.write_report(tmp_path, generator_commit="gc")
+    text = (tmp_path / "report.md").read_text()
+    assert "## Soak drift" in text
+    fit = json.loads((tmp_path / "report.json").read_text())["drift"]["slopes"]["p50"]
+    assert f"| p50 | per 10 credentials | {round(fit['store_credentials']['slope_ns'])} ns" \
+        in text
+    assert f"| 3 | 3.0 | 3000 | 2 | 0 | {hdr(50 * MS)} ns | {hdr(70 * MS)} ns |" in text
+    soak_run(tmp_path, [10, 20, 30, 40])
+    report.write_report(tmp_path, generator_commit="gc")
+    assert "not measured: A slope's confidence interval needs at least three points" in \
+        (tmp_path / "report.md").read_text()
+
+
+def test_a_bucket_leaves_out_an_interval_it_cannot_place(tmp_path):
+    # c1's verified is on a stack clock with no measured offset, so it is not measured.
+    events = window(6 * S) + [ev("requested", i * S, [f"c{i}"]) for i in range(6)]
+    events += [ev("verified", i * S + 10 * MS, [f"c{i}"], method="polled", resolution=500)
+               for i in range(6) if i != 1]
+    events.append(ev("verified", S + 10 * MS, ["c1"], clock=SK, resolution=500))
+    out = derive(write_run(tmp_path, events, run=run_section(
+        soak={"bucket": 2, "per_credentials": 10})))["drift"]
+    assert [b["credentials"] for b in out["buckets"]] == [1, 2, 2]
+
+
+def test_a_size_sample_older_than_two_intervals_is_not_used(tmp_path):
+    # Samples every 1 s were meant; the last one arrived at 1 s. Buckets centre at 1, 3 and 5 s:
+    # the first reads 1000; at 3 s the sample is 2 s old, still within two intervals; at 5 s
+    # it is 4 s old, so that bucket has no size rather than a stale one.
+    out = soak_run(tmp_path, [10, 30, 50, 70, 90, 110], footprints=[(0, 500), (S, 1000)],
+                   sample_s=1.0)["drift"]
+    assert [b["store_bytes"] for b in out["buckets"]] == [1000, 1000, None]
+
+
+def test_a_preseed_that_lost_credentials_refuses_the_run(tmp_path):
+    # The soak was declared to start from a store of 100; 4 never made it in, so its numbers
+    # describe a store nobody asked for (hostile review of bench-baseline, finding 2).
+    out = soak_run(tmp_path, [10, 30, 50, 70, 90, 110], preseed=(100, 4))
+    assert out["refused"] is True
+    assert out["refused_reason"] == ("The preseed asked for 100 credentials and 4 failed, so "
+                                     "the soak did not start from the store it declared.")
+    assert out["preseed"] == {"requested": 100, "failed": 4}
+    assert any("preseed" in w for w in out["warnings"])
+    clean = soak_run(tmp_path / "b", [10, 30, 50, 70, 90, 110], preseed=(100, 0))
+    assert clean["refused"] is False and clean["preseed"] == {"requested": 100, "failed": 0}
+    assert "preseed" not in derive(write_run(tmp_path / "c", window() + simple("c1", 0, 9)))
+
+
+@pytest.mark.parametrize("preseed, declared, reason", [
+    (None, 100, "The run declared a preseed of 100 credentials and its timeline records none, "
+                "so the soak did not start from the store it declared."),
+    ((10, 0), 100, "The run declared a preseed of 100 credentials and its timeline records 10 "
+                   "requested, so the soak did not start from the store it declared."),
+    (("100", 0), 100, "The preseed's counts are not whole numbers ('100' requested, 0 failed), "
+                      "so the store the soak started from is unknown."),
+])
+def test_a_preseed_missing_short_or_malformed_refuses_the_run(tmp_path, preseed, declared,
+                                                              reason):
+    out = soak_run(tmp_path, [10, 30, 50, 70, 90, 110], preseed=preseed, declared=declared)
+    assert out["refused"] is True and out["refused_reason"] == reason
+
+
+def test_a_malformed_preseed_on_a_run_that_declared_none_is_refused_not_a_crash(tmp_path):
+    events = window() + simple("c1", 0, 9) + [
+        ev("preseed_ended", 0, attrs={"requested": 3, "failed": "0"})]
+    out = derive(write_run(tmp_path, events))
+    assert out["refused"] is True
+    assert out["refused_reason"].startswith("The preseed's counts are not whole numbers")
+
+
+def preseed_events(*ended, at=-S):
+    return window(6 * S) + simple("c1", 0, 9) + [
+        ev("preseed_ended", t, attrs={"requested": r, "failed": f}) for (r, f, t) in
+        [(r, f, at) if len(x) == 2 else x for x in ended for (r, f) in [x[:2]]]]
+
+
+@pytest.mark.parametrize("ended, declared, reason", [
+    ([(100, 0, 7 * S)], 100, "The preseed finished after the measured window opened, so the "
+                             "soak did not start from the store it declared."),
+    ([(50, 0), (50, 0)], 100, "The timeline records 2 preseeds where a run has at most one, so "
+                              "the store the soak started from is unknown."),
+    ([(50, 0)], None, "The timeline records a preseed of 50 credentials the run never "
+                      "declared, so the soak did not start from the store it declared."),
+    ([(-5, 0)], -5, "The preseed's counts are not possible (-5 requested, 0 failed), so the "
+                    "store the soak started from is unknown."),
+    ([(5, 6)], 5, "The preseed's counts are not possible (5 requested, 6 failed), so the store "
+                  "the soak started from is unknown."),
+])
+def test_a_preseed_late_repeated_undeclared_or_impossible_refuses_the_run(tmp_path, ended,
+                                                                          declared, reason):
+    extra = {"preseed": {"credentials": declared, "concurrency": 2}} if declared else {}
+    out = derive(write_run(tmp_path, preseed_events(*ended), run=run_section(
+        soak={"bucket": 2, "per_credentials": 10}, **extra)))
+    assert out["refused"] is True and out["refused_reason"] == reason
+
+
+def test_a_preseed_record_on_another_clock_refuses_the_run(tmp_path):
+    events = window(6 * S) + simple("c1", 0, 9) + [
+        ev("preseed_ended", -S, clock=SK, attrs={"requested": 5, "failed": 0})]
+    out = derive(write_run(tmp_path, events, run=run_section(
+        soak={"bucket": 2, "per_credentials": 10},
+        preseed={"credentials": 5, "concurrency": 1})))
+    assert out["refused"] is True
+    assert out["refused_reason"] == ("The preseed's record is on the clock stack:imbu, not "
+                                     "the harness's, so when it finished is unknown.")

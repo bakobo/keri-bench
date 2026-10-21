@@ -207,6 +207,11 @@ class IssuerAdapter(Adapter):
     async def revoke(self, credential: str) -> None:
         raise NotImplementedError
 
+    async def footprint(self) -> int | None:
+        """Bytes the issuer's store occupies now, sampled through a soak (this.i 7f9jfc99);
+        None when the adapter cannot tell, and then no sample is written."""
+        return None
+
 
 class WitnessPoolAdapter(Adapter):
     async def anchors(self, credential: str) -> int | None:

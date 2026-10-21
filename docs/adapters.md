@@ -25,10 +25,13 @@ The test plan defines each milestone by the event that counts and leaves stack-s
 
 ## The processes behind the imbu stack
 
-- **Witnesses.** These are real keripy witnesses (`keri_bench.stacks.witnesses`), each advertising the harness's proxy, so receipts pass through it.
+- **Witnesses.** These are real keripy witnesses (`keri_bench.stacks.witnesses`), each advertising the harness's proxy, so receipts pass through it. Each runs in its own process, `witness_pool.w<i>`, with its keystore under the run directory and its salt derived from one seed per run, so a crash fault can kill one witness or the whole pool and a restart is the same witness holding what it held (`this.i` 5ed29j5w).
 - **Registrar.** bakobo/witness's Registrar, run with uvx at the summit harness's pin.
 - **Observer.** heti's Observer, subscribed to the Registrar through the proxy.
-- **imbu.** imbu's own `Service` and control plane with its own `RegistrarPublisher`, stood up as `imbu serve --registrar-url` stands them up. Every issuance gets a registry of its own (imbu `@2tdzyh85`). Before the measured window imbu resolves the holder's OOBI (`IssuerAdapter.meet`), as an issuer knows its issuee: heti seals a registry's salt to the issuee only when the issuer holds the issuee's key state.
+- **imbu.** imbu's own `Service` and control plane with its own `RegistrarPublisher`, stood up as `imbu serve --registrar-url` stands them up. Every issuance gets a registry of its own (imbu `@2tdzyh85`). Before the measured window every home resolves the holder's OOBI (`IssuerAdapter.meet`), as an issuer knows its issuee: heti seals a registry's salt to the issuee only when the issuer holds the issuee's key state.
+- **Homes and clients.** The issuer's `homes` knob runs that many imbu processes, `issuer.h<i>`, each with its own home under `<run>/imbu/h<i>`, sharing the witnesses, the Registrar, the Observer, the holder and the verifier. Its `clients` knob authorises that many controllers per home, each signing with its own key over its own connection pool. Credentials are dealt to homes round-robin and then to each home's clients round-robin, and every issuer event carries `home` and `client` attributes (`this.i` 2lkqz9mq). The Observer, holder and verifier resolve one OOBI per home.
+- **Restarts.** A crashed process restarts on what it had on disk: imbu reopens its home, the holder and verifier reopen their lockboxes, and the bench wrappers keep what they would otherwise forget in a spool beside the lockbox (the holder its delivered grants, which it admits again after a restart; the verifier the credentials it has verified). The Registrar and the Observer reopen their stores as they always do.
+- **Store size.** During a soak the issuer reports every byte under every home, sampled every `[soak] sample_s`.
 
 ## Known limits
 

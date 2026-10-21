@@ -22,7 +22,7 @@ from .clocks import Clocks, Interval, NotMeasured, interval
 from .driver import check_driver
 from .errors import BenchError
 from .reconcile import classify, summary
-from .stats import Histogram
+from .stats import Histogram, drift
 from .timeline import Event, Header, read_timeline
 from .vocabulary import ISSUANCE_CHAIN, MILESTONES, PAIRS, REVOCATION_CHAIN, Pair
 
@@ -287,16 +287,27 @@ def _process_event(run: _Run, name: str, process: str, after: int) -> Event | No
 
 
 def _recovery(run: _Run, target: str, began: int) -> dict:
+    """A crash's target is a process, or a role whose processes are ``<role>.<name>`` (this.i
+    5ed29j5w). It is ready once every process it killed is ready again, so time to ready runs
+    from the first kill to the last of those readies. The first success is any credential's,
+    not only one the crashed process served (~76aw)."""
     out: dict[str, int | None] = {"time_to_ready_ns": None, "time_to_first_success_ns": None}
-    killed = _process_event(run, "process_killed", target, began)
-    ready = killed and _process_event(run, "process_ready", target, killed.t)
-    if ready is None:
+    names = {(e.attrs or {}).get("process") for e in run.events if e.name == "process_killed"}
+    kills = [kill for name in sorted(n for n in names if n == target
+                                     or str(n).startswith(target + "."))
+             if (kill := _process_event(run, "process_killed", name, began)) is not None]
+    if not kills:
         return out
-    out["time_to_ready_ns"] = ready.t - killed.t
+    readies = [_process_event(run, "process_ready", (kill.attrs or {})["process"], kill.t)
+               for kill in kills]
+    if any(ready is None for ready in readies):
+        return out
+    ready_t = max(ready.t for ready in readies)
+    out["time_to_ready_ns"] = ready_t - min(kill.t for kill in kills)
     successes = [t for e in run.events if e.name == run.measure[1]
-                 for t in [run.harness_t(e)] if t is not None and t >= ready.t]
+                 for t in [run.harness_t(e)] if t is not None and t >= ready_t]
     if successes:
-        out["time_to_first_success_ns"] = min(successes) - ready.t
+        out["time_to_first_success_ns"] = min(successes) - ready_t
     return out
 
 
@@ -399,6 +410,135 @@ def _failures(events) -> dict:
             "fault_failed": fault_failed}
 
 
+def _preseed(run: _Run, declared: dict | None) -> tuple[dict | None, str | None]:
+    """What the timeline says the preseed did, and why the run is refused if it did not fill
+    the store the run declared before the window opened (this.i 9yx6cg92): more than one
+    record, a record off the harness clock, a record of an undeclared preseed or none of a
+    declared one, counts that are not
+    whole numbers or not possible, a count short of the declaration, a failure, or a preseed
+    that finished after the window opened. preseed_started and the declaration's own type are
+    not checked (~2ac4)."""
+    seeded = [e for e in run.events if e.name == "preseed_ended"]
+    wanted = declared.get("credentials") if isinstance(declared, dict) else None
+    unknown = "so the store the soak started from is unknown."
+    tail = "so the soak did not start from the store it declared."
+    if len(seeded) > 1:
+        return None, (f"The timeline records {len(seeded)} preseeds where a run has at most "
+                      f"one, {unknown}")
+    if not seeded:
+        if wanted is None:
+            return None, None
+        return None, (f"The run declared a preseed of {wanted} credentials and its timeline "
+                      f"records none, {tail}")
+    if seeded[0].clock != run.header.harness_clock:
+        return None, (f"The preseed's record is on the clock {seeded[0].clock}, not the "
+                      f"harness's, so when it finished is unknown.")
+    attrs = seeded[0].attrs or {}
+    requested, failed = attrs.get("requested"), attrs.get("failed")
+    if type(requested) is not int or type(failed) is not int:
+        return None, (f"The preseed's counts are not whole numbers ({requested!r} requested, "
+                      f"{failed!r} failed), {unknown}")
+    if requested < 0 or not 0 <= failed <= requested:
+        return None, (f"The preseed's counts are not possible ({requested} requested, {failed} "
+                      f"failed), {unknown}")
+    preseed = {"requested": requested, "failed": failed}
+    if wanted is None:
+        return preseed, (f"The timeline records a preseed of {requested} credentials the run "
+                         f"never declared, {tail}")
+    if requested != wanted:
+        return preseed, (f"The run declared a preseed of {wanted} credentials and its timeline "
+                         f"records {requested} requested, {tail}")
+    if failed:
+        return preseed, (f"The preseed asked for {requested} credentials and {failed} failed, "
+                         f"{tail}")
+    if seeded[0].t >= run.start:
+        return preseed, f"The preseed finished after the measured window opened, {tail}"
+    return preseed, None
+
+
+DRIFT_AXES = {"store_credentials": None, "elapsed": 3600.0, "store_bytes": float(1 << 20)}
+"""Each axis a soak's drift is fitted on, with the x-unit its slope is quoted per: the soak's
+per_credentials for store size, an hour for elapsed time, a MiB for bytes on disk."""
+
+
+def _fit(points: list[tuple[float, float]], per: float) -> dict:
+    try:
+        fitted = drift([x for x, _ in points], [y for _, y in points])
+    except BenchError as unfit:
+        return {"measured": False, "reason": unfit.message}
+    return {"measured": True, "slope_ns": fitted.slope * per, "low_ns": fitted.low * per,
+            "high_ns": fitted.high * per, "n": fitted.n}
+
+
+def _drift(run: _Run, preseed: dict | None) -> dict:
+    """A soak's drift (this.i 7f9jfc99): the window's credentials in request order, cut into
+    full buckets; each bucket's p50 and p99 of the measure interval; and the slope of each on
+    store size, elapsed time and bytes on disk at the bucket's middle credential."""
+    soak = run.run["soak"]
+    size, per = soak["bucket"], soak["per_credentials"]
+    preseeded = 0 if preseed is None else preseed["requested"] - preseed["failed"]
+    samples = sorted((e.t, e.attrs["bytes"]) for e in run.events if e.name == "footprint")
+    stale = round(2 * soak["sample_s"] * 1e9) if "sample_s" in soak else None
+    ordered = sorted(run.window, key=lambda c: run.requested[c])
+    start, end = run.measure
+    buckets = []
+    for first in range(0, len(ordered) - size + 1, size):
+        members = ordered[first:first + size]
+        middle = first + size // 2
+        at = run.requested[ordered[middle]]
+        results, missing = run.samples(members, start, end)
+        histogram = Histogram()
+        for result in results:
+            if isinstance(result, Interval):
+                histogram.record(_reported(result))
+        # A size older than two sampling intervals is stale, not this bucket's size.
+        before = [b for t, b in samples if t <= at and (stale is None or at - t <= stale)]
+        buckets.append({
+            "index": len(buckets), "credentials": histogram.count, "missing": missing,
+            "store_credentials": preseeded + middle,
+            "elapsed_s": (at - run.measured_from) / 1e9,
+            "store_bytes": before[-1] if before else None,
+            "p50_ns": histogram.percentile(50) if histogram.count else None,
+            "p99_ns": histogram.percentile(99) if histogram.count else None})
+    slopes = {}
+    for quantile in ("p50", "p99"):
+        slopes[quantile] = {}
+        for axis, unit in DRIFT_AXES.items():
+            key = "elapsed_s" if axis == "elapsed" else axis
+            points = [(b[key], b[f"{quantile}_ns"]) for b in buckets
+                      if b[f"{quantile}_ns"] is not None and b[key] is not None]
+            slopes[quantile][axis] = _fit(points, per if unit is None else unit)
+    return {"bucket": size, "per_credentials": per, "preseeded": preseeded,
+            "buckets": buckets, "slopes": slopes,
+            "units": {"store_credentials": f"per {per} credentials", "elapsed": "per hour",
+                      "store_bytes": "per MiB"}}
+
+
+def _drift_md(out: dict) -> list[str]:
+    lines = ["## Soak drift", "",
+             f"Buckets of {out['bucket']} credentials in request order, on a store preseeded "
+             f"with {out['preseeded']}. Each slope is a least-squares fit of the bucket "
+             f"percentile with a 95% Student t interval.", "",
+             "| percentile | axis | slope | 95% low | 95% high | buckets |",
+             "|---|---|---|---|---|---|"]
+    for quantile, axes in out["slopes"].items():
+        for axis, fit in axes.items():
+            unit = out["units"][axis]
+            if fit["measured"]:
+                lines.append(f"| {quantile} | {unit} | {round(fit['slope_ns'])} ns | "
+                             f"{round(fit['low_ns'])} ns | {round(fit['high_ns'])} ns | "
+                             f"{fit['n']} |")
+            else:
+                lines.append(f"| {quantile} | {unit} | not measured: {fit['reason']} | | | |")
+    lines += ["", "| store credentials | elapsed s | store bytes | completed | missing | p50 "
+              "| p99 |", "|---|---|---|---|---|---|---|"]
+    for b in out["buckets"]:
+        lines.append(f"| {b['store_credentials']} | {b['elapsed_s']} | {b['store_bytes']} | "
+                     f"{b['credentials']} | {b['missing']} | {_ns(b['p50_ns'])} | "
+                     f"{_ns(b['p99_ns'])} |")
+    return lines + [""]
+
+
 def _warnings(run: _Run, driver: dict, intervals: dict) -> list[str]:
     out = []
     for item in provenance_file.untested(run.record["adapters"], run.record["components"]):
@@ -433,7 +573,9 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         reconciliation = {"summary": summary(outcomes),
                           "credentials": {c: outcomes[c].to_dict() for c in sorted(outcomes)}}
     failures = _failures(events)
-    refused = driver["reason"] if not driver["ok"] else failures["fault_failed"]
+    preseed, preseed_failed = _preseed(run, run.run.get("preseed"))
+    refused = driver["reason"] if not driver["ok"] else (failures["fault_failed"]
+                                                         or preseed_failed)
     out = {
         "report_schema": REPORT_SCHEMA, "generator_commit": generator_commit,
         "timeline_schema": header.timeline_schema,
@@ -450,6 +592,12 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         "measurement_cost": record.get("measurement_cost", NOT_MEASURED),
         "census": NOT_MEASURED, "warnings": _warnings(run, driver, intervals),
     }
+    if "soak" in run.run:
+        out["drift"] = _drift(run, preseed)
+    if preseed is not None:
+        out["preseed"] = preseed
+    if preseed_failed:
+        out["warnings"].append(f"The run is refused. {preseed_failed}")
     if failures["fault_failed"]:
         out["warnings"].append(f"The run is refused. {failures['fault_failed']}")
     if failures["count"]:
@@ -594,6 +742,8 @@ def render_markdown(report: dict) -> str:
                          f"{seen['events']} |")
     lines.append("")
     lines += _faults_md(report["faults"])
+    if "drift" in report:
+        lines += _drift_md(report["drift"])
     lines += ["## Reconciliation", ""]
     if report["reconciliation"] == NOT_MEASURED:
         lines.append("Reconciliation was not measured in this run.")

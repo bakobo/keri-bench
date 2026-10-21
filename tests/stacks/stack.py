@@ -2,7 +2,8 @@
 
 
 def scenario(*, issuer="imbu.issuer", stages='["issue", "deliver", "present", '
-             '"verify", "revoke", "sync"]', rate="1.0", duration="3.0", faults=""):
+             '"verify", "revoke", "sync"]', rate="1.0", duration="3.0", faults="", homes=1,
+             clients=1, count=2):
     return f"""scenario_schema = 1
 name = "imbu-stack"
 stages = {stages}
@@ -23,7 +24,7 @@ measure = ["requested", "verified"]
 adapter = "heti.witness_pool"
 [roles.witness_pool.knobs]
 knob_schema = 1
-count = 2
+count = {count}
 
 [roles.state_distribution]
 adapter = "registrar.state_distribution"
@@ -36,10 +37,12 @@ resync_s = 6.0
 [roles.issuer]
 adapter = "{issuer}"
 [roles.issuer.knobs]
-knob_schema = 1
+knob_schema = 2
 toad = 2
 poll_ms = 50.0
 operation_timeout_s = 60.0
+homes = {homes}
+clients = {clients}
 
 [roles.holder]
 adapter = "heti.holder"

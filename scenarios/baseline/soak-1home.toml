@@ -1,0 +1,64 @@
+# October 2026 baseline of today's imbu (bench-baseline). Needs `uv sync --extra stacks`.
+# Every size here is a choice recorded in this.i under "The October 2026 baseline's sizes".
+scenario_schema = 1
+name = "soak-1home"
+description = "Issuance only at about 60% of saturation for 30 minutes or 1200 credentials, from an empty store."
+stages = ["issue"]
+
+[load]
+rates = [0.7]
+duration_s = 1800.0
+warmup_s = 0.0
+drain_s = 120.0
+repetitions = 3
+measure = ["requested", "published"]
+
+[statistics]
+lag_limit_ms = 25.0
+
+[soak]
+bucket = 50
+per_credentials = 1000
+sample_s = 30.0
+
+[stop]
+credentials = 1200
+
+[roles.witness_pool]
+adapter = "heti.witness_pool"
+[roles.witness_pool.knobs]
+knob_schema = 1
+count = 3
+
+[roles.state_distribution]
+adapter = "registrar.state_distribution"
+[roles.state_distribution.knobs]
+knob_schema = 1
+window_s = 2.0
+delivery_timeout_s = 1.0
+resync_s = 6.0
+
+[roles.issuer]
+adapter = "imbu.issuer"
+[roles.issuer.knobs]
+knob_schema = 2
+toad = 2
+poll_ms = 50.0
+operation_timeout_s = 60.0
+homes = 1
+clients = 1
+
+[roles.holder]
+adapter = "heti.holder"
+[roles.holder.knobs]
+knob_schema = 1
+toad = 2
+
+[roles.verifier]
+adapter = "heti.verifier"
+[roles.verifier.knobs]
+knob_schema = 1
+toad = 2
+freshness_s = 30.0
+retry_ms = 250.0
+deadline_s = 60.0
