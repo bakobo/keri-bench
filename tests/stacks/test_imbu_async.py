@@ -1,5 +1,5 @@
 """The KERI-006 smoke run on the imbu stack, and the real adapters' contract run: the imbu issuer
-adapter against imbu's asynchronous operations (imbu ccc8f6c)."""
+adapter against imbu's asynchronous operations (imbu 8512c1d)."""
 
 from pathlib import Path
 

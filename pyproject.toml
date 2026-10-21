@@ -15,17 +15,26 @@ dependencies = [
 [project.optional-dependencies]
 # The real stack's adapters (imbu issuer; heti witness pool, Observer, holder and verifier). Kept
 # out of the core so the harness, the synthetic stack and CI's calibration need no private repo.
-# Pinned to commits: imbu utah/next at the signer seam (ccc8f6c, 2026-10-21), and the heti that
+# Pinned to commits: imbu utah/next with the restart fix (8512c1d, 2026-10-21), and the heti that
 # imbu pins. The Registrar
 # (bakobo/witness) runs in its own uvx environment, as the summit harness runs it, because it pins
 # a different keripy.
 stacks = [
-    "imbu @ git+ssh://git@github.com/bakobo/imbu@ccc8f6c2ea1994d9f07df90e88cd8a0e17affcaf",
-    "heti @ git+ssh://git@github.com/bakobo/heti@f568f7e2e1d36feeedc2b2398bdc6977dc4bbead",
+    "imbu @ git+ssh://git@github.com/bakobo/imbu@8512c1da5c6d9f09e7bb52f3068f4c7689666f0d",
+    "heti @ git+ssh://git@github.com/bakobo/heti@841fcbd3c6952be729666015ecaa0e28155004cf",
 ]
 
 [project.scripts]
 keri-bench = "keri_bench.cli:main"
+
+# imbu 8512c1d depends on overture, whose own [tool.uv.sources] pins WebOfTrust keripy and would
+# collide with heti's bakobo keripy, which contains it. Stating overture's requirements here, as
+# imbu's pyproject does, stops uv reading its sources and leaves heti's keripy the only one. They
+# must match overture's [project] dependencies at the commit imbu pins.
+[tool.uv]
+dependency-metadata = [
+    { name = "overture", version = "0.1.0.dev0", requires-dist = ["keri", "jsonschema>=4.26", "falcon>=4.3"] },
+]
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-cov>=6", "pytest-asyncio>=1.0"]
