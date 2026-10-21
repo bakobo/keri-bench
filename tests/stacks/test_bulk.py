@@ -79,7 +79,8 @@ async def test_the_citizens_process_answers_only_its_routes():
 
 
 @pytest.mark.parametrize("body", [b"", b"not json", b"[1]", b'{"token": "wrong"}',
-                                  b'{"method": "GET"}', '{"token": "\u00e9"}'.encode()])
+                                  b'{"method": "GET"}', '{"token": "\u00e9"}'.encode(),
+                                  b'{"token": "\\ud800"}'])
 async def test_the_citizens_process_signs_and_proofs_only_for_its_token(body):
     """Hostile review of bench-baseline-2, finding 1: another process on a shared host must not
     get a citizen's signature on a request of its choosing."""

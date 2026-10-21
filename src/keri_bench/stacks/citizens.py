@@ -52,7 +52,8 @@ class Citizens:
         except ValueError:
             return None
         if not isinstance(asked, dict) or not hmac.compare_digest(
-                str(asked.get("token", "")).encode(), self.token.encode()):
+                str(asked.get("token", "")).encode("utf-8", "surrogatepass"),
+                self.token.encode()):
             return None
         return asked
 

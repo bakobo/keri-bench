@@ -472,18 +472,19 @@ def _signer_census(entry: dict) -> tuple[dict, str | None]:
     for kind, *_ in ops:
         counts[kind] = counts.get(kind, 0) + 1
     signatures = counts.get("sign", 0)
-    # Every inception is signed once as well, which is the identifier's, not any credential's.
-    other = signatures - entry["signed_responses"] - counts.get("incept", 0)
     issued = entry["issuances"]
 
     configured = entry["latency_ms"]
     # A profile must be one a device could have: finite, a latency not negative, a rate above
     # zero, and counts that are whole and not negative.
-    finite = (all(v is None or math.isfinite(v) for v in (configured, entry["rate"]))
+    finite = (all(v is None or (type(v) in (int, float) and math.isfinite(v))
+                  for v in (configured, entry["rate"]))
               and (configured is None or configured >= 0)
               and (entry["rate"] is None or entry["rate"] > 0)
               and all(type(n) is int and n >= 0
                       for n in (entry["signed_responses"], entry["issuances"])))
+    # Every inception is signed once as well, which is the identifier's, not any credential's.
+    other = (signatures - entry["signed_responses"] - counts.get("incept", 0)) if finite else 0
     median = (round(statistics.median(f - s for _, _, s, f in ops) / 1e6, 3) if ops else None)
     if median is None or not finite:
         latency_ok = False
