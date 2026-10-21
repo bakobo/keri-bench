@@ -138,3 +138,8 @@ async def test_the_base_lifecycle_does_nothing_and_role_operations_must_be_writt
         with pytest.raises(NotImplementedError):
             await call
     assert set(base.ROLE_BASES) == set(Role)
+
+
+async def test_an_adapter_counts_no_signer_unless_it_says_so():
+    from keri_bench.adapters.base import Adapter
+    assert await Adapter.census(object()) is None
