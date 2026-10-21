@@ -19,17 +19,28 @@ SoftwareSigner whose salt is ``$BENCH_SIGNER_SALT``, at ``--signer-latency-ms`` 
 at most ``--signer-rate`` starts per second; it mints the principal on a fresh home, is attached
 on every start (imbu ``Service.attach_signer``), and its record is served at ``GET /signer`` on
 ``--signer-port`` (stacks/signer.py, this.i 2p26rn9h).
+
+With ``--bulk`` imbu serves the SEDI proofed bulk ceremony instead of plain issuance (this.i
+4f987y88): it learns the SEDI schemas, trusts ``--proofer`` as the IAR's proofing agent, and on a
+fresh home a second facet in its own lockbox, ``utah-root``, issues the principal the Utah agent
+credential that every Core's far node names, so imbu reads that registry locally. The agent
+credential is announced as ``agent`` (``said``, and base64 ``acdc`` and ``chain``).
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
+import base64
 import os
 
 from . import announce, schema
 
 PROFILE = "bench"
+ROOT = "utah-root"
+IAR_RECENCY = 60.0
+IAR_MAX_AGE = 3600.0
+CREDENTIAL_VALIDITY = 365 * 24 * 3600
 
 
 def _provision(home, passcode: str, *, learn: bool) -> tuple[str, tuple[str, ...]]:
@@ -37,10 +48,42 @@ def _provision(home, passcode: str, *, learn: bool) -> tuple[str, tuple[str, ...
     learned it the first time."""
     from heti.anchored.produce import Lockbox, OwnFacet
     with Lockbox.open(path=home.path, passcode=passcode) as box:
-        facet, = [f for f in box.facets() if isinstance(f, OwnFacet)]
+        facet, = [f for f in box.facets() if isinstance(f, OwnFacet) and f.alias != ROOT]
         if learn:
             box.learn_schema(raw=schema.raw())
         return facet.aid, facet.oobis
+
+
+async def _provision_bulk(home, passcode: str, *, recovery: str | None, witnesses,
+                          toad: int, principal: str) -> dict:
+    """The SEDI schemas and the Utah agent credential, on a fresh home (``recovery`` given);
+    on a reopened one, the agent credential read back from the root facet's issued record."""
+    from heti.anchored.produce import Lockbox, OwnFacet
+
+    from . import sedi
+    with Lockbox.open(path=home.path, passcode=passcode) as box:
+        if recovery is not None:
+            for name in ("iar", "core", "residence", "agency"):
+                box.learn_schema(raw=sedi.raw(name))
+            known = [await box.learn_witness(oobi=oobi) for oobi in witnesses]
+            root = await box.mint(witnesses=known, toad=toad, alias=ROOT, recovery=recovery)
+            await root.issue(schema=sedi.said("agency"), attributes=sedi.AGENCY_ATTRIBUTES,
+                             issuee=principal)
+        root, = [f for f in box.facets() if isinstance(f, OwnFacet) and f.alias == ROOT]
+        agent, = root.credentials(role="issued")
+        return {"said": agent.said, "acdc": base64.b64encode(agent.acdc).decode(),
+                "chain": base64.b64encode(agent.tel).decode()}
+
+
+def _bulk_service(args) -> dict:
+    """What a bulk home's Service is configured with beyond plain issuance."""
+    if not args.bulk:
+        return {"schema": schema.said()}
+    from . import sedi
+    return {"schema": sedi.said("core"), "bulk_residence_schema": sedi.said("residence"),
+            "iar_schema": sedi.said("iar"), "iar_proofers": (args.proofer,),
+            "iar_recency": IAR_RECENCY, "iar_max_age": IAR_MAX_AGE,
+            "credential_validity": CREDENTIAL_VALIDITY}
 
 
 async def start_listener(server) -> asyncio.Task:
@@ -65,7 +108,8 @@ def external_signer(args, *, fresh: bool):
     return counting(inner, latency_ms=args.signer_latency_ms, rate=args.signer_rate)
 
 
-async def serve(args, passcode: str, issuer: str, oobis, signer=None) -> None:
+async def serve(args, passcode: str, issuer: str, oobis, signer=None,
+                agent: dict | None = None) -> None:
     import fiki
     import uvicorn
     from imbu.control import create_app
@@ -76,7 +120,7 @@ async def serve(args, passcode: str, issuer: str, oobis, signer=None) -> None:
 
     service = Service(
         Home(PROFILE), passcode, configured_controllers=[parse_spec(s) for s in args.controller],
-        issuer=issuer, schema=schema.said(),
+        issuer=issuer, **_bulk_service(args),
         publisher=RegistrarPublisher(args.registrar_url, key=fiki.Key.from_seed(
             bytes.fromhex(os.environ["BENCH_PUBLISHER_SEED"]))))
     with service:
@@ -89,7 +133,8 @@ async def serve(args, passcode: str, issuer: str, oobis, signer=None) -> None:
                                                port=args.control_port, log_level="warning"))
         task = await start_listener(server)
         announce(issuer=issuer, oobis=list(oobis),
-                 control=f"http://127.0.0.1:{args.control_port}")
+                 control=f"http://127.0.0.1:{args.control_port}",
+                 **({"agent": agent} if agent is not None else {}))
         # uvicorn exits on SIGTERM; then the service closes, and the process's exit closes the
         # signer's record port with it.
         await task
@@ -110,19 +155,26 @@ def main(argv=None) -> None:
     parser.add_argument("--signer-latency-ms", type=float)
     parser.add_argument("--signer-rate", type=float)
     parser.add_argument("--signer-port", type=int)
+    parser.add_argument("--bulk", action="store_true")
+    parser.add_argument("--proofer")
     args = parser.parse_args(argv)
     if args.signer == "external" and args.signer_port is None:
         parser.error("an external signer needs --signer-port for its record")
+    if args.bulk and not args.proofer:
+        parser.error("the bulk ceremony needs --proofer, the IAR's proofing agent")
     passcode = os.environ["BENCH_PASSCODE"]
     home = Home(PROFILE)
     fresh = not home.is_home()
     signer = external_signer(args, fresh=fresh)
+    recovery = new_recovery_code()
     if fresh:
-        InProcessAgent(home, passcode).init(recovery=new_recovery_code(),
-                                            witnesses=args.witness, toad=args.toad,
-                                            signer=signer)
+        InProcessAgent(home, passcode).init(recovery=recovery, witnesses=args.witness,
+                                            toad=args.toad, signer=signer)
     issuer, oobis = _provision(home, passcode, learn=fresh)
-    asyncio.run(serve(args, passcode, issuer, oobis, signer))
+    agent = asyncio.run(_provision_bulk(
+        home, passcode, recovery=recovery if fresh else None, witnesses=args.witness,
+        toad=args.toad, principal=issuer)) if args.bulk else None
+    asyncio.run(serve(args, passcode, issuer, oobis, signer, agent))
 
 
 if __name__ == "__main__":

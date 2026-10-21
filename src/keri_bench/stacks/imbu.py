@@ -111,6 +111,8 @@ class Client:
 
     key: Any
     http: HttpClient = field(default_factory=HttpClient)
+    citizen: int | None = None
+    """For the bulk ceremony, which citizen's SMAID signs (stacks/bulk.py); None for a key."""
 
 
 @dataclass
@@ -118,6 +120,9 @@ class Home:
     index: int
     control: str = ""
     clients: list[Client] = field(default_factory=list)
+    operator: Client | None = None
+    agent: dict | None = None
+    """The bulk ceremony's operator, and the Utah agent credential this home announced."""
     signer_port: int | None = None
     signed: int = 0
     """Answers imbu signed with the principal's key: one signature each (this.i 2p26rn9h)."""
@@ -253,11 +258,16 @@ class ImbuIssuer(IssuerAdapter):
     def _where(home: Home, client: Client) -> dict:
         return {"home": home.index, "client": home.clients.index(client)}
 
+    async def _sign(self, client: Client, method: str, url: str,
+                    body: bytes | None) -> dict[str, str]:
+        """The headers a controller signs a request with: its own key, here."""
+        return fiki.sign_request(key=client.key, method=method, url=url, body=body)
+
     async def _call(self, home: Home, client: Client, method: str, path: str,
                     payload: Mapping | None = None, key: str | None = None) -> Answer:
         url = f"{home.control}{path}"
         body = json.dumps(payload).encode() if payload is not None else None
-        headers = {**fiki.sign_request(key=client.key, method=method, url=url, body=body),
+        headers = {**await self._sign(client, method, url, body),
                    "Content-Type": "application/json"}
         if key is not None:
             headers["Idempotency-Key"] = key

@@ -108,3 +108,55 @@ async def test_imbu_signs_through_the_throttled_signer_and_the_census_counts_it(
     # change in what an HSM is asked to do per credential (test plan, Part B #11).
     assert home["counts"]["sign"] == home["signed_responses"] + 1 + home["other_signatures"]
     assert home["per_issuance"] == 2.0
+
+
+BULK_ISSUER = """[roles.issuer]
+adapter = "imbu.bulk_issuer"
+[roles.issuer.knobs]
+knob_schema = 1
+toad = 2
+poll_ms = 100.0
+operation_timeout_s = 120.0
+homes = 1
+clients = 2
+copies = 1
+pool = 8
+"""
+
+
+def bulk_scenario(*, duration="2.0", faults="", pool=8):
+    text = scenario(stages='["issue"]', rate="1.0", duration=duration, faults=faults)
+    start = text.index("[roles.issuer]")
+    end = text.index("[roles.holder]")
+    return text[:start] + BULK_ISSUER.replace("pool = 8", f"pool = {pool}") + "\n" + text[end:]
+
+
+async def bulk_run(tmp_path, text):
+    path = tmp_path / "scenario.toml"
+    path.write_text(text)
+    report = await runner.run_once(load_scenario(path), tmp_path / "out", rate=1.0,
+                                   repetition=1, harness_commit="test")
+    _, events = read_timeline(tmp_path / "out" / "rate-1" / "rep-1" / "timeline.jsonl")
+    return report, events
+
+
+async def test_the_sedi_bulk_ceremony_issues_a_pair_per_copy_and_the_management_pair(tmp_path):
+    """this.i 4f987y88: each request is one ceremony; each issues 2 (copies + 1) credentials."""
+    report, events = await bulk_run(tmp_path, bulk_scenario())
+    assert [e.attrs for e in events if e.name == "stage_failed"] == []
+    published = [e for e in events if e.name == "published"]
+    assert len(published) == 2
+    assert {e.attrs["credentials"] for e in published} == {4}
+    assert {e.attrs["client"] for e in published} == {0, 1}
+    assert report["intervals"]["requested->published"]["measured"] is True
+
+
+async def test_a_crashed_bulk_home_reopens_and_the_ceremony_goes_on(tmp_path):
+    """this.i 5ed29j5w: the restarted home reads its Utah agent credential back from disk."""
+    # A ceremony the crash interrupted may be refused when imbu resumes it; new ones go on.
+    _, events = await bulk_run(tmp_path, bulk_scenario(duration="12.0", pool=60, faults=(
+        '[[faults]]\nkind = "crash"\ntarget = "issuer.h0"\nat_s = 1.5\n')))
+    restarted = [e for e in events if e.name == "process_ready" and e.attrs["restart"]]
+    published = [e for e in events if e.name == "published"]
+    assert restarted and published
+    assert max(e.t for e in published) > restarted[0].t

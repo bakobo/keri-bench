@@ -19,6 +19,7 @@ ADAPTERS = {
     "synthetic.holder": "keri_bench.synthetic.adapters:SyntheticHolder",
     "synthetic.verifier": "keri_bench.synthetic.adapters:SyntheticVerifier",
     "imbu.issuer": "keri_bench.stacks.imbu:ImbuIssuer",
+    "imbu.bulk_issuer": "keri_bench.stacks.bulk:ImbuBulkIssuer",
     "heti.witness_pool": "keri_bench.stacks.adapters:HetiWitnessPool",
     "registrar.state_distribution": "keri_bench.stacks.adapters:RegistrarObserver",
     "heti.holder": "keri_bench.stacks.adapters:HetiHolder",
