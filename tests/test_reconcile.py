@@ -157,3 +157,13 @@ def test_a_said_that_is_not_text_is_ignored_rather_than_crashing():
                   credentials=("c1",), role="issuer", attrs={"said": ["E1"]})
     out = classify([asked], {"c1": {"status": "valid", "said": "E1"}}, {}, faults=[])
     assert out["c1"].saids == ("E1",)
+
+
+def test_a_credential_the_verifier_could_not_be_asked_about_is_unanswered_not_lost():
+    events = [ev("requested", 10, ["c1"]), ev("requested", 20, ["c2"])]
+    got = classify(events, {"c1": {"status": "unknown", "said": None, "unanswered": True},
+                            "c2": {"status": "unknown", "said": None}}, {}, faults=[])
+    assert (got["c1"].fate, got["c2"].fate) == ("unanswered", "lost")
+    # Counted only when there is one, so a report written before the fate existed is unchanged.
+    assert summary(got) == {"total": 2, "done": 0, "resumed": 0, "lost": 1, "unanswered": 1,
+                            "double_anchored": 0, "two_saids": 0}

@@ -1,5 +1,6 @@
 """The run orchestrator: planning refusals, a whole run, faults, and the sweep summary."""
 
+import asyncio
 import json
 import sys
 from pathlib import Path
@@ -149,6 +150,22 @@ async def test_a_fault_on_a_link_the_run_does_not_have_refuses_before_driving(tm
     assert "requested" not in {e.name for e in events}
 
 
+async def test_a_run_that_never_verifies_does_not_ask_the_verifier(tmp_path, fakes,
+                                                                   monkeypatch):
+    from fake_adapters import FakeVerifier
+    asked = []
+
+    async def status(self, credential):
+        asked.append(credential)
+        return {"status": "valid", "said": None}
+
+    monkeypatch.setattr(FakeVerifier, "status", status)
+    plan = load(tmp_path, fake_scenario(0.0, verifier=True))  # issue and deliver only
+    report = await runner.run_once(plan, tmp_path / "out", rate=20.0, repetition=1,
+                                   harness_commit="test")
+    assert asked == [] and report["reconciliation"] == "not measured"
+
+
 async def test_an_issue_only_run_without_verifier_or_witness_pool_skips_reconciliation(tmp_path):
     plan = load(tmp_path, scenario(stages='["issue"]', names=("state_distribution", "issuer")))
     report = await runner.run_once(plan, tmp_path / "out", rate=10.0, repetition=1,
@@ -194,6 +211,34 @@ def test_a_sweep_that_never_saturates_says_so(tmp_path):
     summary = runner.summarize(plan, {10.0: [fake_report(10, 1, 10.0, 100)],
                                       20.0: [fake_report(20, 1, 20.0, 100)]})
     assert summary["saturation"] is None
+
+
+async def test_a_sweep_runs_more_repetitions_until_enough_are_accepted(tmp_path, monkeypatch):
+    plan = load(tmp_path, scenario(stages='["issue"]', rates="[10.0, 20.0]",
+                                   names=("state_distribution", "issuer")))
+    calls = []
+
+    async def fake_run_once(scenario, out, *, rate, repetition, harness_commit, calibration):
+        calls.append((rate, repetition))
+        # At 10, the first two are refused; at 20, every run is.
+        refused = rate == 20.0 or repetition <= 2
+        return fake_report(rate, repetition, rate, 100, refused=refused)
+
+    monkeypatch.setattr(runner, "run_once", fake_run_once)
+    summary = await runner.sweep(plan, tmp_path / "out", harness_commit="t", attempts=6)
+    assert calls == [(10.0, r) for r in range(1, 6)] + [(20.0, r) for r in range(1, 7)]
+    assert summary["steps"][0]["runs"] == 3 and summary["steps"][1]["runs"] == 0
+    assert summary["attempts"] == 6
+    calls.clear()
+    await runner.sweep(plan, tmp_path / "again", harness_commit="t")
+    assert len(calls) == 6  # by default, exactly the scenario's repetitions per step
+
+
+async def test_a_sweep_refuses_fewer_attempts_than_repetitions(tmp_path):
+    plan = load(tmp_path, scenario(stages='["issue"]', names=("state_distribution", "issuer")))
+    with pytest.raises(BenchError) as refused:
+        await runner.sweep(plan, tmp_path / "out", harness_commit="t", attempts=2)
+    assert refused.value.code == "e.input.range.sweep.attempts.f"
 
 
 async def test_a_sweep_writes_its_summary(tmp_path):
@@ -259,12 +304,40 @@ async def test_lifecycles_still_running_after_the_drain_are_cancelled(tmp_path, 
     assert report["incomplete"]["count"] == 6
 
 
+async def test_reconciliation_retries_a_failed_question_and_asks_a_few_at_a_time(
+        tmp_path, fakes, monkeypatch):
+    from fake_adapters import FakeVerifier
+    tries, peak, active = {}, [0], [0]
+
+    async def flaky(self, credential):
+        active[0] += 1
+        peak[0] = max(peak[0], active[0])
+        await asyncio.sleep(0.01)
+        active[0] -= 1
+        tries[credential] = tries.get(credential, 0) + 1
+        if tries[credential] < 2:
+            raise ConnectionError("busy")
+        return {"status": "valid", "said": f"E{credential}"}
+
+    monkeypatch.setattr(FakeVerifier, "status", flaky)
+    monkeypatch.setattr(runner, "RECONCILE_PAUSE_S", 0.0)
+    plan = load(tmp_path, fake_scenario(0.0, stages='["issue", "deliver", "verify"]',
+                                        verifier=True))
+    report = await runner.run_once(plan, tmp_path / "out", rate=20.0, repetition=1,
+                                   harness_commit="test")
+    assert report["reconciliation"]["summary"]["done"] == 6
+    assert set(tries.values()) == {2}
+    assert peak[0] <= runner.RECONCILE_CONCURRENCY
+
+
 async def test_a_verifier_that_fails_to_answer_reconciles_as_unknown(tmp_path, fakes):
     plan = load(tmp_path, fake_scenario(0.0, stages='["issue", "deliver", "verify"]',
                                         verifier=True))
     report = await runner.run_once(plan, tmp_path / "out", rate=20.0, repetition=1,
                                    harness_commit="test")
-    assert report["reconciliation"]["summary"]["lost"] == 6
+    # Asked and asked again, it never answered: unanswered, not lost (the verifier said nothing).
+    assert report["reconciliation"]["summary"]["unanswered"] == 6
+    assert report["reconciliation"]["summary"]["lost"] == 0
 
 
 async def test_announced_endpoints_are_fronted_unless_already_fronted_or_not_urls(tmp_path,

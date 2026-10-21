@@ -41,8 +41,10 @@ print(tomllib.load(open(sys.argv[1], 'rb'))['load']['rates'][0])" "$scenario")
             uv run --project "$repo" keri-bench run "$scenario" --out "$work/$name" \
                 --rate "$rate" --calibration "$work/calibration/calibration.json" || true ;;
         *)
+            # Up to six runs per step until three are accepted: a run the driver check refuses
+            # on a shared host says nothing about the stack (this.i 2hn3mn3j).
             uv run --project "$repo" keri-bench run "$scenario" --out "$work/$name" \
-                --calibration "$work/calibration/calibration.json" || true ;;
+                --attempts 6 --calibration "$work/calibration/calibration.json" || true ;;
     esac
     echo "$(date -u +%FT%TZ) end $name"
 done

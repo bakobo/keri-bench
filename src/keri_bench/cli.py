@@ -26,7 +26,7 @@ def _run(args) -> dict:
     scenario = load_scenario(args.scenario)
     if args.rate is None:
         return asyncio.run(sweep(scenario, args.out, harness_commit=_commit(),
-                                 calibration=args.calibration))
+                                 calibration=args.calibration, attempts=args.attempts))
     return asyncio.run(run_once(scenario, args.out, rate=args.rate, repetition=args.repetition,
                                 harness_commit=_commit(), calibration=args.calibration))
 
@@ -53,6 +53,8 @@ def main(argv=None) -> int:
     run.add_argument("--out", type=Path, required=True)
     run.add_argument("--rate", type=float, help="One run at this offered rate only.")
     run.add_argument("--repetition", type=int, default=1)
+    run.add_argument("--attempts", type=int, help="Runs per load step at most, until the "
+                     "scenario's repetitions are accepted; by default exactly the repetitions.")
     run.add_argument("--calibration", type=Path, help="A calibration.json whose error budget "
                      "goes into each run's provenance.")
     run.set_defaults(handler=_run)

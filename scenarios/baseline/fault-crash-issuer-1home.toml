@@ -2,7 +2,7 @@
 # Every size here is a choice recorded in this.i under "The October 2026 baseline's sizes".
 scenario_schema = 1
 name = "fault-crash-issuer-1home"
-description = "The lifecycle to verified at about half of saturation, one home, crashing issuer at 20 s."
+description = "The lifecycle to verified at the rate one home's lifecycle sustains, one home, crashing issuer at 20 s."
 stages = ["issue", "deliver", "present", "verify"]
 
 [load]

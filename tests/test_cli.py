@@ -47,6 +47,21 @@ def test_a_whole_sweep_prints_its_saturation(tmp_path, capsys):
     assert (tmp_path / "out" / "sweep.json").exists()
 
 
+def test_a_sweep_takes_a_number_of_attempts(tmp_path, capsys, monkeypatch):
+    seen = {}
+
+    async def fake_sweep(scenario, out, *, harness_commit, calibration, attempts):
+        seen["attempts"] = attempts
+        return {"saturation": None}
+
+    monkeypatch.setattr(cli, "sweep", fake_sweep)
+    path = str(write(tmp_path, issue_only(duration="0.5")))
+    assert cli.main(["run", path, "--out", str(tmp_path / "out"), "--attempts", "5"]) == 0
+    assert seen["attempts"] == 5
+    cli.main(["run", path, "--out", str(tmp_path / "out")])
+    assert seen["attempts"] is None
+
+
 def test_a_refused_scenario_exits_2_with_its_code(tmp_path, capsys):
     assert cli.main(["run", str(write(tmp_path, "scenario_schema = 7")), "--out",
                      str(tmp_path)]) == 2

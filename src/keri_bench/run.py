@@ -49,9 +49,17 @@ E_SOURCE = "e.state.conflict.run.milestone-source.f"
 E_FAULT_TARGET = "e.input.range.scenario.fault.target.f"
 E_NOT_VERIFIED = "e.proof.presentation.f"
 E_STATUS = "e.party.verifier.status.f"
+E_ATTEMPTS = "e.input.range.sweep.attempts.f"
 
 HARNESS_VERSION = "1"
 OFFSET_READS = 15
+RECONCILE_CONCURRENCY = 4
+RECONCILE_ATTEMPTS = 3
+RECONCILE_PAUSE_S = 1.0
+"""Reconciliation asks a few questions at a time and asks a failed one again: on the imbu stack
+each status question makes the one holder present again and the one verifier admit and verify,
+so 32 at once timed out and a credential that was verified was counted lost (found in the
+October 2026 baseline). One the verifier never answers is unanswered, not lost."""
 
 
 def _harness_declaration(adapter: str, role: Role, milestones: dict) -> Declaration:
@@ -505,24 +513,28 @@ class Run:
         return report.write_report(self.run_dir, generator_commit=self.harness_commit)
 
     async def _reconcile(self) -> dict | None:
+        # A run that never verified has nothing to ask a verifier about, and without its answer
+        # no credential has a fate, so there is no reconciliation (this.i 82r8lxy5).
         verifier = self.adapters.get(Role.VERIFIER)
-        pool = self.adapters.get(Role.WITNESS_POOL)
-        if verifier is None and pool is None:
+        if verifier is None or "verify" not in self.plan.scenario.stages:
             return None
-        gate = asyncio.Semaphore(32)
+        pool = self.adapters.get(Role.WITNESS_POOL)
+        gate = asyncio.Semaphore(RECONCILE_CONCURRENCY)
 
         async def ask(call, credential):
             async with gate:
-                try:
-                    return await call(credential)
-                except Exception:
-                    return None
+                for attempt in range(RECONCILE_ATTEMPTS):
+                    try:
+                        return await call(credential)
+                    except Exception:
+                        if attempt + 1 < RECONCILE_ATTEMPTS:
+                            await asyncio.sleep(RECONCILE_PAUSE_S)
+                return None
 
-        verdicts = await asyncio.gather(*(ask(verifier.status, c) for c in self.credentials)) \
-            if verifier else []
+        verdicts = await asyncio.gather(*(ask(verifier.status, c) for c in self.credentials))
         anchors = await asyncio.gather(*(ask(pool.anchors, c) for c in self.credentials)) \
             if pool else []
-        return {"verifier": {c: v or {"status": "unknown", "said": None}
+        return {"verifier": {c: v or {"status": "unknown", "said": None, "unanswered": True}
                              for c, v in zip(self.credentials, verdicts)},
                 "anchors": dict(zip(self.credentials, anchors))}
 
@@ -620,13 +632,26 @@ def summarize(scenario: Scenario, reports: dict[float, list[dict]]) -> dict:
 
 
 async def sweep(scenario: Scenario, out: Path, *, harness_commit: str,
-                calibration: Path | None = None) -> dict:
+                calibration: Path | None = None, attempts: int | None = None) -> dict:
+    """Every load step, until it has the scenario's repetitions accepted or has made
+    ``attempts`` runs (by default exactly the repetitions). On a shared host a run the driver
+    check refuses says nothing about the stack, so another is run; every refused run is still
+    kept and listed."""
+    wanted = scenario.load.repetitions
+    attempts = wanted if attempts is None else attempts
+    if attempts < wanted:
+        raise BenchError(E_ATTEMPTS, f"A sweep needs at least as many attempts per step as the "
+                         f"scenario's {wanted} repetitions, not {attempts}.")
     reports: dict[float, list[dict]] = defaultdict(list)
     for rate in scenario.load.rates:
-        for repetition in range(1, scenario.load.repetitions + 1):
+        for repetition in range(1, attempts + 1):
             reports[rate].append(await run_once(scenario, out, rate=rate, repetition=repetition,
                                                 harness_commit=harness_commit,
                                                 calibration=calibration))
+            if sum(1 for r in reports[rate] if not r.get("refused")) >= wanted:
+                break
     summary = summarize(scenario, reports)
+    summary["attempts"] = attempts
+    Path(out).mkdir(parents=True, exist_ok=True)
     (Path(out) / "sweep.json").write_text(json.dumps(summary, indent=2) + "\n")
     return summary
