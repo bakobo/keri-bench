@@ -1,0 +1,1459 @@
+{
+  "adapters": {
+    "harness.driver": {
+      "adapter": "harness.driver",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {
+        "requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "issuer",
+      "tested_against": {},
+      "version": "1"
+    },
+    "holder": {
+      "adapter": "heti.holder",
+      "knobs": {
+        "knobs": {
+          "toad": {
+            "allow_na": false,
+            "description": "Receipts the holder's facet requires.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "delivered": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "proof_generated": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "stored": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "holder",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+      },
+      "version": "2"
+    },
+    "issuer": {
+      "adapter": "imbu.issuer",
+      "knobs": {
+        "knobs": {
+          "clients": {
+            "allow_na": false,
+            "description": "How many controllers each home serves, each with its own key and connection pool.",
+            "type": "int",
+            "unit": ""
+          },
+          "homes": {
+            "allow_na": false,
+            "description": "How many imbu issuers, each its own home and process, share the deployment (this.i 2lkqz9mq).",
+            "type": "int",
+            "unit": ""
+          },
+          "operation_timeout_s": {
+            "allow_na": false,
+            "description": "How long an operation may run before the adapter gives up on it.",
+            "type": "float",
+            "unit": "s"
+          },
+          "poll_ms": {
+            "allow_na": false,
+            "description": "How often the adapter reads an operation until it finishes; the milestone times come from imbu, not from this poll.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "signer": {
+            "allow_na": false,
+            "description": "lockbox: the principal's keys are in the lockbox; external: heti's ThrottledSigner holds them (this.i 2p26rn9h).",
+            "type": "str",
+            "unit": ""
+          },
+          "signer_latency_ms": {
+            "allow_na": true,
+            "description": "The external signer's latency per operation.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "signer_rate": {
+            "allow_na": true,
+            "description": "The external signer's cap on operation starts per second.",
+            "type": "float",
+            "unit": "/s"
+          },
+          "toad": {
+            "allow_na": false,
+            "description": "Witness receipts imbu requires before an event is settled.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 3
+      },
+      "milestones": {
+        "accepted": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "anchored": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "published": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_anchored": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_published": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "revocation_witnessed": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "witnessed": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        }
+      },
+      "role": "issuer",
+      "tested_against": {
+        "imbu": "8512c1da5c6d9f09e7bb52f3068f4c7689666f0d"
+      },
+      "version": "3"
+    },
+    "state_distribution": {
+      "adapter": "registrar.state_distribution",
+      "knobs": {
+        "knobs": {
+          "delivery_timeout_s": {
+            "allow_na": false,
+            "description": "How long the Registrar waits on a subscriber.",
+            "type": "float",
+            "unit": "s"
+          },
+          "resync_s": {
+            "allow_na": false,
+            "description": "How often the Observer resynchronizes; must exceed the window.",
+            "type": "float",
+            "unit": "s"
+          },
+          "window_s": {
+            "allow_na": false,
+            "description": "The Registrar's batching window.",
+            "type": "float",
+            "unit": "s"
+          }
+        },
+        "version": 1
+      },
+      "milestones": {},
+      "role": "state_distribution",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf",
+        "witness": "452215130900e40aea126b90bdc597569429919f"
+      },
+      "version": "2"
+    },
+    "verifier": {
+      "adapter": "heti.verifier",
+      "knobs": {
+        "knobs": {
+          "deadline_s": {
+            "allow_na": false,
+            "description": "How long verification is retried before the credential counts as not verified.",
+            "type": "float",
+            "unit": "s"
+          },
+          "freshness_s": {
+            "allow_na": false,
+            "description": "How old the Observer's state may be before the verifier refuses to rely on it.",
+            "type": "float",
+            "unit": "s"
+          },
+          "retry_ms": {
+            "allow_na": false,
+            "description": "How soon a refused verification is tried again.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "toad": {
+            "allow_na": false,
+            "description": "Receipts the verifier's facet requires.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "sync_full_done": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "sync_full_started": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "verified": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "verifier",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+      },
+      "version": "2"
+    },
+    "witness_pool": {
+      "adapter": "heti.witness_pool",
+      "knobs": {
+        "knobs": {
+          "count": {
+            "allow_na": false,
+            "description": "How many witnesses the pool runs.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {},
+      "role": "witness_pool",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+      },
+      "version": "2"
+    }
+  },
+  "calibration": {
+    "budget": {
+      "anchored->witnessed": {
+        "p50_error_ns": 165972,
+        "p99_error_ns": 252143
+      },
+      "constructed->registry_updated": {
+        "p50_error_ns": 221169,
+        "p99_error_ns": 298135
+      },
+      "delivered->stored": {
+        "p50_error_ns": 1636516,
+        "p99_error_ns": 2695340
+      },
+      "proof_generated->verified": {
+        "p50_error_ns": 1784498,
+        "p99_error_ns": 1597582
+      },
+      "registry_updated->anchored": {
+        "p50_error_ns": 113587,
+        "p99_error_ns": 140985
+      },
+      "revocation_anchored->revocation_witnessed": {
+        "p50_error_ns": 150124,
+        "p99_error_ns": 153071
+      },
+      "revocation_requested->revocation_anchored": {
+        "p50_error_ns": 997754,
+        "p99_error_ns": 1572765
+      },
+      "revocation_witnessed->revocation_published": {
+        "p50_error_ns": -624752,
+        "p99_error_ns": 367785
+      },
+      "stored->proof_generated": {
+        "p50_error_ns": 1638773,
+        "p99_error_ns": 1913628
+      },
+      "witnessed->published": {
+        "p50_error_ns": -470856,
+        "p99_error_ns": 517216
+      }
+    },
+    "harness_commit": "a4fc36409002167f470e623798c7e6636a6aa190",
+    "ok": true,
+    "path": "/home/daniel/code/bakobo/keri-bench/.worktrees/bench-baseline-2/.ignored/work/calibration/calibration.json",
+    "saturation_relative_error": 0.003998134004455096
+  },
+  "census": {
+    "issuer": {
+      "signers": [
+        {
+          "issuances": 30,
+          "latency_ms": 30.0,
+          "operations": [
+            [
+              "incept",
+              78834381128965,
+              78834381133604,
+              78834411522445
+            ],
+            [
+              "sign",
+              78834413582000,
+              78834482095347,
+              78834512462531
+            ],
+            [
+              "sign",
+              78840646176734,
+              78840646177676,
+              78840676463393
+            ],
+            [
+              "sign",
+              78840711828644,
+              78840747095276,
+              78840777407197
+            ],
+            [
+              "sign",
+              78840834773693,
+              78840848945898,
+              78840879128158
+            ],
+            [
+              "sign",
+              78840948335834,
+              78840949503594,
+              78840979830192
+            ],
+            [
+              "sign",
+              78841187658035,
+              78841187659021,
+              78841218429680
+            ],
+            [
+              "sign",
+              78841194212442,
+              78841288927228,
+              78841319217864
+            ],
+            [
+              "sign",
+              78841533230018,
+              78841533231346,
+              78841563532037
+            ],
+            [
+              "sign",
+              78841592242569,
+              78841633598004,
+              78841663960009
+            ],
+            [
+              "sign",
+              78841721453459,
+              78841735682247,
+              78841766029607
+            ],
+            [
+              "sign",
+              78842947811981,
+              78842947813092,
+              78842978177091
+            ],
+            [
+              "sign",
+              78843171419597,
+              78843171420712,
+              78843201688148
+            ],
+            [
+              "sign",
+              78843177410120,
+              78843272254152,
+              78843302559103
+            ],
+            [
+              "sign",
+              78843529952444,
+              78843529953556,
+              78843560231211
+            ],
+            [
+              "sign",
+              78843586194838,
+              78843630570164,
+              78843660901619
+            ],
+            [
+              "sign",
+              78844951257362,
+              78844951258657,
+              78844981591321
+            ],
+            [
+              "sign",
+              78845176810342,
+              78845176811337,
+              78845207988118
+            ],
+            [
+              "sign",
+              78845182701422,
+              78845277533895,
+              78845307821743
+            ],
+            [
+              "sign",
+              78845533067597,
+              78845533068804,
+              78845563380089
+            ],
+            [
+              "sign",
+              78845589898747,
+              78845634244395,
+              78845664533671
+            ],
+            [
+              "sign",
+              78846949794427,
+              78846949795840,
+              78846980104937
+            ],
+            [
+              "sign",
+              78847213957166,
+              78847213963341,
+              78847245182787
+            ],
+            [
+              "sign",
+              78847220820093,
+              78847314677556,
+              78847345607746
+            ],
+            [
+              "sign",
+              78847577385115,
+              78847577386155,
+              78847607695307
+            ],
+            [
+              "sign",
+              78847634063260,
+              78847678416509,
+              78847708688032
+            ],
+            [
+              "sign",
+              78848949182814,
+              78848949184049,
+              78848979504724
+            ],
+            [
+              "sign",
+              78849189248940,
+              78849189250154,
+              78849220415418
+            ],
+            [
+              "sign",
+              78849196080891,
+              78849290224359,
+              78849321030374
+            ],
+            [
+              "sign",
+              78849547568975,
+              78849547569985,
+              78849577833700
+            ],
+            [
+              "sign",
+              78849604168602,
+              78849648581997,
+              78849678942859
+            ],
+            [
+              "sign",
+              78850949298076,
+              78850949299320,
+              78850979706742
+            ],
+            [
+              "sign",
+              78851176105177,
+              78851176106490,
+              78851206889530
+            ],
+            [
+              "sign",
+              78851182578245,
+              78851277541339,
+              78851307794498
+            ],
+            [
+              "sign",
+              78851555774446,
+              78851555775479,
+              78851586068717
+            ],
+            [
+              "sign",
+              78851612849602,
+              78851656198456,
+              78851686547086
+            ],
+            [
+              "sign",
+              78852959133587,
+              78852959134703,
+              78852989472797
+            ],
+            [
+              "sign",
+              78853203849358,
+              78853203850610,
+              78853235114164
+            ],
+            [
+              "sign",
+              78853210803347,
+              78853305625063,
+              78853335917371
+            ],
+            [
+              "sign",
+              78853571913711,
+              78853571914413,
+              78853602252179
+            ],
+            [
+              "sign",
+              78853629537575,
+              78853672970213,
+              78853703265679
+            ],
+            [
+              "sign",
+              78854952152070,
+              78854952153358,
+              78854983115054
+            ],
+            [
+              "sign",
+              78855188702753,
+              78855188704006,
+              78855219175910
+            ],
+            [
+              "sign",
+              78855194872038,
+              78855289762435,
+              78855320051904
+            ],
+            [
+              "sign",
+              78855631738897,
+              78855631739808,
+              78855662108807
+            ],
+            [
+              "sign",
+              78855688282274,
+              78855732705286,
+              78855763048128
+            ],
+            [
+              "sign",
+              78856953330347,
+              78856953331236,
+              78856984191827
+            ],
+            [
+              "sign",
+              78857214150130,
+              78857214151009,
+              78857245397391
+            ],
+            [
+              "sign",
+              78857221108098,
+              78857314954393,
+              78857346202666
+            ],
+            [
+              "sign",
+              78857577949429,
+              78857577951412,
+              78857608112788
+            ],
+            [
+              "sign",
+              78857637127146,
+              78857678491029,
+              78857708860953
+            ],
+            [
+              "sign",
+              78857766139682,
+              78857780301970,
+              78857810648882
+            ],
+            [
+              "sign",
+              78858948790710,
+              78858948791679,
+              78858979126064
+            ],
+            [
+              "sign",
+              78859176703218,
+              78859176703987,
+              78859207111661
+            ],
+            [
+              "sign",
+              78859183789865,
+              78859277632967,
+              78859307877872
+            ],
+            [
+              "sign",
+              78859570143219,
+              78859570144135,
+              78859600434463
+            ],
+            [
+              "sign",
+              78859627678537,
+              78859671010559,
+              78859701319436
+            ],
+            [
+              "sign",
+              78860949484730,
+              78860949485627,
+              78860980106234
+            ],
+            [
+              "sign",
+              78861185111188,
+              78861185112111,
+              78861215522432
+            ],
+            [
+              "sign",
+              78861191282743,
+              78861286068087,
+              78861319245571
+            ],
+            [
+              "sign",
+              78861574758516,
+              78861574759568,
+              78861605120602
+            ],
+            [
+              "sign",
+              78861637005467,
+              78861675118320,
+              78861705447209
+            ],
+            [
+              "sign",
+              78862949784813,
+              78862949785818,
+              78862980112713
+            ],
+            [
+              "sign",
+              78863178871333,
+              78863178872558,
+              78863210142791
+            ],
+            [
+              "sign",
+              78863185863442,
+              78863279818511,
+              78863310096672
+            ],
+            [
+              "sign",
+              78863564178874,
+              78863564179673,
+              78863594449479
+            ],
+            [
+              "sign",
+              78863622982265,
+              78863665312266,
+              78863695597270
+            ],
+            [
+              "sign",
+              78864950285855,
+              78864950287402,
+              78864981121082
+            ],
+            [
+              "sign",
+              78865180169442,
+              78865180170284,
+              78865210590288
+            ],
+            [
+              "sign",
+              78865187298755,
+              78865281090261,
+              78865311326321
+            ],
+            [
+              "sign",
+              78865578581215,
+              78865578582365,
+              78865608909138
+            ],
+            [
+              "sign",
+              78865581595730,
+              78865679556379,
+              78865709911957
+            ],
+            [
+              "sign",
+              78865768349511,
+              78865780553936,
+              78865810920474
+            ],
+            [
+              "sign",
+              78866950682457,
+              78866950683880,
+              78866981124281
+            ],
+            [
+              "sign",
+              78867216088696,
+              78867216089681,
+              78867246690655
+            ],
+            [
+              "sign",
+              78867222398964,
+              78867318042269,
+              78867348141002
+            ],
+            [
+              "sign",
+              78867604355069,
+              78867604355951,
+              78867634723821
+            ],
+            [
+              "sign",
+              78867607417126,
+              78867705319701,
+              78867735660677
+            ],
+            [
+              "sign",
+              78867792514948,
+              78867806743747,
+              78867837154713
+            ],
+            [
+              "sign",
+              78868951196546,
+              78868951198116,
+              78868982128517
+            ],
+            [
+              "sign",
+              78869176693514,
+              78869176694469,
+              78869207233507
+            ],
+            [
+              "sign",
+              78869182972519,
+              78869278157358,
+              78869308507349
+            ],
+            [
+              "sign",
+              78869571668804,
+              78869571669909,
+              78869601961370
+            ],
+            [
+              "sign",
+              78869632874908,
+              78869672239746,
+              78869702570346
+            ],
+            [
+              "sign",
+              78869762073260,
+              78869773271402,
+              78869803614568
+            ],
+            [
+              "sign",
+              78870953062982,
+              78870953064425,
+              78870984272252
+            ],
+            [
+              "sign",
+              78871220040241,
+              78871220041588,
+              78871250719858
+            ],
+            [
+              "sign",
+              78871228437778,
+              78871321258889,
+              78871351893589
+            ],
+            [
+              "sign",
+              78871610085575,
+              78871610086685,
+              78871640393948
+            ],
+            [
+              "sign",
+              78871668608625,
+              78871710951261,
+              78871741298450
+            ],
+            [
+              "sign",
+              78872952182752,
+              78872952184125,
+              78872983153243
+            ],
+            [
+              "sign",
+              78873229252297,
+              78873229254097,
+              78873260148431
+            ],
+            [
+              "sign",
+              78873236806211,
+              78873331103827,
+              78873361353068
+            ],
+            [
+              "sign",
+              78873615340245,
+              78873615341373,
+              78873645645601
+            ],
+            [
+              "sign",
+              78873675195961,
+              78873716527680,
+              78873746984367
+            ],
+            [
+              "sign",
+              78874950483329,
+              78874950484368,
+              78874981053110
+            ],
+            [
+              "sign",
+              78875224535426,
+              78875224536461,
+              78875255628987
+            ],
+            [
+              "sign",
+              78875231388717,
+              78875325828690,
+              78875356143737
+            ],
+            [
+              "sign",
+              78875634317884,
+              78875634318649,
+              78875665131492
+            ],
+            [
+              "sign",
+              78875636840287,
+              78875735669693,
+              78875766109371
+            ],
+            [
+              "sign",
+              78875825538663,
+              78875836771741,
+              78875867096136
+            ],
+            [
+              "sign",
+              78876949856124,
+              78876949857233,
+              78876981253330
+            ],
+            [
+              "sign",
+              78877185227344,
+              78877185228754,
+              78877216398161
+            ],
+            [
+              "sign",
+              78877191098370,
+              78877285958122,
+              78877316182541
+            ],
+            [
+              "sign",
+              78877602157655,
+              78877602158870,
+              78877632551127
+            ],
+            [
+              "sign",
+              78877666377595,
+              78877703767394,
+              78877734067914
+            ],
+            [
+              "sign",
+              78878949642120,
+              78878949643304,
+              78878979988804
+            ],
+            [
+              "sign",
+              78879181469225,
+              78879181471315,
+              78879212165295
+            ],
+            [
+              "sign",
+              78879187847036,
+              78879282840799,
+              78879313105023
+            ],
+            [
+              "sign",
+              78879637061050,
+              78879637062117,
+              78879668144733
+            ],
+            [
+              "sign",
+              78879640834964,
+              78879737714441,
+              78879768071186
+            ],
+            [
+              "sign",
+              78879825515458,
+              78879839718753,
+              78879870069208
+            ],
+            [
+              "sign",
+              78880948302458,
+              78880948303441,
+              78880978679093
+            ],
+            [
+              "sign",
+              78881171071322,
+              78881171072315,
+              78881201771469
+            ],
+            [
+              "sign",
+              78881177508837,
+              78881283150826,
+              78881313487738
+            ],
+            [
+              "sign",
+              78881600361934,
+              78881600362869,
+              78881630686077
+            ],
+            [
+              "sign",
+              78881660609627,
+              78881701022355,
+              78881731322861
+            ],
+            [
+              "sign",
+              78882948687456,
+              78882948688752,
+              78882979179154
+            ],
+            [
+              "sign",
+              78883182659741,
+              78883182660809,
+              78883213916983
+            ],
+            [
+              "sign",
+              78883188652676,
+              78883283973914,
+              78883314291170
+            ],
+            [
+              "sign",
+              78883579248889,
+              78883579249847,
+              78883609955272
+            ],
+            [
+              "sign",
+              78883582672162,
+              78883680543576,
+              78883710828285
+            ],
+            [
+              "sign",
+              78883768055929,
+              78883782285478,
+              78883812640717
+            ],
+            [
+              "sign",
+              78884952396342,
+              78884952397709,
+              78884982750334
+            ],
+            [
+              "sign",
+              78885208283064,
+              78885208284596,
+              78885240103582
+            ],
+            [
+              "sign",
+              78885212784125,
+              78885311032260,
+              78885341303206
+            ],
+            [
+              "sign",
+              78885632632449,
+              78885632633269,
+              78885663798462
+            ],
+            [
+              "sign",
+              78885635460727,
+              78885733346689,
+              78885763624800
+            ],
+            [
+              "sign",
+              78885820636877,
+              78885834840352,
+              78885865175166
+            ],
+            [
+              "sign",
+              78886949198918,
+              78886949199978,
+              78886980231926
+            ],
+            [
+              "sign",
+              78887207823430,
+              78887207824383,
+              78887238990294
+            ],
+            [
+              "sign",
+              78887214694482,
+              78887308586094,
+              78887338852332
+            ],
+            [
+              "sign",
+              78887586510175,
+              78887586511128,
+              78887616867636
+            ],
+            [
+              "sign",
+              78887648725167,
+              78887687105429,
+              78887717458801
+            ],
+            [
+              "sign",
+              78888951977206,
+              78888951978652,
+              78888984142751
+            ],
+            [
+              "sign",
+              78889228929598,
+              78889228930524,
+              78889259503887
+            ],
+            [
+              "sign",
+              78889235250098,
+              78889329991218,
+              78889360224051
+            ],
+            [
+              "sign",
+              78889688515975,
+              78889688517000,
+              78889719216136
+            ],
+            [
+              "sign",
+              78889691935195,
+              78889789795705,
+              78889820102830
+            ],
+            [
+              "sign",
+              78889878129528,
+              78889890317871,
+              78889920631616
+            ],
+            [
+              "sign",
+              78890949413989,
+              78890949414960,
+              78890980154990
+            ],
+            [
+              "sign",
+              78891177245175,
+              78891177245971,
+              78891208447502
+            ],
+            [
+              "sign",
+              78891183738075,
+              78891281201558,
+              78891311447732
+            ],
+            [
+              "sign",
+              78891564428384,
+              78891564429667,
+              78891594749816
+            ],
+            [
+              "sign",
+              78891621259845,
+              78891665612886,
+              78891695917106
+            ],
+            [
+              "sign",
+              78891753473398,
+              78891767734626,
+              78891798055777
+            ],
+            [
+              "sign",
+              78892950680049,
+              78892950693927,
+              78892981208097
+            ],
+            [
+              "sign",
+              78893171082956,
+              78893171084224,
+              78893201565357
+            ],
+            [
+              "sign",
+              78893178332598,
+              78893272097563,
+              78893302357907
+            ],
+            [
+              "sign",
+              78893550509002,
+              78893550509812,
+              78893580852165
+            ],
+            [
+              "sign",
+              78893623866588,
+              78893651151096,
+              78893681470441
+            ],
+            [
+              "sign",
+              78894949452256,
+              78894949453331,
+              78894980098141
+            ],
+            [
+              "sign",
+              78895186249857,
+              78895186250910,
+              78895217268303
+            ],
+            [
+              "sign",
+              78895192961255,
+              78895287452794,
+              78895317696842
+            ],
+            [
+              "sign",
+              78895572478433,
+              78895572479586,
+              78895602846145
+            ],
+            [
+              "sign",
+              78895636648815,
+              78895674006054,
+              78895704346815
+            ],
+            [
+              "sign",
+              78896948880073,
+              78896948881356,
+              78896980194210
+            ],
+            [
+              "sign",
+              78897193980406,
+              78897193981450,
+              78897224635973
+            ],
+            [
+              "sign",
+              78897200315926,
+              78897295291731,
+              78897325635969
+            ],
+            [
+              "sign",
+              78897567189387,
+              78897567190314,
+              78897597515558
+            ],
+            [
+              "sign",
+              78897628311645,
+              78897667639882,
+              78897697943193
+            ],
+            [
+              "sign",
+              78898949159368,
+              78898949160445,
+              78898980126830
+            ],
+            [
+              "sign",
+              78899198885156,
+              78899198886162,
+              78899229665886
+            ],
+            [
+              "sign",
+              78899206438352,
+              78899300128030,
+              78899346346924
+            ],
+            [
+              "sign",
+              78899565465022,
+              78899565465907,
+              78899595752171
+            ],
+            [
+              "sign",
+              78899627692139,
+              78899666031185,
+              78899696317117
+            ]
+          ],
+          "rate": 10.0,
+          "signed_responses": 104
+        }
+      ]
+    }
+  },
+  "clocks": {
+    "harness": "monotonic@d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "realtime": "realtime@kelun"
+  },
+  "components": {
+    "holder": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+    },
+    "issuer": {
+      "imbu": "8512c1da5c6d9f09e7bb52f3068f4c7689666f0d"
+    },
+    "state_distribution": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf",
+      "witness": "452215130900e40aea126b90bdc597569429919f"
+    },
+    "verifier": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+    },
+    "witness_pool": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+    }
+  },
+  "harness_commit": "a4fc36409002167f470e623798c7e6636a6aa190",
+  "host": {
+    "boot_id": "d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "cpu_count": 8,
+    "cpu_model": "Intel Core Processor (Haswell, no TSX)",
+    "hostname": "kelun",
+    "kernel": "7.0.0-38-generic",
+    "machine": "x86_64",
+    "memory_bytes": 24598093824,
+    "python": "3.14.6"
+  },
+  "knobs": {
+    "holder": {
+      "toad": 2
+    },
+    "issuer": {
+      "clients": 1,
+      "homes": 1,
+      "operation_timeout_s": 60.0,
+      "poll_ms": 50.0,
+      "signer": "external",
+      "signer_latency_ms": 30.0,
+      "signer_rate": 10.0,
+      "toad": 2
+    },
+    "state_distribution": {
+      "delivery_timeout_s": 1.0,
+      "resync_s": 6.0,
+      "window_s": 2.0
+    },
+    "verifier": {
+      "deadline_s": 60.0,
+      "freshness_s": 30.0,
+      "retry_ms": 250.0,
+      "toad": 2
+    },
+    "witness_pool": {
+      "count": 3
+    }
+  },
+  "measurement_cost": {
+    "harness_cpu_s": 58.136364,
+    "links": {
+      "holder.api": {
+        "exchanges": 0,
+        "p50_ns": 175717,
+        "p99_ns": 306728,
+        "samples": 200
+      },
+      "issuer.control.0": {
+        "exchanges": 104,
+        "p50_ns": 266123,
+        "p99_ns": 441239,
+        "samples": 200
+      },
+      "state_distribution.observer": {
+        "exchanges": 0,
+        "p50_ns": 177744,
+        "p99_ns": 318655,
+        "samples": 200
+      },
+      "state_distribution.registrar": {
+        "exchanges": 32,
+        "p50_ns": 189302,
+        "p99_ns": 366698,
+        "samples": 200
+      },
+      "verifier.api": {
+        "exchanges": 0,
+        "p50_ns": 164525,
+        "p99_ns": 267784,
+        "samples": 200
+      },
+      "witness_pool.w0": {
+        "exchanges": 111,
+        "p50_ns": 191107,
+        "p99_ns": 361792,
+        "samples": 200
+      },
+      "witness_pool.w1": {
+        "exchanges": 110,
+        "p50_ns": 169325,
+        "p99_ns": 514333,
+        "samples": 200
+      },
+      "witness_pool.w2": {
+        "exchanges": 77,
+        "p50_ns": 170991,
+        "p99_ns": 288469,
+        "samples": 200
+      }
+    }
+  },
+  "provenance_schema": 1,
+  "run": {
+    "duration_s": 60.0,
+    "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+    "lag_limit_ms": 25.0,
+    "measure": [
+      "requested",
+      "witnessed"
+    ],
+    "rate": 0.5,
+    "repetition": 2,
+    "scenario": "hsm-30ms-cap10",
+    "stages": [
+      "issue"
+    ],
+    "warmup_s": 10.0
+  },
+  "scenario": "# hsm-sweep of today's imbu (bench-baseline-2). Needs `uv sync --extra stacks`.\n# The grid is recorded in this.i 02fe3uk5 and 0v8kmser, and the signer in 2p26rn9h.\nscenario_schema = 1\nname = \"hsm-30ms-cap10\"\ndescription = \"Issuance only through an external signer at 30 ms per signature, at most 10 starts a second, stepped to saturation.\"\nstages = [\"issue\"]\n\n[load]\nrates = [0.25, 0.5, 0.75, 1.0, 1.5]\nduration_s = 60.0\nwarmup_s = 10.0\ndrain_s = 120.0\nrepetitions = 3\nmeasure = [\"requested\", \"witnessed\"]\n\n[statistics]\nlag_limit_ms = 25.0\n\n[roles.witness_pool]\nadapter = \"heti.witness_pool\"\n[roles.witness_pool.knobs]\nknob_schema = 1\ncount = 3\n\n[roles.state_distribution]\nadapter = \"registrar.state_distribution\"\n[roles.state_distribution.knobs]\nknob_schema = 1\nwindow_s = 2.0\ndelivery_timeout_s = 1.0\nresync_s = 6.0\n\n[roles.issuer]\nadapter = \"imbu.issuer\"\n[roles.issuer.knobs]\nknob_schema = 3\ntoad = 2\npoll_ms = 50.0\noperation_timeout_s = 60.0\nhomes = 1\nclients = 1\nsigner = \"external\"\nsigner_latency_ms = 30.0\nsigner_rate = 10.0\n\n[roles.holder]\nadapter = \"heti.holder\"\n[roles.holder.knobs]\nknob_schema = 1\ntoad = 2\n\n[roles.verifier]\nadapter = \"heti.verifier\"\n[roles.verifier.knobs]\nknob_schema = 1\ntoad = 2\nfreshness_s = 30.0\nretry_ms = 250.0\ndeadline_s = 60.0\n",
+  "scenario_sha256": "a64ce4ccc4b0f24f28e453f07782fcfe58d259800484704f2c29152933d7bfd9"
+}

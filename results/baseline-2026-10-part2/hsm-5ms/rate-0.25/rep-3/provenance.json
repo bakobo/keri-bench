@@ -1,0 +1,1123 @@
+{
+  "adapters": {
+    "harness.driver": {
+      "adapter": "harness.driver",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {
+        "requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "issuer",
+      "tested_against": {},
+      "version": "1"
+    },
+    "holder": {
+      "adapter": "heti.holder",
+      "knobs": {
+        "knobs": {
+          "toad": {
+            "allow_na": false,
+            "description": "Receipts the holder's facet requires.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "delivered": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "proof_generated": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "stored": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "holder",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+      },
+      "version": "2"
+    },
+    "issuer": {
+      "adapter": "imbu.issuer",
+      "knobs": {
+        "knobs": {
+          "clients": {
+            "allow_na": false,
+            "description": "How many controllers each home serves, each with its own key and connection pool.",
+            "type": "int",
+            "unit": ""
+          },
+          "homes": {
+            "allow_na": false,
+            "description": "How many imbu issuers, each its own home and process, share the deployment (this.i 2lkqz9mq).",
+            "type": "int",
+            "unit": ""
+          },
+          "operation_timeout_s": {
+            "allow_na": false,
+            "description": "How long an operation may run before the adapter gives up on it.",
+            "type": "float",
+            "unit": "s"
+          },
+          "poll_ms": {
+            "allow_na": false,
+            "description": "How often the adapter reads an operation until it finishes; the milestone times come from imbu, not from this poll.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "signer": {
+            "allow_na": false,
+            "description": "lockbox: the principal's keys are in the lockbox; external: heti's ThrottledSigner holds them (this.i 2p26rn9h).",
+            "type": "str",
+            "unit": ""
+          },
+          "signer_latency_ms": {
+            "allow_na": true,
+            "description": "The external signer's latency per operation.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "signer_rate": {
+            "allow_na": true,
+            "description": "The external signer's cap on operation starts per second.",
+            "type": "float",
+            "unit": "/s"
+          },
+          "toad": {
+            "allow_na": false,
+            "description": "Witness receipts imbu requires before an event is settled.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 3
+      },
+      "milestones": {
+        "accepted": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "anchored": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "published": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_anchored": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_published": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "revocation_witnessed": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "witnessed": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        }
+      },
+      "role": "issuer",
+      "tested_against": {
+        "imbu": "8512c1da5c6d9f09e7bb52f3068f4c7689666f0d"
+      },
+      "version": "3"
+    },
+    "state_distribution": {
+      "adapter": "registrar.state_distribution",
+      "knobs": {
+        "knobs": {
+          "delivery_timeout_s": {
+            "allow_na": false,
+            "description": "How long the Registrar waits on a subscriber.",
+            "type": "float",
+            "unit": "s"
+          },
+          "resync_s": {
+            "allow_na": false,
+            "description": "How often the Observer resynchronizes; must exceed the window.",
+            "type": "float",
+            "unit": "s"
+          },
+          "window_s": {
+            "allow_na": false,
+            "description": "The Registrar's batching window.",
+            "type": "float",
+            "unit": "s"
+          }
+        },
+        "version": 1
+      },
+      "milestones": {},
+      "role": "state_distribution",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf",
+        "witness": "452215130900e40aea126b90bdc597569429919f"
+      },
+      "version": "2"
+    },
+    "verifier": {
+      "adapter": "heti.verifier",
+      "knobs": {
+        "knobs": {
+          "deadline_s": {
+            "allow_na": false,
+            "description": "How long verification is retried before the credential counts as not verified.",
+            "type": "float",
+            "unit": "s"
+          },
+          "freshness_s": {
+            "allow_na": false,
+            "description": "How old the Observer's state may be before the verifier refuses to rely on it.",
+            "type": "float",
+            "unit": "s"
+          },
+          "retry_ms": {
+            "allow_na": false,
+            "description": "How soon a refused verification is tried again.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "toad": {
+            "allow_na": false,
+            "description": "Receipts the verifier's facet requires.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "sync_full_done": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "sync_full_started": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "verified": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "verifier",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+      },
+      "version": "2"
+    },
+    "witness_pool": {
+      "adapter": "heti.witness_pool",
+      "knobs": {
+        "knobs": {
+          "count": {
+            "allow_na": false,
+            "description": "How many witnesses the pool runs.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {},
+      "role": "witness_pool",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+      },
+      "version": "2"
+    }
+  },
+  "calibration": {
+    "budget": {
+      "anchored->witnessed": {
+        "p50_error_ns": 165972,
+        "p99_error_ns": 252143
+      },
+      "constructed->registry_updated": {
+        "p50_error_ns": 221169,
+        "p99_error_ns": 298135
+      },
+      "delivered->stored": {
+        "p50_error_ns": 1636516,
+        "p99_error_ns": 2695340
+      },
+      "proof_generated->verified": {
+        "p50_error_ns": 1784498,
+        "p99_error_ns": 1597582
+      },
+      "registry_updated->anchored": {
+        "p50_error_ns": 113587,
+        "p99_error_ns": 140985
+      },
+      "revocation_anchored->revocation_witnessed": {
+        "p50_error_ns": 150124,
+        "p99_error_ns": 153071
+      },
+      "revocation_requested->revocation_anchored": {
+        "p50_error_ns": 997754,
+        "p99_error_ns": 1572765
+      },
+      "revocation_witnessed->revocation_published": {
+        "p50_error_ns": -624752,
+        "p99_error_ns": 367785
+      },
+      "stored->proof_generated": {
+        "p50_error_ns": 1638773,
+        "p99_error_ns": 1913628
+      },
+      "witnessed->published": {
+        "p50_error_ns": -470856,
+        "p99_error_ns": 517216
+      }
+    },
+    "harness_commit": "a4fc36409002167f470e623798c7e6636a6aa190",
+    "ok": true,
+    "path": "/home/daniel/code/bakobo/keri-bench/.worktrees/bench-baseline-2/.ignored/work/calibration/calibration.json",
+    "saturation_relative_error": 0.003998134004455096
+  },
+  "census": {
+    "issuer": {
+      "signers": [
+        {
+          "issuances": 15,
+          "latency_ms": 5.0,
+          "operations": [
+            [
+              "incept",
+              73104053446441,
+              73104053449757,
+              73104058657261
+            ],
+            [
+              "sign",
+              73104060763424,
+              73104060765811,
+              73104065953627
+            ],
+            [
+              "sign",
+              73111757582160,
+              73111757583585,
+              73111762773304
+            ],
+            [
+              "sign",
+              73111779052157,
+              73111779053472,
+              73111784624061
+            ],
+            [
+              "sign",
+              73111856048261,
+              73111856049534,
+              73111861312502
+            ],
+            [
+              "sign",
+              73111927930693,
+              73111927931706,
+              73111933096913
+            ],
+            [
+              "sign",
+              73112020708977,
+              73112020710266,
+              73112033113190
+            ],
+            [
+              "sign",
+              73112309427320,
+              73112309428175,
+              73112314632697
+            ],
+            [
+              "sign",
+              73112312507575,
+              73112312508483,
+              73112317853221
+            ],
+            [
+              "sign",
+              73112391805520,
+              73112391807137,
+              73112397183117
+            ],
+            [
+              "sign",
+              73112717223117,
+              73112717224108,
+              73112722696713
+            ],
+            [
+              "sign",
+              73112719510230,
+              73112719511508,
+              73112726612161
+            ],
+            [
+              "sign",
+              73112799469513,
+              73112799470855,
+              73112804974184
+            ],
+            [
+              "sign",
+              73116007469774,
+              73116007471239,
+              73116016656313
+            ],
+            [
+              "sign",
+              73116244855348,
+              73116244856535,
+              73116250206960
+            ],
+            [
+              "sign",
+              73116247055142,
+              73116247056066,
+              73116252387305
+            ],
+            [
+              "sign",
+              73116328180034,
+              73116328181278,
+              73116333469712
+            ],
+            [
+              "sign",
+              73116637401194,
+              73116637402157,
+              73116643447432
+            ],
+            [
+              "sign",
+              73116641267344,
+              73116641268112,
+              73116646742613
+            ],
+            [
+              "sign",
+              73116714672468,
+              73116714673808,
+              73116719858364
+            ],
+            [
+              "sign",
+              73120005814267,
+              73120005815211,
+              73120016168610
+            ],
+            [
+              "sign",
+              73120261229537,
+              73120261230698,
+              73120266478519
+            ],
+            [
+              "sign",
+              73120261251437,
+              73120261252030,
+              73120266490879
+            ],
+            [
+              "sign",
+              73120339258405,
+              73120339259883,
+              73120344425414
+            ],
+            [
+              "sign",
+              73120621334209,
+              73120621336137,
+              73120627164147
+            ],
+            [
+              "sign",
+              73120625995398,
+              73120625996290,
+              73120632094148
+            ],
+            [
+              "sign",
+              73120698934771,
+              73120698935828,
+              73120704123586
+            ],
+            [
+              "sign",
+              73124007395919,
+              73124007396899,
+              73124018108257
+            ],
+            [
+              "sign",
+              73124269947081,
+              73124269947970,
+              73124275821044
+            ],
+            [
+              "sign",
+              73124272689115,
+              73124272689732,
+              73124278294769
+            ],
+            [
+              "sign",
+              73124344955674,
+              73124344956730,
+              73124350123406
+            ],
+            [
+              "sign",
+              73124600097346,
+              73124600099051,
+              73124605210014
+            ],
+            [
+              "sign",
+              73124605168468,
+              73124605169466,
+              73124610379898
+            ],
+            [
+              "sign",
+              73124680819400,
+              73124680820779,
+              73124686034328
+            ],
+            [
+              "sign",
+              73128006715734,
+              73128006716584,
+              73128013729086
+            ],
+            [
+              "sign",
+              73128251579629,
+              73128251580431,
+              73128257493704
+            ],
+            [
+              "sign",
+              73128254361974,
+              73128254362724,
+              73128259635709
+            ],
+            [
+              "sign",
+              73128336194094,
+              73128336195059,
+              73128341348014
+            ],
+            [
+              "sign",
+              73128629942830,
+              73128629944086,
+              73128635683788
+            ],
+            [
+              "sign",
+              73128633527423,
+              73128633528109,
+              73128638867527
+            ],
+            [
+              "sign",
+              73128705571623,
+              73128705572502,
+              73128710756949
+            ],
+            [
+              "sign",
+              73132007925685,
+              73132007926715,
+              73132017136535
+            ],
+            [
+              "sign",
+              73132257681691,
+              73132257683061,
+              73132263447606
+            ],
+            [
+              "sign",
+              73132260322878,
+              73132260323575,
+              73132265643237
+            ],
+            [
+              "sign",
+              73132334134216,
+              73132334135099,
+              73132339330761
+            ],
+            [
+              "sign",
+              73132628952843,
+              73132628953884,
+              73132634283546
+            ],
+            [
+              "sign",
+              73132633130978,
+              73132633131703,
+              73132639106377
+            ],
+            [
+              "sign",
+              73132705687642,
+              73132705689535,
+              73132710909875
+            ],
+            [
+              "sign",
+              73136012665024,
+              73136012666494,
+              73136017849509
+            ],
+            [
+              "sign",
+              73136298820559,
+              73136298821444,
+              73136304520966
+            ],
+            [
+              "sign",
+              73136300380870,
+              73136300381562,
+              73136305905395
+            ],
+            [
+              "sign",
+              73136375008775,
+              73136375009620,
+              73136380150892
+            ],
+            [
+              "sign",
+              73136665500075,
+              73136665501214,
+              73136671255684
+            ],
+            [
+              "sign",
+              73136668111392,
+              73136668112294,
+              73136673721248
+            ],
+            [
+              "sign",
+              73136747101784,
+              73136747102581,
+              73136752309797
+            ],
+            [
+              "sign",
+              73140014360825,
+              73140014361904,
+              73140021874171
+            ],
+            [
+              "sign",
+              73140261629278,
+              73140261630803,
+              73140267672661
+            ],
+            [
+              "sign",
+              73140266539483,
+              73140266540599,
+              73140271830108
+            ],
+            [
+              "sign",
+              73140348277204,
+              73140348278817,
+              73140353439052
+            ],
+            [
+              "sign",
+              73140630353047,
+              73140630354459,
+              73140636107930
+            ],
+            [
+              "sign",
+              73140631965020,
+              73140631965714,
+              73140637328139
+            ],
+            [
+              "sign",
+              73140706932264,
+              73140706933369,
+              73140712132429
+            ],
+            [
+              "sign",
+              73144005516832,
+              73144005517880,
+              73144013910073
+            ],
+            [
+              "sign",
+              73144234621660,
+              73144234622661,
+              73144240305698
+            ],
+            [
+              "sign",
+              73144237137170,
+              73144237137856,
+              73144242468225
+            ],
+            [
+              "sign",
+              73144312255925,
+              73144312257689,
+              73144317626686
+            ],
+            [
+              "sign",
+              73144601344335,
+              73144601345520,
+              73144606452778
+            ],
+            [
+              "sign",
+              73144659233483,
+              73144659234877,
+              73144664390849
+            ],
+            [
+              "sign",
+              73148007220581,
+              73148007225183,
+              73148015808282
+            ],
+            [
+              "sign",
+              73148247729350,
+              73148247730282,
+              73148253370882
+            ],
+            [
+              "sign",
+              73148250233711,
+              73148250234734,
+              73148255516509
+            ],
+            [
+              "sign",
+              73148322660604,
+              73148322661573,
+              73148328999177
+            ],
+            [
+              "sign",
+              73148580665783,
+              73148580666799,
+              73148586211538
+            ],
+            [
+              "sign",
+              73148584099738,
+              73148584100340,
+              73148589372763
+            ],
+            [
+              "sign",
+              73148654461891,
+              73148654463010,
+              73148659583492
+            ],
+            [
+              "sign",
+              73152005959953,
+              73152005961578,
+              73152013454192
+            ],
+            [
+              "sign",
+              73152245954143,
+              73152245955733,
+              73152251224784
+            ],
+            [
+              "sign",
+              73152249040429,
+              73152249041273,
+              73152254389161
+            ],
+            [
+              "sign",
+              73152320213472,
+              73152320214467,
+              73152325363421
+            ],
+            [
+              "sign",
+              73152591613862,
+              73152591614899,
+              73152597267383
+            ],
+            [
+              "sign",
+              73152594128330,
+              73152594128979,
+              73152599452244
+            ],
+            [
+              "sign",
+              73152666633531,
+              73152666634426,
+              73152671816263
+            ],
+            [
+              "sign",
+              73156005134725,
+              73156005136334,
+              73156015660014
+            ],
+            [
+              "sign",
+              73156256146831,
+              73156256147853,
+              73156262074945
+            ],
+            [
+              "sign",
+              73156258937781,
+              73156258938458,
+              73156264282384
+            ],
+            [
+              "sign",
+              73156333125082,
+              73156333126009,
+              73156338304553
+            ],
+            [
+              "sign",
+              73156627684829,
+              73156627686374,
+              73156633465912
+            ],
+            [
+              "sign",
+              73156630328228,
+              73156630329373,
+              73156635655646
+            ],
+            [
+              "sign",
+              73156702163520,
+              73156702164698,
+              73156707366975
+            ],
+            [
+              "sign",
+              73160009147239,
+              73160009149068,
+              73160021174026
+            ],
+            [
+              "sign",
+              73160257807618,
+              73160257808606,
+              73160263501420
+            ],
+            [
+              "sign",
+              73160260356955,
+              73160260357608,
+              73160265658645
+            ],
+            [
+              "sign",
+              73160332593144,
+              73160332594007,
+              73160337740805
+            ],
+            [
+              "sign",
+              73160604501844,
+              73160604503002,
+              73160609740479
+            ],
+            [
+              "sign",
+              73160608613636,
+              73160608614346,
+              73160614075200
+            ],
+            [
+              "sign",
+              73160679955061,
+              73160679956372,
+              73160685194839
+            ],
+            [
+              "sign",
+              73164008920185,
+              73164008921265,
+              73164017797970
+            ],
+            [
+              "sign",
+              73164254197619,
+              73164254198965,
+              73164259936189
+            ],
+            [
+              "sign",
+              73164256797153,
+              73164256797900,
+              73164262051558
+            ],
+            [
+              "sign",
+              73164328914975,
+              73164328916333,
+              73164334094882
+            ],
+            [
+              "sign",
+              73164646902702,
+              73164646904149,
+              73164652298158
+            ],
+            [
+              "sign",
+              73164651139667,
+              73164651141136,
+              73164657029893
+            ],
+            [
+              "sign",
+              73164725281036,
+              73164725282108,
+              73164730482100
+            ],
+            [
+              "sign",
+              73168009270134,
+              73168009271444,
+              73168017696685
+            ],
+            [
+              "sign",
+              73168268106067,
+              73168268107408,
+              73168273684153
+            ],
+            [
+              "sign",
+              73168269545369,
+              73168269546145,
+              73168274996505
+            ],
+            [
+              "sign",
+              73168347083506,
+              73168347084363,
+              73168352304477
+            ],
+            [
+              "sign",
+              73168650242448,
+              73168650244504,
+              73168655686398
+            ],
+            [
+              "sign",
+              73168655657314,
+              73168655658262,
+              73168660960942
+            ],
+            [
+              "sign",
+              73168735940179,
+              73168735941430,
+              73168741151399
+            ]
+          ],
+          "rate": null,
+          "signed_responses": 78
+        }
+      ]
+    }
+  },
+  "clocks": {
+    "harness": "monotonic@d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "realtime": "realtime@kelun"
+  },
+  "components": {
+    "holder": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+    },
+    "issuer": {
+      "imbu": "8512c1da5c6d9f09e7bb52f3068f4c7689666f0d"
+    },
+    "state_distribution": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf",
+      "witness": "452215130900e40aea126b90bdc597569429919f"
+    },
+    "verifier": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+    },
+    "witness_pool": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+    }
+  },
+  "harness_commit": "a4fc36409002167f470e623798c7e6636a6aa190",
+  "host": {
+    "boot_id": "d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "cpu_count": 8,
+    "cpu_model": "Intel Core Processor (Haswell, no TSX)",
+    "hostname": "kelun",
+    "kernel": "7.0.0-38-generic",
+    "machine": "x86_64",
+    "memory_bytes": 24598093824,
+    "python": "3.14.6"
+  },
+  "knobs": {
+    "holder": {
+      "toad": 2
+    },
+    "issuer": {
+      "clients": 1,
+      "homes": 1,
+      "operation_timeout_s": 60.0,
+      "poll_ms": 50.0,
+      "signer": "external",
+      "signer_latency_ms": 5.0,
+      "signer_rate": "n/a",
+      "toad": 2
+    },
+    "state_distribution": {
+      "delivery_timeout_s": 1.0,
+      "resync_s": 6.0,
+      "window_s": 2.0
+    },
+    "verifier": {
+      "deadline_s": 60.0,
+      "freshness_s": 30.0,
+      "retry_ms": 250.0,
+      "toad": 2
+    },
+    "witness_pool": {
+      "count": 3
+    }
+  },
+  "measurement_cost": {
+    "harness_cpu_s": 56.14044200000001,
+    "links": {
+      "holder.api": {
+        "exchanges": 0,
+        "p50_ns": 170997,
+        "p99_ns": 261337,
+        "samples": 200
+      },
+      "issuer.control.0": {
+        "exchanges": 78,
+        "p50_ns": 170399,
+        "p99_ns": 307435,
+        "samples": 200
+      },
+      "state_distribution.observer": {
+        "exchanges": 0,
+        "p50_ns": 206326,
+        "p99_ns": 392391,
+        "samples": 200
+      },
+      "state_distribution.registrar": {
+        "exchanges": 17,
+        "p50_ns": 173168,
+        "p99_ns": 405449,
+        "samples": 200
+      },
+      "verifier.api": {
+        "exchanges": 0,
+        "p50_ns": 169467,
+        "p99_ns": 297804,
+        "samples": 200
+      },
+      "witness_pool.w0": {
+        "exchanges": 66,
+        "p50_ns": 181646,
+        "p99_ns": 341579,
+        "samples": 200
+      },
+      "witness_pool.w1": {
+        "exchanges": 66,
+        "p50_ns": 186025,
+        "p99_ns": 356907,
+        "samples": 200
+      },
+      "witness_pool.w2": {
+        "exchanges": 46,
+        "p50_ns": 186274,
+        "p99_ns": 310930,
+        "samples": 200
+      }
+    }
+  },
+  "provenance_schema": 1,
+  "run": {
+    "duration_s": 60.0,
+    "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+    "lag_limit_ms": 25.0,
+    "measure": [
+      "requested",
+      "witnessed"
+    ],
+    "rate": 0.25,
+    "repetition": 3,
+    "scenario": "hsm-5ms",
+    "stages": [
+      "issue"
+    ],
+    "warmup_s": 10.0
+  },
+  "scenario": "# hsm-sweep of today's imbu (bench-baseline-2). Needs `uv sync --extra stacks`.\n# The grid is recorded in this.i 02fe3uk5 and 0v8kmser, and the signer in 2p26rn9h.\nscenario_schema = 1\nname = \"hsm-5ms\"\ndescription = \"Issuance only through an external signer at 5 ms per signature, uncapped, stepped to saturation.\"\nstages = [\"issue\"]\n\n[load]\nrates = [0.25, 0.5, 0.75, 1.0, 1.5]\nduration_s = 60.0\nwarmup_s = 10.0\ndrain_s = 120.0\nrepetitions = 3\nmeasure = [\"requested\", \"witnessed\"]\n\n[statistics]\nlag_limit_ms = 25.0\n\n[roles.witness_pool]\nadapter = \"heti.witness_pool\"\n[roles.witness_pool.knobs]\nknob_schema = 1\ncount = 3\n\n[roles.state_distribution]\nadapter = \"registrar.state_distribution\"\n[roles.state_distribution.knobs]\nknob_schema = 1\nwindow_s = 2.0\ndelivery_timeout_s = 1.0\nresync_s = 6.0\n\n[roles.issuer]\nadapter = \"imbu.issuer\"\n[roles.issuer.knobs]\nknob_schema = 3\ntoad = 2\npoll_ms = 50.0\noperation_timeout_s = 60.0\nhomes = 1\nclients = 1\nsigner = \"external\"\nsigner_latency_ms = 5.0\nsigner_rate = \"n/a\"\n\n[roles.holder]\nadapter = \"heti.holder\"\n[roles.holder.knobs]\nknob_schema = 1\ntoad = 2\n\n[roles.verifier]\nadapter = \"heti.verifier\"\n[roles.verifier.knobs]\nknob_schema = 1\ntoad = 2\nfreshness_s = 30.0\nretry_ms = 250.0\ndeadline_s = 60.0\n",
+  "scenario_sha256": "554fea8fcca8c448b35ae95e5671663927f44ef5929a61bf61085cde8d94962c"
+}

@@ -1,0 +1,195 @@
+{
+  "scenario": "hsm-5ms",
+  "measure": [
+    "requested",
+    "witnessed"
+  ],
+  "steps": [
+    {
+      "offered": 0.25,
+      "runs": 0,
+      "achieved": null,
+      "p99_ns": null
+    },
+    {
+      "offered": 0.5,
+      "runs": 0,
+      "achieved": null,
+      "p99_ns": null
+    },
+    {
+      "offered": 0.75,
+      "runs": 0,
+      "achieved": null,
+      "p99_ns": null
+    },
+    {
+      "offered": 1.0,
+      "runs": 0,
+      "achieved": null,
+      "p99_ns": null
+    },
+    {
+      "offered": 1.5,
+      "runs": 0,
+      "achieved": null,
+      "p99_ns": null
+    }
+  ],
+  "saturation": null,
+  "refused": [
+    {
+      "rate": 0.25,
+      "repetition": 1,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.398 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.25,
+      "repetition": 2,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.362 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.25,
+      "repetition": 3,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.344 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.25,
+      "repetition": 4,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.401 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.25,
+      "repetition": 5,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.467 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.25,
+      "repetition": 6,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.367 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.5,
+      "repetition": 1,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.404 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.5,
+      "repetition": 2,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.36 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.5,
+      "repetition": 3,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.382 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.5,
+      "repetition": 4,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.449 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.5,
+      "repetition": 5,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.376 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.5,
+      "repetition": 6,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.417 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.75,
+      "repetition": 1,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.406 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.75,
+      "repetition": 2,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.393 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.75,
+      "repetition": 3,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.431 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.75,
+      "repetition": 4,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.378 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.75,
+      "repetition": 5,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.439 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 0.75,
+      "repetition": 6,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.477 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 1.0,
+      "repetition": 1,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.394 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 1.0,
+      "repetition": 2,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.473 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 1.0,
+      "repetition": 3,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.435 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 1.0,
+      "repetition": 4,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.446 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 1.0,
+      "repetition": 5,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.406 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 1.0,
+      "repetition": 6,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.444 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 1.5,
+      "repetition": 1,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.669 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 1.5,
+      "repetition": 2,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.641 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 1.5,
+      "repetition": 3,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.567 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 1.5,
+      "repetition": 4,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.617 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 1.5,
+      "repetition": 5,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.611 ms against 5.0 ms configured, more than 5% off."
+    },
+    {
+      "rate": 1.5,
+      "repetition": 6,
+      "reason": "The signer's profile check failed for issuer signer 0: latency median 5.495 ms against 5.0 ms configured, more than 5% off."
+    }
+  ],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 6
+}
