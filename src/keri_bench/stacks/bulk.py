@@ -52,6 +52,10 @@ def copies_issued(op: dict, *, copies: int) -> str:
             for pair in made):
         raise BenchError(E_SHAPE, f"imbu's finished ceremony does not name a Core and a "
                          f"Residence for each of its {copies} copies: {result!r}"[:500])
+    saids = [pair[kind]["said"] for pair in made for kind in ("core", "residence")]
+    if len(set(saids)) != len(saids):
+        raise BenchError(E_SHAPE, f"imbu's finished ceremony names one credential twice: "
+                         f"{saids!r}"[:500])
     return made[0]["core"]["said"]
 
 

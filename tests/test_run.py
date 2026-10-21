@@ -701,4 +701,19 @@ async def test_a_preseed_issuance_that_names_no_credential_is_counted_as_failed(
     monkeypatch.setattr(FakeIssuer, "issue", hollow)
     _, events = await soak_events(tmp_path, soak_scenario(preseed=2))
     ended, = [e.attrs for e in events if e.name == "preseed_ended"]
-    assert ended["failed"] == 2 and "named no credential" in ended["first_error"]
+    assert ended["failed"] == 2 and "named no new credential" in ended["first_error"]
+
+
+async def test_a_preseed_issuance_that_repeats_a_credential_or_returns_nothing_failed(
+        tmp_path, fakes, monkeypatch):
+    from fake_adapters import FakeIssuer
+    from keri_bench.adapters.base import Issued
+    answers = iter([Issued("x", "Esame", None, True), Issued("x", "Esame", None, True), None])
+
+    async def replay(self, credential, holder):
+        return next(answers)
+
+    monkeypatch.setattr(FakeIssuer, "issue", replay)
+    _, events = await soak_events(tmp_path, soak_scenario(preseed=3))
+    ended, = [e.attrs for e in events if e.name == "preseed_ended"]
+    assert ended["failed"] == 2

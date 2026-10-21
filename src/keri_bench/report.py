@@ -475,8 +475,15 @@ def _signer_census(entry: dict) -> tuple[dict, str | None]:
     # Every inception is signed once as well, which is the identifier's, not any credential's.
     other = signatures - entry["signed_responses"] - counts.get("incept", 0)
     issued = entry["issuances"]
+
     configured = entry["latency_ms"]
-    finite = all(v is None or math.isfinite(v) for v in (configured, entry["rate"]))
+    # A profile must be one a device could have: finite, a latency not negative, a rate above
+    # zero, and counts that are whole and not negative.
+    finite = (all(v is None or math.isfinite(v) for v in (configured, entry["rate"]))
+              and (configured is None or configured >= 0)
+              and (entry["rate"] is None or entry["rate"] > 0)
+              and all(type(n) is int and n >= 0
+                      for n in (entry["signed_responses"], entry["issuances"])))
     median = (round(statistics.median(f - s for _, _, s, f in ops) / 1e6, 3) if ops else None)
     if median is None or not finite:
         latency_ok = False
@@ -488,7 +495,7 @@ def _signer_census(entry: dict) -> tuple[dict, str | None]:
     rate_out: dict[str, Any] = {"configured_per_s": rate, "exercised": False, "ok": True}
     # An operation was held by the cap when it asked before the device's next start was free.
     starts = sorted((s, r) for _, r, s, _ in ops)
-    gap = 0 if rate is None else 1e9 / rate
+    gap = 0 if rate is None or not finite else 1e9 / rate
     spacings = [s - before for (before, _), (s, r) in zip(starts, starts[1:])
                 if r < before + gap]
     if rate is not None and spacings and finite:
@@ -497,14 +504,17 @@ def _signer_census(entry: dict) -> tuple[dict, str | None]:
         rate_out = {"configured_per_s": rate, "exercised": True, "median_spacing_ms": spacing,
                     "ok": abs(spacing - want) <= PROFILE_TOLERANCE * want}
     out = {"counts": counts, "signed_responses": entry["signed_responses"],
-           "other_signatures": other, "per_issuance": other / issued if issued else None,
+           "other_signatures": other,
+           "per_issuance": other / issued if finite and issued else None,
            "latency": {"configured_ms": configured, "median_ms": median, "ok": latency_ok},
            "rate": rate_out}
     accounted = other >= 0 and finite
     out["ok"] = latency_ok and rate_out["ok"] and accounted
     problems = []
     if not finite:
-        problems.append(f"latency {configured!r} ms and rate {rate!r} are not a finite profile")
+        problems.append(f"latency {configured!r} ms, rate {rate!r} and counts "
+                        f"{entry['signed_responses']!r} and {entry['issuances']!r} are not a "
+                        f"finite profile a device could have")
     if other < 0:
         problems.append(f"the record holds {entry['signed_responses']} signed answers but only "
                         f"{signatures} signatures, so it cannot account for them")

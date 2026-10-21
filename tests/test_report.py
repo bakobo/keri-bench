@@ -1246,3 +1246,11 @@ def test_a_profile_that_is_not_finite_refuses_the_run(tmp_path):
     ops = [["sign", 0, 0, 10 * MS_]]
     report = census_run(tmp_path, [signer(ops, rate=float("inf"))])
     assert report["refused"] is True and "not a finite profile" in report["refused_reason"]
+
+
+@pytest.mark.parametrize("change", [{"rate": 0.0}, {"rate": -1.0}, {"latency_ms": -2.0},
+                                    {"responses": -1}, {"issuances": -1}])
+def test_a_profile_or_count_that_cannot_be_refuses_the_run(tmp_path, change):
+    ops = [["sign", 0, 0, 10 * MS_], ["sign", 0, 1, 10 * MS_ + 1]]
+    report = census_run(tmp_path, [signer(ops, **change)])
+    assert report["refused"] is True

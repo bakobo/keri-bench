@@ -348,6 +348,7 @@ class Run:
         issuer = self.adapters[Role.ISSUER]
         gate = asyncio.Semaphore(rule.concurrency)
         failures: list[str] = []
+        made: set[str] = set()
         began = self.clock()
         self._harness_event("preseed_started", attrs={"requested": rule.credentials,
                                                       "concurrency": rule.concurrency})
@@ -359,10 +360,13 @@ class Run:
                 except Exception as failed:
                     failures.append(f"{type(failed).__name__}: {failed}"[:500])
                     return
-                # The store grew only if the stack says what it made (hostile review, finding 3).
-                if not issued.said:
-                    failures.append(f"The issuer named no credential for p{index:07d}, so the "
-                                    f"store cannot be counted as holding it.")
+                # The store grew only if the stack names what it made, and something new.
+                said = getattr(issued, "said", None)
+                if not isinstance(said, str) or not said or said in made:
+                    failures.append(f"The issuer named no new credential for p{index:07d}, so "
+                                    f"the store cannot be counted as holding it.")
+                    return
+                made.add(said)
 
         await asyncio.gather(*(one(i) for i in range(rule.credentials)))
         attrs = {"requested": rule.credentials, "failed": len(failures),

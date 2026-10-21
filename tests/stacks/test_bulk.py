@@ -79,7 +79,7 @@ async def test_the_citizens_process_answers_only_its_routes():
 
 
 @pytest.mark.parametrize("body", [b"", b"not json", b"[1]", b'{"token": "wrong"}',
-                                  b'{"method": "GET"}'])
+                                  b'{"method": "GET"}', '{"token": "\u00e9"}'.encode()])
 async def test_the_citizens_process_signs_and_proofs_only_for_its_token(body):
     """Hostile review of bench-baseline-2, finding 1: another process on a shared host must not
     get a citizen's signature on a request of its choosing."""
@@ -106,7 +106,9 @@ async def test_the_census_carries_each_pool_provisioning_imbu_stamped():
 
 @pytest.mark.parametrize("result", [None, {}, {"copies": []}, {"copies": [{"core": {}}]},
                                     {"copies": [{"core": {"said": "Ec"},
-                                                 "residence": {"said": 7}}]}])
+                                                 "residence": {"said": 7}}]},
+                                    {"copies": [{"core": {"said": "Ec"},
+                                                 "residence": {"said": "Ec"}}]}])
 def test_a_ceremony_whose_result_does_not_name_every_copy_is_refused(result):
     """Finding 2: milestone stamps are not evidence that the credentials exist."""
     with pytest.raises(BenchError) as refused:
