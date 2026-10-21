@@ -58,3 +58,21 @@ async def test_a_client_that_hangs_up_mid_body_is_dropped_quietly():
     assert await raw(port, b"POST /a HTTP/1.1\r\nContent-Length: 10\r\n\r\n01") == b""
     server.close()
     await server.wait_closed()
+
+
+async def test_a_server_may_send_fixed_headers_with_every_answer():
+    from keri_bench.http import HttpClient
+    from keri_bench.synthetic import http as shttp
+
+    async def ok(method, path, body):
+        return 200, {}
+
+    server = await shttp.serve(ok, 0, headers={"Signature": "sig1=:x:"})
+    client = HttpClient()
+    try:
+        answer = await client.get(f"http://127.0.0.1:{server.sockets[0].getsockname()[1]}/")
+        assert answer.headers["Signature"] == "sig1=:x:"
+    finally:
+        await client.close()
+        server.close()
+        await server.wait_closed()

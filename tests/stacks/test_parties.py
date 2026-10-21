@@ -340,3 +340,10 @@ async def test_a_restarted_verifier_still_knows_what_it_verified(tmp_path, monke
     assert again.known == {"Es": "Er"}
     assert await again.status("Es", request) == "valid"
     assert verifier.Verifier(Box(ok), Facet(admitted), None, 30.0).known == {}
+
+
+def test_an_external_signer_without_a_record_port_is_a_usage_error(capsys):
+    with pytest.raises(SystemExit):
+        issuer.main(["--witness", "w", "--toad", "1", "--registrar-url", "r", "--controller",
+                     "c", "--control-port", "1", "--signer", "external"])
+    assert "--signer-port" in capsys.readouterr().err

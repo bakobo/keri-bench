@@ -32,6 +32,21 @@ The test plan defines each milestone by the event that counts and leaves stack-s
 - **Homes and clients.** The issuer's `homes` knob runs that many imbu processes, `issuer.h<i>`, each with its own home under `<run>/imbu/h<i>`, sharing the witnesses, the Registrar, the Observer, the holder and the verifier. Its `clients` knob authorises that many controllers per home, each signing with its own key over its own connection pool. Credentials are dealt to homes round-robin and then to each home's clients round-robin, and every issuer event carries `home` and `client` attributes (`this.i` 2lkqz9mq). The Observer, holder and verifier resolve one OOBI per home.
 - **Restarts.** A crashed process restarts on what it had on disk: imbu reopens its home, the holder and verifier reopen their lockboxes, and the bench wrappers keep what they would otherwise forget in a spool beside the lockbox (the holder its delivered grants, which it admits again after a restart; the verifier the credentials it has verified). The Registrar and the Observer reopen their stores as they always do.
 - **Store size.** During a soak the issuer reports every byte under every home, sampled every `[soak] sample_s`.
+- **The external signer.** With `signer = "external"` each home's principal is minted and signed for by heti's `ThrottledSigner` over a `SoftwareSigner`, at `signer_latency_ms` per operation and at most `signer_rate` starts a second, attached on every start (`this.i` 2p26rn9h). The issuer process serves the signer's record of every operation, and the adapter counts the answers imbu signed, one signature each, for the signer census. On imbu `8512c1d` a credential costs two signatures beyond those answers: the `ixn` that anchors its registry's inception and its issuance, and the grant.
+
+## The bulk issuer (`imbu.bulk_issuer`)
+
+The SEDI proofed bulk ceremony (`this.i` 4f987y88). One request is one ceremony, and its events name the ceremony and carry `credentials`, the 2 (copies + 1) credentials it issued: the management Core and Residence pair and a pair per copy.
+
+| Milestone | Method, clock | What counts |
+|---|---|---|
+| `accepted` | observed, harness | imbu's 202 answer to the ceremony. |
+| `anchored`, `witnessed`, `published` | reported, realtime | imbu's stamps on the ceremony's operation, as for the plain issuer. |
+
+- **The citizens process** (`keri_bench.stacks.citizens`) holds the proofing agent and `clients` SMAIDs, each a controller of every home. Per ceremony it signs an IAR and anchors the IAR's nonce in the citizen's KEL, and it signs each of the citizen's requests and polls. That work sits inside every interval, as a citizen's wallet's would.
+- **The pool** of registries each home reserves from is provisioned before the window, `pool` registries per home, so registry inception is apart from issuance.
+- **The Utah agent credential** every Core names as its far node is issued at the home's first start by a second facet, `utah-root`, in imbu's own lockbox, so imbu reads that registry locally rather than through a far Observer.
+- **Copy holders** are fresh keys' AIDs. Nothing is delivered, and the bulk issuer does not revoke.
 
 ## Known limits
 

@@ -19,15 +19,17 @@ _REASONS = {200: "OK", 202: "Accepted", 400: "Bad Request", 404: "Not Found",
             413: "Content Too Large", 500: "Internal Server Error"}
 
 
-def _answer(status: int, payload: object) -> bytes:
+def _answer(status: int, payload: object, headers: dict[str, str] | None = None) -> bytes:
     body = json.dumps(payload).encode()
-    head = (f"HTTP/1.1 {status} {_REASONS.get(status, 'Status')}\r\n"
+    extra = "".join(f"{name}: {value}\r\n" for name, value in (headers or {}).items())
+    head = (f"HTTP/1.1 {status} {_REASONS.get(status, 'Status')}\r\n{extra}"
             f"Content-Type: application/json\r\nContent-Length: {len(body)}\r\n\r\n")
     return head.encode() + body
 
 
 async def _connection(handler: Handler, reader: asyncio.StreamReader,
-                      writer: asyncio.StreamWriter) -> None:
+                      writer: asyncio.StreamWriter,
+                      headers: dict[str, str] | None = None) -> None:
     try:
         while True:
             try:
@@ -51,7 +53,7 @@ async def _connection(handler: Handler, reader: asyncio.StreamReader,
                 status, payload = await handler(parts[0], parts[1], body)
             except Exception as wrong:  # a synthetic role's bug must answer, not hang a client
                 status, payload = 500, {"error": f"{type(wrong).__name__}: {wrong}"}
-            writer.write(_answer(status, payload))
+            writer.write(_answer(status, payload, headers))
             await writer.drain()
     except (ConnectionError, asyncio.IncompleteReadError):
         return
@@ -59,6 +61,8 @@ async def _connection(handler: Handler, reader: asyncio.StreamReader,
         writer.close()
 
 
-async def serve(handler: Handler, port: int, host: str = "127.0.0.1") -> asyncio.Server:
-    return await asyncio.start_server(lambda r, w: _connection(handler, r, w), host, port,
-                                      limit=MAX_HEAD)
+async def serve(handler: Handler, port: int, host: str = "127.0.0.1",
+                headers: dict[str, str] | None = None) -> asyncio.Server:
+    """``headers`` go out with every answer, as a stand-in for a server that signs them."""
+    return await asyncio.start_server(lambda r, w: _connection(handler, r, w, headers), host,
+                                      port, limit=MAX_HEAD)

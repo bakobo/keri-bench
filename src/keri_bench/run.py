@@ -348,6 +348,7 @@ class Run:
         issuer = self.adapters[Role.ISSUER]
         gate = asyncio.Semaphore(rule.concurrency)
         failures: list[str] = []
+        made: set[str] = set()
         began = self.clock()
         self._harness_event("preseed_started", attrs={"requested": rule.credentials,
                                                       "concurrency": rule.concurrency})
@@ -355,9 +356,17 @@ class Run:
         async def one(index: int) -> None:
             async with gate:
                 try:
-                    await issuer.issue(f"p{index:07d}", self.holder_identity)
+                    issued = await issuer.issue(f"p{index:07d}", self.holder_identity)
                 except Exception as failed:
                     failures.append(f"{type(failed).__name__}: {failed}"[:500])
+                    return
+                # The store grew only if the stack names what it made, and something new.
+                said = getattr(issued, "said", None)
+                if not isinstance(said, str) or not said or said in made:
+                    failures.append(f"The issuer named no new credential for p{index:07d}, so "
+                                    f"the store cannot be counted as holding it.")
+                    return
+                made.add(said)
 
         await asyncio.gather(*(one(i) for i in range(rule.credentials)))
         attrs = {"requested": rule.credentials, "failed": len(failures),
@@ -449,7 +458,7 @@ class Run:
             self.monitor = self._context(_monitor(self.plan.scenario.recognition.poll_ms), {})
         cpu_before = resource.getrusage(resource.RUSAGE_SELF)
         load = self.plan.scenario.load
-        reconciliation, components, cost = None, {}, {}
+        reconciliation, components, cost, census = None, {}, {}, {}
         try:
             await self._bring_up()
             for fault in self.plan.scenario.faults:
@@ -510,6 +519,8 @@ class Run:
             reconciliation = await self._reconcile()
             components = {role.value: await adapter.versions()
                           for role, adapter in self.adapters.items()}
+            census = {role.value: counted for role, adapter in self.adapters.items()
+                      if (counted := await adapter.census()) is not None}
             cost = await self._cost(cpu_before)
         finally:
             for adapter in reversed(list(self.adapters.values())):
@@ -518,7 +529,7 @@ class Run:
             for link in self.links.values():
                 await link.stop()
             writer.close()
-        record = self._provenance(reconciliation, components, cost)
+        record = self._provenance(reconciliation, components, cost, census)
         provenance.write(self.run_dir / "provenance.json", record)
         return report.write_report(self.run_dir, generator_commit=self.harness_commit)
 
@@ -556,7 +567,7 @@ class Run:
         return {"links": links, "harness_cpu_s": (after.ru_utime - before.ru_utime)
                 + (after.ru_stime - before.ru_stime)}
 
-    def _provenance(self, reconciliation, components, cost) -> dict:
+    def _provenance(self, reconciliation, components, cost, census) -> dict:
         scenario = self.plan.scenario
         declarations = {role.value: cls.declaration.describe()
                         for role, cls in self.plan.classes.items()}
@@ -575,6 +586,8 @@ class Run:
                                 "concurrency": scenario.preseed.concurrency}
         if reconciliation is not None:
             extra["reconciliation"] = reconciliation
+        if census:
+            extra["census"] = census
         return provenance.build(
             harness_commit=self.harness_commit, scenario_text=scenario.text,
             scenario_sha256=scenario.sha256, adapters=declarations,

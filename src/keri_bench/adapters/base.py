@@ -191,6 +191,13 @@ class Adapter:
         """The running version of each component this adapter drives, for provenance."""
         return {}
 
+    async def census(self) -> dict | None:
+        """What the adapter's signers did, read once the drain ends, for the signer census and
+        the HSM profile check (this.i 2p26rn9h): ``{"signers": [{"latency_ms", "rate",
+        "signed_responses", "issuances", "operations": [[kind, requested_ns, started_ns,
+        finished_ns], ...]}, ...]}`` on the harness's clock; None when it counts no signer."""
+        return None
+
     def clock_sources(self) -> dict[str, Callable[[], Awaitable[int]]]:
         """A reader per ``stack:`` clock this adapter declares, for offset measurement."""
         return {}

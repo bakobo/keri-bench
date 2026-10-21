@@ -1,0 +1,1489 @@
+{
+  "adapters": {
+    "harness.driver": {
+      "adapter": "harness.driver",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {
+        "requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "issuer",
+      "tested_against": {},
+      "version": "1"
+    },
+    "holder": {
+      "adapter": "heti.holder",
+      "knobs": {
+        "knobs": {
+          "toad": {
+            "allow_na": false,
+            "description": "Receipts the holder's facet requires.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "delivered": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "proof_generated": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "stored": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "holder",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+      },
+      "version": "2"
+    },
+    "issuer": {
+      "adapter": "imbu.issuer",
+      "knobs": {
+        "knobs": {
+          "clients": {
+            "allow_na": false,
+            "description": "How many controllers each home serves, each with its own key and connection pool.",
+            "type": "int",
+            "unit": ""
+          },
+          "homes": {
+            "allow_na": false,
+            "description": "How many imbu issuers, each its own home and process, share the deployment (this.i 2lkqz9mq).",
+            "type": "int",
+            "unit": ""
+          },
+          "operation_timeout_s": {
+            "allow_na": false,
+            "description": "How long an operation may run before the adapter gives up on it.",
+            "type": "float",
+            "unit": "s"
+          },
+          "poll_ms": {
+            "allow_na": false,
+            "description": "How often the adapter reads an operation until it finishes; the milestone times come from imbu, not from this poll.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "signer": {
+            "allow_na": false,
+            "description": "lockbox: the principal's keys are in the lockbox; external: heti's ThrottledSigner holds them (this.i 2p26rn9h).",
+            "type": "str",
+            "unit": ""
+          },
+          "signer_latency_ms": {
+            "allow_na": true,
+            "description": "The external signer's latency per operation.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "signer_rate": {
+            "allow_na": true,
+            "description": "The external signer's cap on operation starts per second.",
+            "type": "float",
+            "unit": "/s"
+          },
+          "toad": {
+            "allow_na": false,
+            "description": "Witness receipts imbu requires before an event is settled.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 3
+      },
+      "milestones": {
+        "accepted": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "anchored": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "published": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_anchored": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_published": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "revocation_witnessed": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "witnessed": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        }
+      },
+      "role": "issuer",
+      "tested_against": {
+        "imbu": "8512c1da5c6d9f09e7bb52f3068f4c7689666f0d"
+      },
+      "version": "3"
+    },
+    "state_distribution": {
+      "adapter": "registrar.state_distribution",
+      "knobs": {
+        "knobs": {
+          "delivery_timeout_s": {
+            "allow_na": false,
+            "description": "How long the Registrar waits on a subscriber.",
+            "type": "float",
+            "unit": "s"
+          },
+          "resync_s": {
+            "allow_na": false,
+            "description": "How often the Observer resynchronizes; must exceed the window.",
+            "type": "float",
+            "unit": "s"
+          },
+          "window_s": {
+            "allow_na": false,
+            "description": "The Registrar's batching window.",
+            "type": "float",
+            "unit": "s"
+          }
+        },
+        "version": 1
+      },
+      "milestones": {},
+      "role": "state_distribution",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf",
+        "witness": "452215130900e40aea126b90bdc597569429919f"
+      },
+      "version": "2"
+    },
+    "verifier": {
+      "adapter": "heti.verifier",
+      "knobs": {
+        "knobs": {
+          "deadline_s": {
+            "allow_na": false,
+            "description": "How long verification is retried before the credential counts as not verified.",
+            "type": "float",
+            "unit": "s"
+          },
+          "freshness_s": {
+            "allow_na": false,
+            "description": "How old the Observer's state may be before the verifier refuses to rely on it.",
+            "type": "float",
+            "unit": "s"
+          },
+          "retry_ms": {
+            "allow_na": false,
+            "description": "How soon a refused verification is tried again.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "toad": {
+            "allow_na": false,
+            "description": "Receipts the verifier's facet requires.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "sync_full_done": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "sync_full_started": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "verified": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "verifier",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+      },
+      "version": "2"
+    },
+    "witness_pool": {
+      "adapter": "heti.witness_pool",
+      "knobs": {
+        "knobs": {
+          "count": {
+            "allow_na": false,
+            "description": "How many witnesses the pool runs.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {},
+      "role": "witness_pool",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+      },
+      "version": "2"
+    }
+  },
+  "calibration": {
+    "budget": {
+      "anchored->witnessed": {
+        "p50_error_ns": 165972,
+        "p99_error_ns": 252143
+      },
+      "constructed->registry_updated": {
+        "p50_error_ns": 221169,
+        "p99_error_ns": 298135
+      },
+      "delivered->stored": {
+        "p50_error_ns": 1636516,
+        "p99_error_ns": 2695340
+      },
+      "proof_generated->verified": {
+        "p50_error_ns": 1784498,
+        "p99_error_ns": 1597582
+      },
+      "registry_updated->anchored": {
+        "p50_error_ns": 113587,
+        "p99_error_ns": 140985
+      },
+      "revocation_anchored->revocation_witnessed": {
+        "p50_error_ns": 150124,
+        "p99_error_ns": 153071
+      },
+      "revocation_requested->revocation_anchored": {
+        "p50_error_ns": 997754,
+        "p99_error_ns": 1572765
+      },
+      "revocation_witnessed->revocation_published": {
+        "p50_error_ns": -624752,
+        "p99_error_ns": 367785
+      },
+      "stored->proof_generated": {
+        "p50_error_ns": 1638773,
+        "p99_error_ns": 1913628
+      },
+      "witnessed->published": {
+        "p50_error_ns": -470856,
+        "p99_error_ns": 517216
+      }
+    },
+    "harness_commit": "a4fc36409002167f470e623798c7e6636a6aa190",
+    "ok": true,
+    "path": "/home/daniel/code/bakobo/keri-bench/.worktrees/bench-baseline-2/.ignored/work/calibration/calibration.json",
+    "saturation_relative_error": 0.003998134004455096
+  },
+  "census": {
+    "issuer": {
+      "signers": [
+        {
+          "issuances": 30,
+          "latency_ms": 30.0,
+          "operations": [
+            [
+              "incept",
+              79976764404790,
+              79976764408271,
+              79976794775322
+            ],
+            [
+              "sign",
+              79976797296209,
+              79976966892178,
+              79976997250940
+            ],
+            [
+              "sign",
+              79983755362731,
+              79983755364505,
+              79983786111408
+            ],
+            [
+              "sign",
+              79983797270090,
+              79983957132336,
+              79983987504432
+            ],
+            [
+              "sign",
+              79984047625032,
+              79984158140953,
+              79984188456400
+            ],
+            [
+              "sign",
+              79984274177355,
+              79984358769986,
+              79984389133243
+            ],
+            [
+              "sign",
+              79984527430972,
+              79984559814398,
+              79984590195867
+            ],
+            [
+              "sign",
+              79984521081526,
+              79984761489178,
+              79984791841814
+            ],
+            [
+              "sign",
+              79984648741706,
+              79984962765209,
+              79984993093779
+            ],
+            [
+              "sign",
+              79985213617884,
+              79985213619146,
+              79985243964602
+            ],
+            [
+              "sign",
+              79985278781048,
+              79985414202060,
+              79985444516519
+            ],
+            [
+              "sign",
+              79986276251877,
+              79986276252769,
+              79986306626605
+            ],
+            [
+              "sign",
+              79986547960410,
+              79986547961877,
+              79986579176338
+            ],
+            [
+              "sign",
+              79986558903396,
+              79986749284721,
+              79986779670102
+            ],
+            [
+              "sign",
+              79986977118993,
+              79986977120268,
+              79987007436718
+            ],
+            [
+              "sign",
+              79987035543578,
+              79987180116599,
+              79987210449962
+            ],
+            [
+              "sign",
+              79988275059673,
+              79988275061077,
+              79988305402666
+            ],
+            [
+              "sign",
+              79988507908278,
+              79988507909583,
+              79988538927933
+            ],
+            [
+              "sign",
+              79988514627308,
+              79988709059924,
+              79988739380359
+            ],
+            [
+              "sign",
+              79988905144448,
+              79988909289467,
+              79988939565905
+            ],
+            [
+              "sign",
+              79988963206831,
+              79989111077550,
+              79989141386906
+            ],
+            [
+              "sign",
+              79990274299958,
+              79990274301675,
+              79990305150364
+            ],
+            [
+              "sign",
+              79990563628358,
+              79990563629856,
+              79990594186493
+            ],
+            [
+              "sign",
+              79990571850648,
+              79990765160699,
+              79990795474486
+            ],
+            [
+              "sign",
+              79990957184246,
+              79990965368223,
+              79990995712324
+            ],
+            [
+              "sign",
+              79991014159753,
+              79991167091609,
+              79991197487488
+            ],
+            [
+              "sign",
+              79992277294207,
+              79992277295631,
+              79992307875280
+            ],
+            [
+              "sign",
+              79992583047026,
+              79992583048136,
+              79992614280126
+            ],
+            [
+              "sign",
+              79992592016657,
+              79992785161435,
+              79992815505450
+            ],
+            [
+              "sign",
+              79993009874245,
+              79993009876093,
+              79993040236019
+            ],
+            [
+              "sign",
+              79993068023123,
+              79993211933199,
+              79993242264371
+            ],
+            [
+              "sign",
+              79994275576181,
+              79994275577456,
+              79994306125082
+            ],
+            [
+              "sign",
+              79994496029752,
+              79994496030649,
+              79994526652029
+            ],
+            [
+              "sign",
+              79994503370814,
+              79994698096440,
+              79994728424761
+            ],
+            [
+              "sign",
+              79994930930425,
+              79994930931718,
+              79994961265067
+            ],
+            [
+              "sign",
+              79995000324300,
+              79995132161110,
+              79995162537917
+            ],
+            [
+              "sign",
+              79996277994671,
+              79996277996651,
+              79996310117376
+            ],
+            [
+              "sign",
+              79996515625960,
+              79996515627037,
+              79996546672632
+            ],
+            [
+              "sign",
+              79996522389334,
+              79996718107512,
+              79996748439517
+            ],
+            [
+              "sign",
+              79996937883401,
+              79996937884940,
+              79996968241840
+            ],
+            [
+              "sign",
+              79996997190665,
+              79997139108909,
+              79997169458510
+            ],
+            [
+              "sign",
+              79997232614334,
+              79997340320492,
+              79997370665507
+            ],
+            [
+              "sign",
+              79998276898077,
+              79998276899614,
+              79998308693452
+            ],
+            [
+              "sign",
+              79998608472463,
+              79998608473483,
+              79998639540474
+            ],
+            [
+              "sign",
+              79998615234381,
+              79998810134243,
+              79998840461268
+            ],
+            [
+              "sign",
+              79999042251820,
+              79999042253096,
+              79999072624145
+            ],
+            [
+              "sign",
+              79999099449792,
+              79999244500951,
+              79999274952651
+            ],
+            [
+              "sign",
+              80000285059628,
+              80000285061223,
+              80000317186345
+            ],
+            [
+              "sign",
+              80000573492454,
+              80000573493977,
+              80000604231022
+            ],
+            [
+              "sign",
+              80000581951717,
+              80000778138210,
+              80000808476750
+            ],
+            [
+              "sign",
+              80001033896155,
+              80001033897560,
+              80001064196505
+            ],
+            [
+              "sign",
+              80001091591595,
+              80001238096159,
+              80001268463737
+            ],
+            [
+              "sign",
+              80001327663227,
+              80001439397171,
+              80001470967267
+            ],
+            [
+              "sign",
+              80002274387296,
+              80002274388233,
+              80002305167813
+            ],
+            [
+              "sign",
+              80002588349270,
+              80002588350577,
+              80002619481271
+            ],
+            [
+              "sign",
+              80002599201374,
+              80002790410759,
+              80002820712623
+            ],
+            [
+              "sign",
+              80003062020709,
+              80003062021720,
+              80003092347163
+            ],
+            [
+              "sign",
+              80003127872698,
+              80003263685103,
+              80003293977407
+            ],
+            [
+              "sign",
+              80004276763160,
+              80004276764397,
+              80004307121202
+            ],
+            [
+              "sign",
+              80004588939824,
+              80004588941145,
+              80004620132486
+            ],
+            [
+              "sign",
+              80004595893657,
+              80004792121249,
+              80004822417834
+            ],
+            [
+              "sign",
+              80005024112860,
+              80005024114640,
+              80005054582674
+            ],
+            [
+              "sign",
+              80005084749815,
+              80005225663148,
+              80005256019504
+            ],
+            [
+              "sign",
+              80005317168224,
+              80005426895568,
+              80005457308234
+            ],
+            [
+              "sign",
+              80006279797227,
+              80006279798895,
+              80006310154498
+            ],
+            [
+              "sign",
+              80006627174529,
+              80006627175804,
+              80006657783921
+            ],
+            [
+              "sign",
+              80006636498754,
+              80006828111461,
+              80006860153025
+            ],
+            [
+              "sign",
+              80007159168860,
+              80007159170586,
+              80007190152628
+            ],
+            [
+              "sign",
+              80007222645946,
+              80007360239246,
+              80007390630993
+            ],
+            [
+              "sign",
+              80008277905476,
+              80008277906880,
+              80008308270162
+            ],
+            [
+              "sign",
+              80008602922260,
+              80008602923918,
+              80008633632137
+            ],
+            [
+              "sign",
+              80008609120611,
+              80008804130314,
+              80008834575079
+            ],
+            [
+              "sign",
+              80009093937571,
+              80009093938517,
+              80009124157735
+            ],
+            [
+              "sign",
+              80009173950814,
+              80009298498207,
+              80009328936472
+            ],
+            [
+              "sign",
+              80010277540670,
+              80010277542313,
+              80010307909861
+            ],
+            [
+              "sign",
+              80010570311995,
+              80010570313325,
+              80010600901361
+            ],
+            [
+              "sign",
+              80010578533780,
+              80010773495961,
+              80010803845464
+            ],
+            [
+              "sign",
+              80010997746732,
+              80010997748074,
+              80011028182504
+            ],
+            [
+              "sign",
+              80011056717754,
+              80011200635382,
+              80011230984789
+            ],
+            [
+              "sign",
+              80011292124947,
+              80011401824411,
+              80011432182378
+            ],
+            [
+              "sign",
+              80012274112803,
+              80012274114378,
+              80012304424762
+            ],
+            [
+              "sign",
+              80012539213229,
+              80012539214217,
+              80012570140139
+            ],
+            [
+              "sign",
+              80012548887865,
+              80012740245773,
+              80012770615554
+            ],
+            [
+              "sign",
+              80013015971736,
+              80013015973056,
+              80013046340178
+            ],
+            [
+              "sign",
+              80013073442016,
+              80013218147415,
+              80013248559959
+            ],
+            [
+              "sign",
+              80013307720040,
+              80013419143422,
+              80013449543783
+            ],
+            [
+              "sign",
+              80014276351704,
+              80014276353044,
+              80014306751800
+            ],
+            [
+              "sign",
+              80014555376259,
+              80014555377750,
+              80014586343677
+            ],
+            [
+              "sign",
+              80014564051131,
+              80014756511964,
+              80014786954642
+            ],
+            [
+              "sign",
+              80015033056933,
+              80015033058222,
+              80015063384577
+            ],
+            [
+              "sign",
+              80015089124060,
+              80015235016246,
+              80015265329254
+            ],
+            [
+              "sign",
+              80015322861768,
+              80015436583844,
+              80015468146161
+            ],
+            [
+              "sign",
+              80016275340976,
+              80016275342707,
+              80016305707290
+            ],
+            [
+              "sign",
+              80016577240075,
+              80016577241635,
+              80016608384507
+            ],
+            [
+              "sign",
+              80016586031413,
+              80016780131353,
+              80016811314202
+            ],
+            [
+              "sign",
+              80017061139091,
+              80017061140396,
+              80017091515387
+            ],
+            [
+              "sign",
+              80017125458066,
+              80017262322201,
+              80017292708447
+            ],
+            [
+              "sign",
+              80018275451257,
+              80018275452592,
+              80018306127536
+            ],
+            [
+              "sign",
+              80018578808689,
+              80018578810294,
+              80018610040795
+            ],
+            [
+              "sign",
+              80018587736062,
+              80018781122152,
+              80018811413553
+            ],
+            [
+              "sign",
+              80019048661142,
+              80019048662559,
+              80019078986490
+            ],
+            [
+              "sign",
+              80019109666093,
+              80019249151912,
+              80019279481026
+            ],
+            [
+              "sign",
+              80020275513724,
+              80020275514737,
+              80020306132959
+            ],
+            [
+              "sign",
+              80020569756094,
+              80020569757116,
+              80020600329443
+            ],
+            [
+              "sign",
+              80020576054349,
+              80020773130396,
+              80020803420192
+            ],
+            [
+              "sign",
+              80021015231230,
+              80021015232771,
+              80021045595291
+            ],
+            [
+              "sign",
+              80021086328312,
+              80021216183190,
+              80021246534526
+            ],
+            [
+              "sign",
+              80022277198949,
+              80022277200352,
+              80022308141873
+            ],
+            [
+              "sign",
+              80022544962459,
+              80022544963784,
+              80022575521390
+            ],
+            [
+              "sign",
+              80022553235209,
+              80022748138909,
+              80022778467283
+            ],
+            [
+              "sign",
+              80022975130288,
+              80022975131506,
+              80023005521065
+            ],
+            [
+              "sign",
+              80023032749117,
+              80023177662209,
+              80023208018600
+            ],
+            [
+              "sign",
+              80023267760802,
+              80023380159332,
+              80023410507319
+            ],
+            [
+              "sign",
+              80024274089964,
+              80024274091064,
+              80024305133629
+            ],
+            [
+              "sign",
+              80024587670436,
+              80024587672025,
+              80024618326408
+            ],
+            [
+              "sign",
+              80024595987835,
+              80024791135642,
+              80024821451866
+            ],
+            [
+              "sign",
+              80025024944181,
+              80025024946101,
+              80025055283497
+            ],
+            [
+              "sign",
+              80025090244971,
+              80025226175336,
+              80025256499484
+            ],
+            [
+              "sign",
+              80025317052853,
+              80025427816480,
+              80025458204567
+            ],
+            [
+              "sign",
+              80026276270494,
+              80026276271710,
+              80026306618410
+            ],
+            [
+              "sign",
+              80026540735360,
+              80026540740639,
+              80026571073880
+            ],
+            [
+              "sign",
+              80026547757342,
+              80026743107650,
+              80026773408108
+            ],
+            [
+              "sign",
+              80026933527109,
+              80026943762333,
+              80026974117172
+            ],
+            [
+              "sign",
+              80026991295654,
+              80027145187686,
+              80027175516351
+            ],
+            [
+              "sign",
+              80027233475046,
+              80027346203782,
+              80027376558493
+            ],
+            [
+              "sign",
+              80028275250912,
+              80028275252012,
+              80028306152328
+            ],
+            [
+              "sign",
+              80028558731857,
+              80028558732977,
+              80028589950621
+            ],
+            [
+              "sign",
+              80028567636564,
+              80028760106122,
+              80028791142711
+            ],
+            [
+              "sign",
+              80028959587517,
+              80028961608954,
+              80028991973970
+            ],
+            [
+              "sign",
+              80029019180493,
+              80029164113940,
+              80029194471900
+            ],
+            [
+              "sign",
+              80029253887982,
+              80029365680075,
+              80029396091004
+            ],
+            [
+              "sign",
+              80030277845285,
+              80030277846769,
+              80030309150122
+            ],
+            [
+              "sign",
+              80030597239991,
+              80030597241725,
+              80030628562567
+            ],
+            [
+              "sign",
+              80030606102788,
+              80030798123886,
+              80030830116882
+            ],
+            [
+              "sign",
+              80031037217337,
+              80031037218435,
+              80031067547597
+            ],
+            [
+              "sign",
+              80031100350434,
+              80031238262904,
+              80031268626632
+            ],
+            [
+              "sign",
+              80032275280475,
+              80032275281652,
+              80032306154747
+            ],
+            [
+              "sign",
+              80032568404116,
+              80032568405371,
+              80032598738752
+            ],
+            [
+              "sign",
+              80032576477439,
+              80032769172384,
+              80032801253855
+            ],
+            [
+              "sign",
+              80033099816516,
+              80033099817636,
+              80033130315480
+            ],
+            [
+              "sign",
+              80033162712260,
+              80033301653511,
+              80033332084607
+            ],
+            [
+              "sign",
+              80033390080116,
+              80033502796479,
+              80033533140833
+            ],
+            [
+              "sign",
+              80034275389620,
+              80034275390777,
+              80034306092212
+            ],
+            [
+              "sign",
+              80034514760808,
+              80034514761868,
+              80034545801154
+            ],
+            [
+              "sign",
+              80034521517276,
+              80034717107761,
+              80034747405245
+            ],
+            [
+              "sign",
+              80034979948397,
+              80034979949601,
+              80035010283777
+            ],
+            [
+              "sign",
+              80035041963322,
+              80035180851056,
+              80035211192840
+            ],
+            [
+              "sign",
+              80036277218174,
+              80036277220055,
+              80036309121206
+            ],
+            [
+              "sign",
+              80036540415409,
+              80036540416424,
+              80036571979311
+            ],
+            [
+              "sign",
+              80036547201717,
+              80036742094238,
+              80036773147714
+            ],
+            [
+              "sign",
+              80036960953718,
+              80036960954905,
+              80036991327134
+            ],
+            [
+              "sign",
+              80037019181990,
+              80037163103466,
+              80037193433563
+            ],
+            [
+              "sign",
+              80037251583690,
+              80037364304407,
+              80037394628890
+            ],
+            [
+              "sign",
+              80038276390074,
+              80038276391111,
+              80038307149673
+            ],
+            [
+              "sign",
+              80038619621788,
+              80038619623500,
+              80038650678107
+            ],
+            [
+              "sign",
+              80038629378297,
+              80038821411585,
+              80038852099009
+            ],
+            [
+              "sign",
+              80039092853225,
+              80039092854888,
+              80039123184701
+            ],
+            [
+              "sign",
+              80039152607419,
+              80039294152156,
+              80039324513979
+            ],
+            [
+              "sign",
+              80039382893280,
+              80039495595952,
+              80039525934124
+            ],
+            [
+              "sign",
+              80040275793754,
+              80040275794788,
+              80040306134522
+            ],
+            [
+              "sign",
+              80040575751143,
+              80040575752248,
+              80040606856923
+            ],
+            [
+              "sign",
+              80040586534859,
+              80040777746800,
+              80040808118551
+            ],
+            [
+              "sign",
+              80041102245222,
+              80041102246313,
+              80041132592681
+            ],
+            [
+              "sign",
+              80041159914134,
+              80041304786218,
+              80041335166769
+            ],
+            [
+              "sign",
+              80041394218192,
+              80041505981319,
+              80041536417218
+            ],
+            [
+              "sign",
+              80042275378099,
+              80042275379212,
+              80042305690032
+            ],
+            [
+              "sign",
+              80042516707306,
+              80042516708184,
+              80042547155468
+            ],
+            [
+              "sign",
+              80042522930023,
+              80042718137044,
+              80042748473743
+            ],
+            [
+              "sign",
+              80042890816506,
+              80042919211422,
+              80042950295453
+            ],
+            [
+              "sign",
+              80042949155260,
+              80043120357787,
+              80043150734429
+            ],
+            [
+              "sign",
+              80043210155319,
+              80043321925232,
+              80043352291944
+            ]
+          ],
+          "rate": 5.0,
+          "signed_responses": 109
+        }
+      ]
+    }
+  },
+  "clocks": {
+    "harness": "monotonic@d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "realtime": "realtime@kelun"
+  },
+  "components": {
+    "holder": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+    },
+    "issuer": {
+      "imbu": "8512c1da5c6d9f09e7bb52f3068f4c7689666f0d"
+    },
+    "state_distribution": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf",
+      "witness": "452215130900e40aea126b90bdc597569429919f"
+    },
+    "verifier": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+    },
+    "witness_pool": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+    }
+  },
+  "harness_commit": "a4fc36409002167f470e623798c7e6636a6aa190",
+  "host": {
+    "boot_id": "d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "cpu_count": 8,
+    "cpu_model": "Intel Core Processor (Haswell, no TSX)",
+    "hostname": "kelun",
+    "kernel": "7.0.0-38-generic",
+    "machine": "x86_64",
+    "memory_bytes": 24598093824,
+    "python": "3.14.6"
+  },
+  "knobs": {
+    "holder": {
+      "toad": 2
+    },
+    "issuer": {
+      "clients": 1,
+      "homes": 1,
+      "operation_timeout_s": 60.0,
+      "poll_ms": 50.0,
+      "signer": "external",
+      "signer_latency_ms": 30.0,
+      "signer_rate": 5.0,
+      "toad": 2
+    },
+    "state_distribution": {
+      "delivery_timeout_s": 1.0,
+      "resync_s": 6.0,
+      "window_s": 2.0
+    },
+    "verifier": {
+      "deadline_s": 60.0,
+      "freshness_s": 30.0,
+      "retry_ms": 250.0,
+      "toad": 2
+    },
+    "witness_pool": {
+      "count": 3
+    }
+  },
+  "measurement_cost": {
+    "harness_cpu_s": 58.18017300000001,
+    "links": {
+      "holder.api": {
+        "exchanges": 0,
+        "p50_ns": 240401,
+        "p99_ns": 371648,
+        "samples": 200
+      },
+      "issuer.control.0": {
+        "exchanges": 109,
+        "p50_ns": 182605,
+        "p99_ns": 382476,
+        "samples": 200
+      },
+      "state_distribution.observer": {
+        "exchanges": 0,
+        "p50_ns": 178098,
+        "p99_ns": 360137,
+        "samples": 200
+      },
+      "state_distribution.registrar": {
+        "exchanges": 32,
+        "p50_ns": 216349,
+        "p99_ns": 366192,
+        "samples": 200
+      },
+      "verifier.api": {
+        "exchanges": 0,
+        "p50_ns": 177375,
+        "p99_ns": 331027,
+        "samples": 200
+      },
+      "witness_pool.w0": {
+        "exchanges": 109,
+        "p50_ns": 239918,
+        "p99_ns": 366097,
+        "samples": 200
+      },
+      "witness_pool.w1": {
+        "exchanges": 110,
+        "p50_ns": 233500,
+        "p99_ns": 324902,
+        "samples": 200
+      },
+      "witness_pool.w2": {
+        "exchanges": 76,
+        "p50_ns": 238175,
+        "p99_ns": 328684,
+        "samples": 200
+      }
+    }
+  },
+  "provenance_schema": 1,
+  "run": {
+    "duration_s": 60.0,
+    "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+    "lag_limit_ms": 25.0,
+    "measure": [
+      "requested",
+      "witnessed"
+    ],
+    "rate": 0.5,
+    "repetition": 2,
+    "scenario": "hsm-30ms-cap5",
+    "stages": [
+      "issue"
+    ],
+    "warmup_s": 10.0
+  },
+  "scenario": "# hsm-sweep of today's imbu (bench-baseline-2). Needs `uv sync --extra stacks`.\n# The grid is recorded in this.i 02fe3uk5 and 0v8kmser, and the signer in 2p26rn9h.\nscenario_schema = 1\nname = \"hsm-30ms-cap5\"\ndescription = \"Issuance only through an external signer at 30 ms per signature, at most 5 starts a second, stepped to saturation.\"\nstages = [\"issue\"]\n\n[load]\nrates = [0.25, 0.5, 0.75, 1.0, 1.5]\nduration_s = 60.0\nwarmup_s = 10.0\ndrain_s = 120.0\nrepetitions = 3\nmeasure = [\"requested\", \"witnessed\"]\n\n[statistics]\nlag_limit_ms = 25.0\n\n[roles.witness_pool]\nadapter = \"heti.witness_pool\"\n[roles.witness_pool.knobs]\nknob_schema = 1\ncount = 3\n\n[roles.state_distribution]\nadapter = \"registrar.state_distribution\"\n[roles.state_distribution.knobs]\nknob_schema = 1\nwindow_s = 2.0\ndelivery_timeout_s = 1.0\nresync_s = 6.0\n\n[roles.issuer]\nadapter = \"imbu.issuer\"\n[roles.issuer.knobs]\nknob_schema = 3\ntoad = 2\npoll_ms = 50.0\noperation_timeout_s = 60.0\nhomes = 1\nclients = 1\nsigner = \"external\"\nsigner_latency_ms = 30.0\nsigner_rate = 5.0\n\n[roles.holder]\nadapter = \"heti.holder\"\n[roles.holder.knobs]\nknob_schema = 1\ntoad = 2\n\n[roles.verifier]\nadapter = \"heti.verifier\"\n[roles.verifier.knobs]\nknob_schema = 1\ntoad = 2\nfreshness_s = 30.0\nretry_ms = 250.0\ndeadline_s = 60.0\n",
+  "scenario_sha256": "01a256f1e5a64d8e03562b77401eebd70c319a4c494a39907e2cd76182a2da62"
+}

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import math
+import statistics
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from fractions import Fraction
@@ -456,6 +457,128 @@ def _preseed(run: _Run, declared: dict | None) -> tuple[dict | None, str | None]
     return preseed, None
 
 
+PROFILE_TOLERANCE = 0.05
+"""The test plan's HSM self-check: measured latency and rate within 5% of the profile."""
+UNTHROTTLED_MS = 1.0
+"""With no latency configured, a signer's median operation must take under this."""
+
+
+def _signer_census(entry: dict) -> tuple[dict, str | None]:
+    """One signer's census and profile check (this.i 2p26rn9h). Each operation is
+    ``[kind, requested_ns, started_ns, finished_ns]`` on the harness's clock: asked for, given
+    its start by the device's cap, and done after its latency."""
+    ops = entry["operations"]
+    counts: dict[str, int] = {}
+    for kind, *_ in ops:
+        counts[kind] = counts.get(kind, 0) + 1
+    signatures = counts.get("sign", 0)
+    issued = entry["issuances"]
+
+    configured = entry["latency_ms"]
+    # A profile must be one a device could have: finite, a latency not negative, a rate above
+    # zero, and counts that are whole and not negative.
+    finite = (all(v is None or (type(v) in (int, float) and math.isfinite(v))
+                  for v in (configured, entry["rate"]))
+              and (configured is None or configured >= 0)
+              and (entry["rate"] is None or entry["rate"] > 0)
+              and all(type(n) is int and n >= 0
+                      for n in (entry["signed_responses"], entry["issuances"]))
+              and all(type(t) is int for op in ops for t in op[1:]))
+    # Every inception is signed once as well, which is the identifier's, not any credential's.
+    other = (signatures - entry["signed_responses"] - counts.get("incept", 0)) if finite else 0
+    median = (round(statistics.median(f - s for _, _, s, f in ops) / 1e6, 3) if ops else None)
+    if median is None or not finite:
+        latency_ok = False
+    elif configured is None:
+        latency_ok = median < UNTHROTTLED_MS
+    else:
+        latency_ok = abs(median - configured) <= PROFILE_TOLERANCE * configured
+    rate = entry["rate"]
+    rate_out: dict[str, Any] = {"configured_per_s": rate, "exercised": False, "ok": True}
+    # An operation was held by the cap when it asked before the device's next start was free.
+    starts = sorted((s, r) for _, r, s, _ in ops)
+    gap = 0 if rate is None or not finite else 1e9 / rate
+    spacings = [s - before for (before, _), (s, r) in zip(starts, starts[1:])
+                if r < before + gap]
+    if rate is not None and spacings and finite:
+        spacing = round(statistics.median(spacings) / 1e6, 3)
+        want = 1000.0 / rate
+        rate_out = {"configured_per_s": rate, "exercised": True, "median_spacing_ms": spacing,
+                    "ok": abs(spacing - want) <= PROFILE_TOLERANCE * want}
+    out = {"counts": counts, "signed_responses": entry["signed_responses"],
+           "other_signatures": other,
+           "per_issuance": other / issued if finite and issued else None,
+           "latency": {"configured_ms": configured, "median_ms": median, "ok": latency_ok},
+           "rate": rate_out}
+    accounted = other >= 0 and finite
+    out["ok"] = latency_ok and rate_out["ok"] and accounted
+    problems = []
+    if not finite:
+        problems.append(f"latency {configured!r} ms, rate {rate!r} and counts "
+                        f"{entry['signed_responses']!r} and {entry['issuances']!r} are not a "
+                        f"finite profile a device could have")
+    if other < 0:
+        problems.append(f"the record holds {entry['signed_responses']} signed answers but only "
+                        f"{signatures} signatures, so it cannot account for them")
+    if not latency_ok:
+        against = ("none configured, which allows under 1 ms" if configured is None
+                   else f"{configured} ms configured, more than 5% off")
+        seen = "not seen" if median is None else f"{median} ms"
+        problems.append(f"latency median {seen} against {against}")
+    if not rate_out["ok"]:
+        problems.append(f"rate spacing median {rate_out['median_spacing_ms']} ms against "
+                        f"{1000.0 / rate} ms, more than 5% off")
+    return out, "; ".join(problems) or None
+
+
+def _census(record: dict) -> tuple[Any, str | None]:
+    """The signer census per role, from what each adapter reported after the drain; the run is
+    refused when any signer missed its profile (test plan, HSM sensitivity)."""
+    if "census" not in record:
+        return NOT_MEASURED, None
+    out: dict[str, Any] = {"ok": True}
+    reason = None
+    for role, section in record["census"].items():
+        signers = []
+        for index, entry in enumerate(section["signers"]):
+            checked, problem = _signer_census(entry)
+            signers.append(checked)
+            if problem and reason is None:
+                reason = (f"The signer's profile check failed for {role} signer {index}: "
+                          f"{problem}.")
+        # Whatever else the adapter counted, such as a registry pool, is carried as it said.
+        out[role] = {**{k: v for k, v in section.items() if k != "signers"},
+                     "signers": signers}
+        out["ok"] = out["ok"] and all(s["ok"] for s in signers)
+    return out, reason
+
+
+def _census_md(census: Any) -> list[str]:
+    if census == NOT_MEASURED:
+        return ["The signer census is not measured: no adapter in this run signs through an "
+                "external signer it can count.", ""]
+    lines = ["| role | signer | operations | signed responses | other signatures | per "
+             "issuance | latency median | rate |", "|---|---|---|---|---|---|---|---|"]
+    for role, section in census.items():
+        if role == "ok":
+            continue
+        for index, s in enumerate(section["signers"]):
+            counts = ", ".join(f"{k} {v}" for k, v in sorted(s["counts"].items()))
+            lat = s["latency"]
+            configured = "none" if lat["configured_ms"] is None else lat["configured_ms"]
+            latency = (f"{lat['median_ms']} ms ({configured} configured) "
+                       f"{'ok' if lat['ok'] else 'FAILED'}")
+            rate = s["rate"]
+            rate_text = ("not exercised" if not rate["exercised"] else
+                         f"{rate['median_spacing_ms']} ms spacing "
+                         f"({1000.0 / rate['configured_per_s']} configured) "
+                         f"{'ok' if rate['ok'] else 'FAILED'}")
+            lines.append(f"| {role} | {index} | {counts} | {s['signed_responses']} | "
+                         f"{s['other_signatures']} | {s['per_issuance']} | {latency} | "
+                         f"{rate_text} |")
+    return lines + [""]
+
+
 DRIFT_AXES = {"store_credentials": None, "elapsed": 3600.0, "store_bytes": float(1 << 20)}
 """Each axis a soak's drift is fitted on, with the x-unit its slope is quoted per: the soak's
 per_credentials for store size, an hour for elapsed time, a MiB for bytes on disk."""
@@ -574,8 +697,9 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
                           "credentials": {c: outcomes[c].to_dict() for c in sorted(outcomes)}}
     failures = _failures(events)
     preseed, preseed_failed = _preseed(run, run.run.get("preseed"))
+    census, census_failed = _census(record)
     refused = driver["reason"] if not driver["ok"] else (failures["fault_failed"]
-                                                         or preseed_failed)
+                                                         or preseed_failed or census_failed)
     out = {
         "report_schema": REPORT_SCHEMA, "generator_commit": generator_commit,
         "timeline_schema": header.timeline_schema,
@@ -590,7 +714,7 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         "throughput": _throughput(run), "observability": _observability(run, windows),
         "faults": _faults(run, windows), "reconciliation": reconciliation,
         "measurement_cost": record.get("measurement_cost", NOT_MEASURED),
-        "census": NOT_MEASURED, "warnings": _warnings(run, driver, intervals),
+        "census": census, "warnings": _warnings(run, driver, intervals),
     }
     if "soak" in run.run:
         out["drift"] = _drift(run, preseed)
@@ -598,6 +722,8 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         out["preseed"] = preseed
     if preseed_failed:
         out["warnings"].append(f"The run is refused. {preseed_failed}")
+    if census_failed:
+        out["warnings"].append(f"The run is refused. {census_failed}")
     if failures["fault_failed"]:
         out["warnings"].append(f"The run is refused. {failures['fault_failed']}")
     if failures["count"]:
@@ -768,9 +894,7 @@ def render_markdown(report: dict) -> str:
                       for key, v in calibration["budget"].items()]
         else:
             lines.append("This run carries no calibration.")
-    lines += ["", "## Signer census", "",
-              "The signer census is not measured until the external-signer interface exists "
-              "(plan item heti-signer).", "", "## Warnings", ""]
+    lines += ["", "## Signer census", ""] + _census_md(report["census"]) + ["## Warnings", ""]
     lines += [f"- {w}" for w in report["warnings"]] or ["No warnings."]
     return "\n".join(lines) + "\n"
 

@@ -664,3 +664,56 @@ async def test_a_store_size_that_cannot_be_read_is_recorded_and_sampling_goes_on
     failed = [e.attrs for e in events if e.name == "footprint_failed"]
     assert failed == [{"error": "OSError: the store moved"}]
     assert len([e for e in events if e.name == "footprint"]) >= 2
+
+
+async def test_a_census_an_adapter_reports_after_the_drain_goes_into_provenance(
+        tmp_path, fakes, monkeypatch):
+    from fake_adapters import FakeIssuer
+
+    async def census(self):
+        n = self.ctx.shared.get("issued", 0)
+        return {"signers": [{"latency_ms": None, "rate": None, "signed_responses": 0,
+                             "issuances": n, "operations": [["sign", 0, 0, 1000]] * n}]}
+
+    monkeypatch.setattr(FakeIssuer, "census", census, raising=False)
+    report = await runner.run_once(load(tmp_path, fake_scenario(0.0)), tmp_path / "out",
+                                   rate=20.0, repetition=1, harness_commit="test")
+    record = json.loads((tmp_path / "out" / "rate-20" / "rep-1" / "provenance.json").read_text())
+    assert record["census"]["issuer"]["signers"][0]["issuances"] == 6
+    assert report["census"]["issuer"]["signers"][0]["counts"] == {"sign": 6}
+
+
+async def test_a_run_whose_adapters_count_no_signer_has_no_census(tmp_path, fakes):
+    await runner.run_once(load(tmp_path, fake_scenario(0.0)), tmp_path / "out", rate=20.0,
+                          repetition=1, harness_commit="test")
+    record = json.loads((tmp_path / "out" / "rate-20" / "rep-1" / "provenance.json").read_text())
+    assert "census" not in record
+
+
+async def test_a_preseed_issuance_that_names_no_credential_is_counted_as_failed(
+        tmp_path, fakes, monkeypatch):
+    from fake_adapters import FakeIssuer
+    from keri_bench.adapters.base import Issued
+
+    async def hollow(self, credential, holder):
+        return Issued(credential, None, None, delivered_by_stack=True)
+
+    monkeypatch.setattr(FakeIssuer, "issue", hollow)
+    _, events = await soak_events(tmp_path, soak_scenario(preseed=2))
+    ended, = [e.attrs for e in events if e.name == "preseed_ended"]
+    assert ended["failed"] == 2 and "named no new credential" in ended["first_error"]
+
+
+async def test_a_preseed_issuance_that_repeats_a_credential_or_returns_nothing_failed(
+        tmp_path, fakes, monkeypatch):
+    from fake_adapters import FakeIssuer
+    from keri_bench.adapters.base import Issued
+    answers = iter([Issued("x", "Esame", None, True), Issued("x", "Esame", None, True), None])
+
+    async def replay(self, credential, holder):
+        return next(answers)
+
+    monkeypatch.setattr(FakeIssuer, "issue", replay)
+    _, events = await soak_events(tmp_path, soak_scenario(preseed=3))
+    ended, = [e.attrs for e in events if e.name == "preseed_ended"]
+    assert ended["failed"] == 2
