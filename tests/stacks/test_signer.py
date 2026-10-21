@@ -78,3 +78,27 @@ async def test_the_stats_route_answers_the_signer_s_record_and_nothing_else():
     status, body = await signer.handler(counted)("GET", "/signer", b"")
     assert status == 200 and json.loads(json.dumps(body))["operations"][0][0] == "incept"
     assert (await signer.handler(counted)("POST", "/signer", b""))[0] == 404
+
+
+async def test_the_device_keeps_time_even_while_the_caller_s_loop_is_blocked():
+    """this.i 0v8kmser: a turn runs on the device's own loop, so a caller that blocks its loop
+    for 100 ms delays noticing the answer, not the device's 20 ms."""
+    import threading
+    import time
+
+    device = signer.Device()
+    try:
+        counted = signer.counting(SoftwareSigner(), latency_ms=20.0, rate=None, device=device)
+        await counted.incept()
+        task = asyncio.ensure_future(counted.sign(data=b"x"))
+        await asyncio.sleep(0)  # the turn is handed to the device
+        time.sleep(0.1)  # the caller's loop is busy, as imbu's is during an issuance
+        await task
+        kind, requested, started, finished = counted.profile.operations[-1]
+        assert kind == "sign"
+        assert 19e6 <= finished - started <= 25e6
+        assert counted.profile.threads == {device.thread.name}
+        assert device.thread.name != threading.current_thread().name
+    finally:
+        device.close()
+    assert not device.thread.is_alive()

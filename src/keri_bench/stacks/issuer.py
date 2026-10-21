@@ -103,9 +103,11 @@ def external_signer(args, *, fresh: bool):
         return None
     from heti.anchored.produce import SoftwareSigner
 
-    from .signer import counting
+    from .signer import Device, counting
     inner = SoftwareSigner(salt=os.environ["BENCH_SIGNER_SALT"], index=None if fresh else 0)
-    return counting(inner, latency_ms=args.signer_latency_ms, rate=args.signer_rate)
+    # The device's schedule runs on a loop of its own, for the process's life (this.i 0v8kmser).
+    return counting(inner, latency_ms=args.signer_latency_ms, rate=args.signer_rate,
+                    device=Device())
 
 
 async def serve(args, passcode: str, issuer: str, oobis, signer=None,

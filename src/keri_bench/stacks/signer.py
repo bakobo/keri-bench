@@ -8,25 +8,56 @@ read, and it notes for every operation when it was asked for, when it started an
 latency ended, on the host's monotonic clock in nanoseconds, which is the harness's clock domain
 (this.i 98rxw488). ``CountingSigner`` names each operation's kind. The issuer process serves the
 record at ``GET /signer`` on a loopback port, and the adapter reads it once the drain ends.
+
+Given a ``Device``, the profile keeps its whole schedule, start claims and latency, on that
+device's own event loop in a daemon thread, which does nothing else and so wakes on time; the
+caller awaits the answer. imbu's own loop then decides only when imbu notices the answer, which
+is imbu's time, not the device's (this.i 0v8kmser).
 """
 
 from __future__ import annotations
 
 import asyncio
+import threading
 import time
 
 from heti.anchored.produce import HsmProfile, ThrottledSigner
 
 
+class Device:
+    """An event loop in a daemon thread that does nothing but keep an HSM's schedule."""
+
+    def __init__(self) -> None:
+        self.loop = asyncio.new_event_loop()
+        self.thread = threading.Thread(target=self.loop.run_forever, name="hsm-device",
+                                       daemon=True)
+        self.thread.start()
+
+    async def run(self, coroutine):
+        return await asyncio.wrap_future(asyncio.run_coroutine_threadsafe(coroutine, self.loop))
+
+    def close(self) -> None:
+        self.loop.call_soon_threadsafe(self.loop.stop)
+        self.thread.join(5)
+
+
 class RecordingProfile(HsmProfile):
-    def __init__(self, *, ns=time.monotonic_ns, **device) -> None:
-        super().__init__(**device)
+    def __init__(self, *, ns=time.monotonic_ns, device: Device | None = None, **hsm) -> None:
+        super().__init__(**hsm)
         self._ns = ns
+        self._device = device
         self.kind = "sign"
         self.operations: list[list] = []
+        self.threads: set[str] = set()
 
     async def wait_turn(self) -> None:
         kind, self.kind = self.kind, "sign"
+        if self._device is None:
+            return await self._turn(kind)
+        return await self._device.run(self._turn(kind))
+
+    async def _turn(self, kind: str) -> None:
+        self.threads.add(threading.current_thread().name)
         requested = self._ns()
         while (now := self._clock()) < self._free:
             await self._sleep(self._free - now)
@@ -60,9 +91,9 @@ class CountingSigner(ThrottledSigner):
 
 
 def counting(inner, *, latency_ms: float | None, rate: float | None, clock=time.monotonic,
-             sleep=asyncio.sleep) -> CountingSigner:
+             sleep=asyncio.sleep, device: Device | None = None) -> CountingSigner:
     profile = RecordingProfile(latency=(latency_ms or 0.0) / 1e3, rate=rate, clock=clock,
-                               sleep=sleep)
+                               sleep=sleep, device=device)
     return CountingSigner(inner, profile=profile, latency_ms=latency_ms, rate=rate)
 
 

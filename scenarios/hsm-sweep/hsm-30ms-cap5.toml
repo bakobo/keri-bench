@@ -1,5 +1,5 @@
 # hsm-sweep of today's imbu (bench-baseline-2). Needs `uv sync --extra stacks`.
-# The grid is recorded in this.i 02fe3uk5 and the signer in 2p26rn9h.
+# The grid is recorded in this.i 02fe3uk5 and 0v8kmser, and the signer in 2p26rn9h.
 scenario_schema = 1
 name = "hsm-30ms-cap5"
 description = "Issuance only through an external signer at 30 ms per signature, at most 5 starts a second, stepped to saturation."
