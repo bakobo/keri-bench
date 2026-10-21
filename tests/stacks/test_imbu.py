@@ -312,6 +312,8 @@ async def test_a_lockbox_signer_has_no_census_and_an_external_one_reads_each_hom
     {"signer": "hardware"},
     {"signer": "external", "signer_latency_ms": -1.0},
     {"signer": "external", "signer_rate": 0.0},
+    {"signer": "external", "signer_rate": float("inf")},
+    {"signer": "external", "signer_latency_ms": float("inf")},
 ])
 async def test_a_signer_the_adapter_cannot_build_is_refused_before_anything_starts(knobs):
     ctx = AdapterContext(imbu.ImbuIssuer.declaration, run_dir=None, knobs={**KNOBS, **knobs},

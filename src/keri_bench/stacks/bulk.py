@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import base64
 import json
+import secrets
 from collections.abc import Mapping
 from typing import Any
 
@@ -30,12 +31,28 @@ from ..procs import free_port
 from ..vocabulary import Role
 from . import sedi
 from .adapters import IMBU, PYTHON, STARTUP, passcode
-from .imbu import (E_DEPLOYMENT, E_REFUSED, ISSUE_MILESTONES, VERSION, WALL, Client, Home,
+from .imbu import (E_DEPLOYMENT, E_REFUSED, E_SHAPE, ISSUE_MILESTONES, VERSION, WALL, Client, Home,
                    ImbuIssuer, operation_id, stamp)
 
 E_UNSUPPORTED = "e.feature.unsupported.imbu.bulk.revoke.f"
 POOL_BATCH = 1000
 """imbu provisions at most this many registries per registry-pool request."""
+
+
+def copies_issued(op: dict, *, copies: int) -> str:
+    """The first copy's Core SAID, once the ceremony's result names a Core and a Residence SAID
+    for every copy asked for; stamps alone are not evidence the credentials exist."""
+    result = op.get("result")
+    made = result.get("copies") if isinstance(result, dict) else None
+    if not isinstance(made, list) or len(made) != copies or not all(
+            isinstance(pair, dict) and all(isinstance(pair.get(kind), dict)
+                                           and isinstance(pair[kind].get("said"), str)
+                                           and pair[kind]["said"]
+                                           for kind in ("core", "residence"))
+            for pair in made):
+        raise BenchError(E_SHAPE, f"imbu's finished ceremony does not name a Core and a "
+                         f"Residence for each of its {copies} copies: {result!r}"[:500])
+    return made[0]["core"]["said"]
 
 
 class ImbuBulkIssuer(ImbuIssuer):
@@ -66,6 +83,7 @@ class ImbuBulkIssuer(ImbuIssuer):
         super().__init__(ctx)
         self.citizens = HttpClient()
         self.citizens_url = ""
+        self.token = ""
         self.pool: list[dict] = []
         """Each registry-pool provisioning, with imbu's own accepted and finished stamps."""
 
@@ -81,9 +99,11 @@ class ImbuBulkIssuer(ImbuIssuer):
                 str(free_port()), "--store", str(self.ctx.run_dir / "citizens")]
         for oobi in witnesses:
             args += ["--witness", oobi]
+        self.token = secrets.token_urlsafe(24)
         process = await self.ctx.procs.start(
             "citizens", (PYTHON, "-m", "keri_bench.stacks.citizens"), tuple(args),
-            env={"BENCH_PASSCODE": passcode()}, timeout=STARTUP)
+            env={"BENCH_PASSCODE": passcode(), "BENCH_CITIZENS_TOKEN": self.token},
+            timeout=STARTUP)
         self.citizens_url = process.announced["url"]
         self.cast = (await self.citizens.get(f"{self.citizens_url}/identity")).json()
         state = self.ctx.peers[Role.STATE_DISTRIBUTION]
@@ -118,7 +138,8 @@ class ImbuBulkIssuer(ImbuIssuer):
             return await super()._sign(client, method, url, body)
         answer = await self.citizens.post(
             f"{self.citizens_url}/sign/{client.citizen}",
-            body=json.dumps({"method": method, "url": url, "body": None if body is None
+            body=json.dumps({"token": self.token, "method": method, "url": url,
+                             "body": None if body is None
                              else base64.b64encode(body).decode()}).encode())
         return answer.json()["headers"]
 
@@ -154,7 +175,8 @@ class ImbuBulkIssuer(ImbuIssuer):
         home, client = self._deal(credential)
         where = self._where(home, client)
         copies = self.ctx.knobs["copies"]
-        made = (await self.citizens.post(f"{self.citizens_url}/ceremony/{client.citizen}")).json()
+        made = (await self.citizens.post(f"{self.citizens_url}/ceremony/{client.citizen}",
+                                         body=json.dumps({"token": self.token}).encode())).json()
         document = sedi.ceremony(copies=[fiki.Key.generate().aid for _ in range(copies)],
                                  agent=home.agent, iar=base64.b64decode(made["iar"]))
         answer = await self._call(home, client, "POST", "/v1/imbu/bulk-issuances", document,
@@ -165,9 +187,10 @@ class ImbuBulkIssuer(ImbuIssuer):
         home.issuances += 1
         self.ctx.emit("accepted", credentials=[credential], attrs=where)
         op = await self._finish(home, client, operation_id(answer))
+        said = copies_issued(op, copies=copies)
         self._report(op, credential, {name: name for name in ISSUE_MILESTONES},
                      {**where, "credentials": 2 * (copies + 1)})
-        return Issued(credential, None, None, delivered_by_stack=False)
+        return Issued(credential, said, None, delivered_by_stack=False)
 
     async def revoke(self, credential: str) -> None:
         raise BenchError(E_UNSUPPORTED, "The bulk issuer does not revoke: bulk-steady measures "

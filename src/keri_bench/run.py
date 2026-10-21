@@ -355,9 +355,14 @@ class Run:
         async def one(index: int) -> None:
             async with gate:
                 try:
-                    await issuer.issue(f"p{index:07d}", self.holder_identity)
+                    issued = await issuer.issue(f"p{index:07d}", self.holder_identity)
                 except Exception as failed:
                     failures.append(f"{type(failed).__name__}: {failed}"[:500])
+                    return
+                # The store grew only if the stack says what it made (hostile review, finding 3).
+                if not issued.said:
+                    failures.append(f"The issuer named no credential for p{index:07d}, so the "
+                                    f"store cannot be counted as holding it.")
 
         await asyncio.gather(*(one(i) for i in range(rule.credentials)))
         attrs = {"requested": rule.credentials, "failed": len(failures),

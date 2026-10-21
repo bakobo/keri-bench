@@ -476,8 +476,9 @@ def _signer_census(entry: dict) -> tuple[dict, str | None]:
     other = signatures - entry["signed_responses"] - counts.get("incept", 0)
     issued = entry["issuances"]
     configured = entry["latency_ms"]
+    finite = all(v is None or math.isfinite(v) for v in (configured, entry["rate"]))
     median = (round(statistics.median(f - s for _, _, s, f in ops) / 1e6, 3) if ops else None)
-    if median is None:
+    if median is None or not finite:
         latency_ok = False
     elif configured is None:
         latency_ok = median < UNTHROTTLED_MS
@@ -490,7 +491,7 @@ def _signer_census(entry: dict) -> tuple[dict, str | None]:
     gap = 0 if rate is None else 1e9 / rate
     spacings = [s - before for (before, _), (s, r) in zip(starts, starts[1:])
                 if r < before + gap]
-    if rate is not None and spacings:
+    if rate is not None and spacings and finite:
         spacing = round(statistics.median(spacings) / 1e6, 3)
         want = 1000.0 / rate
         rate_out = {"configured_per_s": rate, "exercised": True, "median_spacing_ms": spacing,
@@ -498,8 +499,15 @@ def _signer_census(entry: dict) -> tuple[dict, str | None]:
     out = {"counts": counts, "signed_responses": entry["signed_responses"],
            "other_signatures": other, "per_issuance": other / issued if issued else None,
            "latency": {"configured_ms": configured, "median_ms": median, "ok": latency_ok},
-           "rate": rate_out, "ok": latency_ok and rate_out["ok"]}
+           "rate": rate_out}
+    accounted = other >= 0 and finite
+    out["ok"] = latency_ok and rate_out["ok"] and accounted
     problems = []
+    if not finite:
+        problems.append(f"latency {configured!r} ms and rate {rate!r} are not a finite profile")
+    if other < 0:
+        problems.append(f"the record holds {entry['signed_responses']} signed answers but only "
+                        f"{signatures} signatures, so it cannot account for them")
     if not latency_ok:
         against = ("none configured, which allows under 1 ms" if configured is None
                    else f"{configured} ms configured, more than 5% off")

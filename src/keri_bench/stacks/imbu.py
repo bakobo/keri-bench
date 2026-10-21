@@ -35,6 +35,7 @@ import asyncio
 import base64
 import datetime
 import json
+import math
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -134,11 +135,13 @@ def check_signer(knobs) -> None:
     kind, latency, rate = knobs["signer"], knobs["signer_latency_ms"], knobs["signer_rate"]
     if kind == "lockbox" and (latency, rate) == (NA, NA):
         return
-    if kind == "external" and (latency == NA or latency >= 0) and (rate == NA or rate > 0):
+    if kind == "external" and (latency == NA or 0 <= latency < math.inf) and \
+            (rate == NA or 0 < rate < math.inf):
         return
     raise BenchError(E_SIGNER, f"The imbu issuer's signer is {kind!r} with latency {latency!r} "
                      f"ms and rate {rate!r}; it must be lockbox with both n/a, or external with "
-                     f"a latency that is n/a or not negative and a rate that is n/a or positive.")
+                     f"a latency that is n/a or finite and not negative, and a rate that is n/a or finite and "
+                     f"positive.")
 
 
 def signer_args(knobs, *, port: int) -> list[str]:

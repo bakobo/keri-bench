@@ -688,3 +688,17 @@ async def test_a_run_whose_adapters_count_no_signer_has_no_census(tmp_path, fake
                           repetition=1, harness_commit="test")
     record = json.loads((tmp_path / "out" / "rate-20" / "rep-1" / "provenance.json").read_text())
     assert "census" not in record
+
+
+async def test_a_preseed_issuance_that_names_no_credential_is_counted_as_failed(
+        tmp_path, fakes, monkeypatch):
+    from fake_adapters import FakeIssuer
+    from keri_bench.adapters.base import Issued
+
+    async def hollow(self, credential, holder):
+        return Issued(credential, None, None, delivered_by_stack=True)
+
+    monkeypatch.setattr(FakeIssuer, "issue", hollow)
+    _, events = await soak_events(tmp_path, soak_scenario(preseed=2))
+    ended, = [e.attrs for e in events if e.name == "preseed_ended"]
+    assert ended["failed"] == 2 and "named no credential" in ended["first_error"]

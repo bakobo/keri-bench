@@ -1234,3 +1234,15 @@ def test_what_else_an_adapter_counted_beside_its_signers_is_carried_into_the_rep
     out = derive(write_run(tmp_path, window() + simple("c1", 0, 9),
                            census={"issuer": {"signers": [], "pool": pool}}))["census"]
     assert out["issuer"] == {"signers": [], "pool": pool} and out["ok"] is True
+
+
+def test_more_signed_answers_than_signatures_refuses_the_run(tmp_path):
+    report = census_run(tmp_path, [signer([["sign", 0, 0, 10 * MS_]], responses=7)])
+    assert report["refused"] is True
+    assert "7 signed answers but only 1 signature" in report["refused_reason"]
+
+
+def test_a_profile_that_is_not_finite_refuses_the_run(tmp_path):
+    ops = [["sign", 0, 0, 10 * MS_]]
+    report = census_run(tmp_path, [signer(ops, rate=float("inf"))])
+    assert report["refused"] is True and "not a finite profile" in report["refused_reason"]

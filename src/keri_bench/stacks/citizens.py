@@ -6,6 +6,7 @@ is a witnessed facet in another, as the summit harness stands them up (bakobo/se
 harness/src/sedi_harness/acts.py, ``proof`` and ``bulk``, at ce3b91e). Routes, each JSON:
 
 - ``GET /identity``: ``{"proofer": {"aid", "oobi"}, "citizens": [{"aid", "oobi"}, ...]}``;
+- every POST carries ``{"token": ...}``, the run's ``$BENCH_CITIZENS_TOKEN``, or is refused;
 - ``POST /ceremony/<i>``: the proofing agent signs an IAR for citizen ``i`` and the citizen
   anchors the IAR's nonce in its KEL; answers ``{"iar": base64, "said": the IAR's SAID}``;
 - ``POST /sign/<i>`` with ``{"method", "url", "body": base64 or null}``: the headers citizen
@@ -17,6 +18,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import base64
+import hmac
 import json
 import os
 from pathlib import Path
@@ -34,9 +36,25 @@ def acdc_said(stream: bytes) -> str:
     return serdering.SerderACDC(raw=bytes(body)).said
 
 
+E_TOKEN = "e.auth.citizens.token.f"
+
+
 class Citizens:
-    def __init__(self, proofer, citizens) -> None:
-        self.proofer, self.citizens = proofer, citizens
+    """Signs and proofs only for whoever holds the run's token, so no other process on a shared
+    host can have a citizen sign a request of its choosing (hostile review, finding 1)."""
+
+    def __init__(self, proofer, citizens, *, token: str) -> None:
+        self.proofer, self.citizens, self.token = proofer, citizens, token
+
+    def _asked(self, body: bytes) -> dict | None:
+        try:
+            asked = json.loads(body)
+        except ValueError:
+            return None
+        if not isinstance(asked, dict) or not hmac.compare_digest(
+                str(asked.get("token", "")), self.token):
+            return None
+        return asked
 
     async def handle(self, method: str, path: str, body: bytes):
         route, _, which = path.strip("/").partition("/")
@@ -46,6 +64,12 @@ class Citizens:
                                       for c in self.citizens]}
         if method != "POST" or not which.isdigit() or int(which) >= len(self.citizens):
             return 404, {"error": f"There is no route {method} {path}."}
+        if route not in ("ceremony", "sign"):
+            return 404, {"error": f"There is no route {method} {path}."}
+        asked = self._asked(body)
+        if asked is None:
+            return 403, {"code": E_TOKEN, "error": "The request does not carry this run's "
+                         "token, so nothing was signed."}
         citizen = self.citizens[int(which)]
         if route == "ceremony":
             from keri.core import Noncer
@@ -54,12 +78,9 @@ class Citizens:
                                             nonce=nonce, attributes=sedi.iar_attributes())
             await citizen.anchor(seals=({"nd": nonce},))
             return 200, {"iar": base64.b64encode(iar).decode(), "said": acdc_said(iar)}
-        if route == "sign":
-            asked = json.loads(body)
-            payload = base64.b64decode(asked["body"]) if asked.get("body") else None
-            return 200, {"headers": citizen.sign_request(method=asked["method"],
-                                                         url=asked["url"], body=payload)}
-        return 404, {"error": f"There is no route {method} {path}."}
+        payload = base64.b64decode(asked["body"]) if asked.get("body") else None
+        return 200, {"headers": citizen.sign_request(method=asked["method"], url=asked["url"],
+                                                     body=payload)}
 
 
 async def _lockbox(path: Path, witnesses: list[str], toad: int, count: int):
@@ -77,7 +98,9 @@ async def serve(args) -> None:
     _, (proofer,) = await _lockbox(args.store / "proofer", args.witness, args.toad, 1)
     _, citizens = await _lockbox(args.store / "citizens", args.witness, args.toad,
                                  args.citizens)
-    server = await http.serve(Citizens(proofer, citizens).handle, args.port)
+    server = await http.serve(Citizens(proofer, citizens,
+                                       token=os.environ["BENCH_CITIZENS_TOKEN"]).handle,
+                              args.port)
     announce(url=f"http://127.0.0.1:{args.port}")
     async with server:
         await until_terminated()
