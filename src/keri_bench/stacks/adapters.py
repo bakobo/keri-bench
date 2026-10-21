@@ -30,8 +30,8 @@ from ..procs import free_port
 from ..vocabulary import Role
 
 VERSION = "2"
-HETI = "b6104e4a10a5eabb96265485553071de9229a6b4"
-IMBU = "963dfeced29a02918a9e0c451b0567ab379d5296"
+HETI = "f568f7e2e1d36feeedc2b2398bdc6977dc4bbead"
+IMBU = "ccc8f6c2ea1994d9f07df90e88cd8a0e17affcaf"
 WITNESS = "452215130900e40aea126b90bdc597569429919f"
 """The bakobo/witness commit the Registrar runs from, the summit harness's pin. It pins another
 keripy than heti does, so it runs in its own uvx environment, as the summit runs it."""

@@ -1,4 +1,4 @@
-"""The imbu issuer adapter, against imbu's asynchronous operations (imbu 963dfec, plan item
+"""The imbu issuer adapter, against imbu's asynchronous operations (imbu ccc8f6c, plan item
 imbu-async, decision Q-EVAG).
 
 A mutating request answers 202 with ``Location: /v1/imbu/operations/{id}`` and the operation in

@@ -15,12 +15,13 @@ dependencies = [
 [project.optional-dependencies]
 # The real stack's adapters (imbu issuer; heti witness pool, Observer, holder and verifier). Kept
 # out of the core so the harness, the synthetic stack and CI's calibration need no private repo.
-# Pinned to commits: imbu main as of 2026-10-15, and the heti that imbu pins. The Registrar
+# Pinned to commits: imbu utah/next at the signer seam (ccc8f6c, 2026-10-21), and the heti that
+# imbu pins. The Registrar
 # (bakobo/witness) runs in its own uvx environment, as the summit harness runs it, because it pins
 # a different keripy.
 stacks = [
-    "imbu @ git+ssh://git@github.com/bakobo/imbu@963dfec",
-    "heti @ git+ssh://git@github.com/bakobo/heti@b6104e4a10a5eabb96265485553071de9229a6b4",
+    "imbu @ git+ssh://git@github.com/bakobo/imbu@ccc8f6c2ea1994d9f07df90e88cd8a0e17affcaf",
+    "heti @ git+ssh://git@github.com/bakobo/heti@f568f7e2e1d36feeedc2b2398bdc6977dc4bbead",
 ]
 
 [project.scripts]

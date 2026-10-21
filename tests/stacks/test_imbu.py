@@ -1,5 +1,5 @@
 """The imbu issuer adapter against a stand-in for imbu's asynchronous operations, shaped as imbu
-963dfec answers (src/imbu/operations.py); test_imbu_async runs it against the real imbu."""
+ccc8f6c answers (src/imbu/operations.py); test_imbu_async runs it against the real imbu."""
 
 import base64
 import json
