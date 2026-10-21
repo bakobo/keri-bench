@@ -188,7 +188,8 @@ class ImbuIssuer(IssuerAdapter):
         return {"imbu": IMBU}
 
     async def footprint(self) -> int:
-        """Bytes under every home's directory: imbu's operation store and heti's lockbox."""
+        """Bytes under every home's directory: imbu's operation store and heti's lockbox. The
+        Registrar's and Observer's stores are not counted (~4hqv)."""
         total = 0
         for root, _, files in os.walk(Path(self.ctx.run_dir) / "imbu"):
             for name in files:
