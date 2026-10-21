@@ -936,7 +936,7 @@ def hdr(v):
 
 
 def soak_run(tmp_path, latencies, *, preseed=None, footprints=(), bucket=2, per=10,
-             sample_s=None):
+             sample_s=None, declared=None):
     """Credentials requested one per second, each verified after the given latency (ms)."""
     events = [ev("run_started", 0), ev("run_ended", len(latencies) * S)]
     if preseed is not None:
@@ -952,7 +952,10 @@ def soak_run(tmp_path, latencies, *, preseed=None, footprints=(), bucket=2, per=
     soak = {"bucket": bucket, "per_credentials": per}
     if sample_s is not None:
         soak["sample_s"] = sample_s
-    return derive(write_run(tmp_path, events, run=run_section(soak=soak)))
+    if declared is None and preseed is not None:
+        declared = preseed[0]
+    extra = {"preseed": {"credentials": declared, "concurrency": 2}} if declared else {}
+    return derive(write_run(tmp_path, events, run=run_section(soak=soak, **extra)))
 
 
 def test_a_run_without_a_soak_has_no_drift_section(tmp_path):
@@ -1067,3 +1070,25 @@ def test_a_preseed_that_lost_credentials_refuses_the_run(tmp_path):
     clean = soak_run(tmp_path / "b", [10, 30, 50, 70, 90, 110], preseed=(100, 0))
     assert clean["refused"] is False and clean["preseed"] == {"requested": 100, "failed": 0}
     assert "preseed" not in derive(write_run(tmp_path / "c", window() + simple("c1", 0, 9)))
+
+
+@pytest.mark.parametrize("preseed, declared, reason", [
+    (None, 100, "The run declared a preseed of 100 credentials and its timeline records none, "
+                "so the soak did not start from the store it declared."),
+    ((10, 0), 100, "The run declared a preseed of 100 credentials and its timeline records 10 "
+                   "requested, so the soak did not start from the store it declared."),
+    (("100", 0), 100, "The preseed's counts are not whole numbers ('100' requested, 0 failed), "
+                      "so the store the soak started from is unknown."),
+])
+def test_a_preseed_missing_short_or_malformed_refuses_the_run(tmp_path, preseed, declared,
+                                                              reason):
+    out = soak_run(tmp_path, [10, 30, 50, 70, 90, 110], preseed=preseed, declared=declared)
+    assert out["refused"] is True and out["refused_reason"] == reason
+
+
+def test_a_malformed_preseed_on_a_run_that_declared_none_is_refused_not_a_crash(tmp_path):
+    events = window() + simple("c1", 0, 9) + [
+        ev("preseed_ended", 0, attrs={"requested": 3, "failed": "0"})]
+    out = derive(write_run(tmp_path, events))
+    assert out["refused"] is True
+    assert out["refused_reason"].startswith("The preseed's counts are not whole numbers")

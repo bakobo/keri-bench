@@ -410,6 +410,32 @@ def _failures(events) -> dict:
             "fault_failed": fault_failed}
 
 
+def _preseed(events, declared: dict | None) -> tuple[dict | None, str | None]:
+    """What the timeline says the preseed did, and why the run is refused if it did not fill
+    the store the run declared (this.i 9yx6cg92): a failure, a count short of the declaration,
+    no record of a declared preseed, or counts that are not whole numbers."""
+    seeded = [e.attrs or {} for e in events if e.name == "preseed_ended"]
+    counts = [(a.get("requested"), a.get("failed")) for a in seeded]
+    if any(type(n) is not int for pair in counts for n in pair):
+        requested, failed = counts[0] if len(counts) == 1 else ("?", "?")
+        return None, (f"The preseed's counts are not whole numbers ({requested!r} requested, "
+                      f"{failed!r} failed), so the store the soak started from is unknown.")
+    preseed = {"requested": sum(r for r, _ in counts),
+               "failed": sum(f for _, f in counts)} if seeded else None
+    wanted = declared.get("credentials") if isinstance(declared, dict) else None
+    tail = "so the soak did not start from the store it declared."
+    if wanted is not None and preseed is None:
+        return None, (f"The run declared a preseed of {wanted} credentials and its timeline "
+                      f"records none, {tail}")
+    if wanted is not None and preseed["requested"] != wanted:
+        return preseed, (f"The run declared a preseed of {wanted} credentials and its timeline "
+                         f"records {preseed['requested']} requested, {tail}")
+    if preseed is not None and preseed["failed"]:
+        return preseed, (f"The preseed asked for {preseed['requested']} credentials and "
+                         f"{preseed['failed']} failed, {tail}")
+    return preseed, None
+
+
 DRIFT_AXES = {"store_credentials": None, "elapsed": 3600.0, "store_bytes": float(1 << 20)}
 """Each axis a soak's drift is fitted on, with the x-unit its slope is quoted per: the soak's
 per_credentials for store size, an hour for elapsed time, a MiB for bytes on disk."""
@@ -424,14 +450,13 @@ def _fit(points: list[tuple[float, float]], per: float) -> dict:
             "high_ns": fitted.high * per, "n": fitted.n}
 
 
-def _drift(run: _Run) -> dict:
+def _drift(run: _Run, preseed: dict | None) -> dict:
     """A soak's drift (this.i 7f9jfc99): the window's credentials in request order, cut into
     full buckets; each bucket's p50 and p99 of the measure interval; and the slope of each on
     store size, elapsed time and bytes on disk at the bucket's middle credential."""
     soak = run.run["soak"]
     size, per = soak["bucket"], soak["per_credentials"]
-    seeded = [e.attrs for e in run.events if e.name == "preseed_ended"]
-    preseeded = sum(a["requested"] - a["failed"] for a in seeded)
+    preseeded = 0 if preseed is None else preseed["requested"] - preseed["failed"]
     samples = sorted((e.t, e.attrs["bytes"]) for e in run.events if e.name == "footprint")
     stale = round(2 * soak["sample_s"] * 1e9) if "sample_s" in soak else None
     ordered = sorted(run.window, key=lambda c: run.requested[c])
@@ -528,13 +553,7 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         reconciliation = {"summary": summary(outcomes),
                           "credentials": {c: outcomes[c].to_dict() for c in sorted(outcomes)}}
     failures = _failures(events)
-    seeded = [e.attrs or {} for e in events if e.name == "preseed_ended"]
-    preseed = {"requested": sum(a.get("requested", 0) for a in seeded),
-               "failed": sum(a.get("failed", 0) for a in seeded)} if seeded else None
-    # A soak that did not start from the store it declared is refused (this.i 9yx6cg92).
-    preseed_failed = (f"The preseed asked for {preseed['requested']} credentials and "
-                      f"{preseed['failed']} failed, so the soak did not start from the store it "
-                      f"declared.") if preseed and preseed["failed"] else None
+    preseed, preseed_failed = _preseed(events, run.run.get("preseed"))
     refused = driver["reason"] if not driver["ok"] else (failures["fault_failed"]
                                                          or preseed_failed)
     out = {
@@ -554,7 +573,7 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         "census": NOT_MEASURED, "warnings": _warnings(run, driver, intervals),
     }
     if "soak" in run.run:
-        out["drift"] = _drift(run)
+        out["drift"] = _drift(run, preseed)
     if preseed is not None:
         out["preseed"] = preseed
     if preseed_failed:
