@@ -232,8 +232,10 @@ class Run:
 
     # --- the lifecycle of one credential ---
 
-    async def _lifecycle(self, credential: str) -> None:
-        stages = self.plan.scenario.stages
+    async def _lifecycle(self, credential: str, full: bool) -> None:
+        """One credential through the scenario's stages; only issue when ``full`` is false
+        (this.i 8654nxrl)."""
+        stages = self.plan.scenario.stages if full else ("issue",)
         stage = "issue"
         try:
             issuer = self.adapters[Role.ISSUER]
@@ -398,7 +400,9 @@ class Run:
         self.fired.add(credential)
         self.driver.emit("requested", credentials=[credential], t=scheduled)
         self._harness_event("dispatched", credentials=[credential])
-        task = asyncio.get_running_loop().create_task(self._lifecycle(credential))
+        sample = self.plan.scenario.lifecycle
+        full = sample is None or index % sample.full_every == 0
+        task = asyncio.get_running_loop().create_task(self._lifecycle(credential, full))
         self.tasks.add(task)
         task.add_done_callback(self.tasks.discard)
 
@@ -457,6 +461,7 @@ class Run:
         if self.plan.scenario.recognition is not None:
             self.monitor = self._context(_monitor(self.plan.scenario.recognition.poll_ms), {})
         cpu_before = resource.getrusage(resource.RUSAGE_SELF)
+        self.host_load = {"before": provenance.load_average()}
         load = self.plan.scenario.load
         reconciliation, components, cost, census = None, {}, {}, {}
         try:
@@ -484,6 +489,7 @@ class Run:
             gc.freeze()
             window_start = self.clock()
             self._harness_event("run_started", t=window_start)
+            self.host_load["window"] = provenance.load_average()
             faults = [asyncio.get_running_loop().create_task(self._fault(f, window_start))
                       for f in self.plan.scenario.faults]
             self.loop_driver = OpenLoopDriver(self.rate, load.duration_s, clock=self.clock)
@@ -584,6 +590,8 @@ class Run:
         if scenario.preseed is not None:
             shape["preseed"] = {"credentials": scenario.preseed.credentials,
                                 "concurrency": scenario.preseed.concurrency}
+        if scenario.lifecycle is not None:
+            shape["lifecycle"] = {"full_every": scenario.lifecycle.full_every}
         if reconciliation is not None:
             extra["reconciliation"] = reconciliation
         if census:
@@ -599,6 +607,7 @@ class Run:
                  "lag_limit_ms": scenario.statistics.lag_limit_ms,
                  "measure": list(scenario.load.measure), "stages": list(scenario.stages),
                  "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+                 "host_load": {**self.host_load, "end": provenance.load_average()},
                  **shape},
             **extra)
 

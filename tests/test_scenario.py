@@ -187,6 +187,26 @@ def test_bad_stop_soak_or_preseed_tables_are_refused_with_a_code(tmp_path, extra
     assert refused.value.code == code
 
 
+def test_a_lifecycle_sample_is_read_when_present(tmp_path):
+    """this.i 8654nxrl: every Nth credential runs the later stages; without the table, all do."""
+    sampled = load_scenario(write(tmp_path, GOOD + "\n[lifecycle]\nfull_every = 101\n"))
+    assert sampled.lifecycle.full_every == 101
+    assert load_scenario(write(tmp_path, GOOD)).lifecycle is None
+
+
+@pytest.mark.parametrize("table, code", [
+    ("[lifecycle]\n", "e.input.missing.scenario.field.f"),
+    ("[lifecycle]\nfull_every = 0\n", "e.input.range.scenario.lifecycle.f"),
+    ("[lifecycle]\nfull_every = 2.0\n", "e.input.range.scenario.lifecycle.f"),
+    ("[lifecycle]\nfull_every = true\n", "e.input.range.scenario.lifecycle.f"),
+    ("[lifecycle]\nfull_every = 3\nwhimsy = 1\n", "e.input.range.scenario.field.f"),
+])
+def test_a_bad_lifecycle_sample_is_refused_with_a_code(tmp_path, table, code):
+    with pytest.raises(BenchError) as refused:
+        load_scenario(write(tmp_path, GOOD + "\n" + table))
+    assert refused.value.code == code
+
+
 def test_a_scenario_that_never_revokes_needs_no_recognition_rule(tmp_path):
     text = replace('stages = ["issue", "deliver", "present", "verify", "revoke"]',
                    'stages = ["issue"]').replace("[recognition]\npoll_ms = 20.0\n"

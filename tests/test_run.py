@@ -599,6 +599,46 @@ async def test_a_preseed_issues_through_the_stack_before_the_window_opens(tmp_pa
                                      "stop_credentials": None}
 
 
+async def test_only_every_nth_credential_runs_the_later_stages(tmp_path, fakes):
+    """this.i 8654nxrl: the rest are issued only, and the window still counts them all."""
+    text = fake_scenario(0.0) + "[lifecycle]\nfull_every = 3\n"
+    report = await runner.run_once(load(tmp_path, text), tmp_path / "out", rate=20.0,
+                                   repetition=1, harness_commit="test")
+    _, events = read_timeline(tmp_path / "out" / "rate-20" / "rep-1" / "timeline.jsonl")
+    requested = sorted(c for e in events if e.name == "requested" for c in e.credentials)
+    constructed = {c for e in events if e.name == "constructed" for c in e.credentials}
+    stored = {c for e in events if e.name == "stored" for c in e.credentials}
+    assert len(requested) >= 6 and constructed == set(requested)
+    assert stored == {c for c in requested if int(c[1:]) % 3 == 0}
+    assert report["window"]["credentials"] == len(requested)
+    record = json.loads((tmp_path / "out" / "rate-20" / "rep-1" / "provenance.json")
+                        .read_text())
+    assert record["run"]["lifecycle"] == {"full_every": 3}
+
+
+async def test_a_run_records_the_host_s_load_before_at_the_window_and_at_its_end(tmp_path, fakes,
+                                                                                 monkeypatch):
+    loads = iter([[1.0, 1.0, 1.0], [2.0, 2.0, 2.0], [3.0, 3.0, 3.0]])
+    monkeypatch.setattr(runner.provenance, "load_average", lambda: next(loads))
+    await runner.run_once(load(tmp_path, fake_scenario(0.0)), tmp_path / "out", rate=20.0,
+                          repetition=1, harness_commit="test")
+    record = json.loads((tmp_path / "out" / "rate-20" / "rep-1" / "provenance.json")
+                        .read_text())
+    assert record["run"]["host_load"] == {"before": [1.0, 1.0, 1.0],
+                                          "window": [2.0, 2.0, 2.0], "end": [3.0, 3.0, 3.0]}
+
+
+async def test_without_a_sample_every_credential_runs_every_stage(tmp_path, fakes):
+    await runner.run_once(load(tmp_path, fake_scenario(0.0)), tmp_path / "out", rate=20.0,
+                          repetition=1, harness_commit="test")
+    _, events = read_timeline(tmp_path / "out" / "rate-20" / "rep-1" / "timeline.jsonl")
+    requested = {c for e in events if e.name == "requested" for c in e.credentials}
+    assert {c for e in events if e.name == "stored" for c in e.credentials} == requested
+    record = json.loads((tmp_path / "out" / "rate-20" / "rep-1" / "provenance.json")
+                        .read_text())
+    assert "lifecycle" not in record["run"]
+
+
 async def test_a_failed_preseed_issuance_is_counted_not_fatal(tmp_path, fakes, monkeypatch):
     report, events = await soak_events(
         tmp_path, soak_scenario(preseed=3), shared={"refuse": {"p0000001"}},

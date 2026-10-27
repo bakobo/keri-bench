@@ -17,6 +17,12 @@ def test_the_host_fingerprint_names_the_machine_and_its_capacity():
     assert host["cpu_count"] >= 1
 
 
+def test_the_host_load_is_the_one_five_and_fifteen_minute_averages(monkeypatch):
+    """On a shared host a run's provenance says how busy the host was (bench-targets brief)."""
+    monkeypatch.setattr(provenance.os, "getloadavg", lambda: (1.234, 0.5, 12.0))
+    assert provenance.load_average() == [1.23, 0.5, 12.0]
+
+
 def test_the_cpu_model_and_memory_fall_back_when_proc_is_unreadable(tmp_path):
     assert provenance.cpu_model(tmp_path / "absent") == "unknown"
     assert provenance.memory_bytes(tmp_path / "absent") is None
