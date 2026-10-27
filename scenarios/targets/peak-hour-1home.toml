@@ -2,12 +2,12 @@
 # Every size here is a choice recorded in this.i under 4j5395l8 and its children.
 scenario_schema = 1
 name = "peak-hour-1home"
-description = "Target 1, peak hour: 2.8 a second at one home until 10,000 credentials are witnessed or the hour ends."
+description = "Target 1, peak hour: 2.8 a second at one home for ten minutes, which one home fails from its first minute (this.i 9cuqzk0u)."
 stages = ["issue"]
 
 [load]
 rates = [2.8]
-duration_s = 3600.0
+duration_s = 600.0
 warmup_s = 0.0
 drain_s = 300.0
 repetitions = 3
