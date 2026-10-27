@@ -8,7 +8,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import provenance, report
+from . import growth, provenance, report
 from .calibration import calibrate
 from .contract import contract
 from .errors import BenchError
@@ -44,6 +44,14 @@ def _report(args) -> dict:
     return report.write_report(args.run_dir, generator_commit=_commit())
 
 
+def _growth(args) -> dict:
+    reports = [json.loads(Path(path).read_text()) for path in args.reports]
+    out = growth.growth(reports, at=args.at, bound_s=args.bound_s)
+    out["reports"] = [str(path) for path in args.reports]
+    Path(args.out).write_text(json.dumps(out, indent=1) + "\n")
+    return out
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="keri-bench", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -72,6 +80,15 @@ def main(argv=None) -> int:
                                   "provenance.")
     rebuild.add_argument("run_dir", type=Path)
     rebuild.set_defaults(handler=_report)
+    grow = commands.add_parser("growth", help="Fit store bytes and latency against stock over "
+                               "soak reports' buckets (this.i 4j5395l8).")
+    grow.add_argument("reports", type=Path, nargs="+")
+    grow.add_argument("--at", type=float, action="append", default=[],
+                      help="A stock to read every curve at; repeatable.")
+    grow.add_argument("--bound-s", type=float, help="A latency to find each latency curve's "
+                      "crossing of.")
+    grow.add_argument("--out", type=Path, required=True)
+    grow.set_defaults(handler=_growth)
     args = parser.parse_args(argv)
     try:
         result = args.handler(args)
