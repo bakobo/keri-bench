@@ -2,14 +2,21 @@
 # Every size here is a choice recorded in this.i under 4j5395l8 and its children.
 scenario_schema = 1
 name = "office-day-3homes"
-description = "Target 1, office day: 0.35 a second at 3 home(s) until 10,000 credentials are witnessed or eight hours end."
-stages = ["issue"]
+description = "Targets 1 and 3: 0.35 a second at three homes until 10,000 credentials are witnessed or eight hours end; every 101st credential is delivered, verified and revoked."
+stages = ["issue", "deliver", "present", "verify", "revoke"]
+
+[recognition]
+poll_ms = 10000.0
+stable_polls = 2
+
+[lifecycle]
+full_every = 101
 
 [load]
 rates = [0.35]
 duration_s = 28800.0
 warmup_s = 0.0
-drain_s = 300.0
+drain_s = 2400.0
 repetitions = 3
 measure = ["requested", "witnessed"]
 

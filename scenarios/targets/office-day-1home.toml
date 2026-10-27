@@ -2,7 +2,7 @@
 # Every size here is a choice recorded in this.i under 4j5395l8 and its children.
 scenario_schema = 1
 name = "office-day-1home"
-description = "Target 1, office day: 0.35 a second at 1 home(s) until 10,000 credentials are witnessed or eight hours end."
+description = "Target 1, office day: 0.35 a second at one home until 10,000 credentials are witnessed or eight hours end."
 stages = ["issue"]
 
 [load]
