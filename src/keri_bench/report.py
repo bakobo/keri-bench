@@ -508,6 +508,12 @@ def _signer_census(entry: dict) -> tuple[dict, str | None]:
     out = {"counts": counts, "signed_responses": entry["signed_responses"],
            "other_signatures": other,
            "per_issuance": other / issued if finite and issued else None,
+           # What an HSM signs per credential, polls and all: the rate a device must carry
+           # is this times the issuance rate (this.i 5k8z0pxe).
+           "issuances": issued,
+           "signatures_per_issuance": ((signatures - counts.get("incept", 0)) / issued
+                                       if finite and issued else None),
+           "refused_answers": entry.get("refused_answers"),
            "latency": {"configured_ms": configured, "median_ms": median, "ok": latency_ok},
            "rate": rate_out}
     accounted = other >= 0 and finite

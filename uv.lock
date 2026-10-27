@@ -623,7 +623,7 @@ wheels = [
 [[package]]
 name = "imbu"
 version = "0.0.1"
-source = { git = "ssh://git@github.com/bakobo/imbu?rev=8512c1da5c6d9f09e7bb52f3068f4c7689666f0d#8512c1da5c6d9f09e7bb52f3068f4c7689666f0d" }
+source = { git = "ssh://git@github.com/bakobo/imbu?rev=670a3d874a367aeb3c8cea132b5d0ae98646a3a1#670a3d874a367aeb3c8cea132b5d0ae98646a3a1" }
 dependencies = [
     { name = "falcon" },
     { name = "fiki" },
@@ -763,7 +763,7 @@ requires-dist = [
     { name = "aiohttp", specifier = ">=3.10" },
     { name = "heti", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/heti?rev=841fcbd3c6952be729666015ecaa0e28155004cf" },
     { name = "httpx", specifier = ">=0.27" },
-    { name = "imbu", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/imbu?rev=8512c1da5c6d9f09e7bb52f3068f4c7689666f0d" },
+    { name = "imbu", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/imbu?rev=670a3d874a367aeb3c8cea132b5d0ae98646a3a1" },
     { name = "sniffio", specifier = ">=1.3" },
 ]
 provides-extras = ["stacks"]

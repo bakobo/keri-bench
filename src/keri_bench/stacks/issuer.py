@@ -75,6 +75,14 @@ async def _provision_bulk(home, passcode: str, *, recovery: str | None, witnesse
                 "chain": base64.b64encode(agent.tel).decode()}
 
 
+def _budget(args) -> dict:
+    """The answer budget imbu's Service is built with (imbu @6u3jm9e4), or imbu's own default
+    when none was given."""
+    if args.answer_rate is None:
+        return {}
+    return {"answer_rate": args.answer_rate, "answer_burst": args.answer_burst}
+
+
 def _bulk_service(args) -> dict:
     """What a bulk home's Service is configured with beyond plain issuance."""
     if not args.bulk:
@@ -122,7 +130,7 @@ async def serve(args, passcode: str, issuer: str, oobis, signer=None,
 
     service = Service(
         Home(PROFILE), passcode, configured_controllers=[parse_spec(s) for s in args.controller],
-        issuer=issuer, **_bulk_service(args),
+        issuer=issuer, **_bulk_service(args), **_budget(args),
         publisher=RegistrarPublisher(args.registrar_url, key=fiki.Key.from_seed(
             bytes.fromhex(os.environ["BENCH_PUBLISHER_SEED"]))))
     with service:
@@ -157,11 +165,15 @@ def main(argv=None) -> None:
     parser.add_argument("--signer-latency-ms", type=float)
     parser.add_argument("--signer-rate", type=float)
     parser.add_argument("--signer-port", type=int)
+    parser.add_argument("--answer-rate", type=float)
+    parser.add_argument("--answer-burst", type=int)
     parser.add_argument("--bulk", action="store_true")
     parser.add_argument("--proofer")
     args = parser.parse_args(argv)
     if args.signer == "external" and args.signer_port is None:
         parser.error("an external signer needs --signer-port for its record")
+    if (args.answer_rate is None) != (args.answer_burst is None):
+        parser.error("an answer budget needs both --answer-rate and --answer-burst")
     if args.bulk and not args.proofer:
         parser.error("the bulk ceremony needs --proofer, the IAR's proofing agent")
     passcode = os.environ["BENCH_PASSCODE"]

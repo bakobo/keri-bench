@@ -34,9 +34,12 @@ resync_s = 6.0
 [roles.issuer]
 adapter = "imbu.issuer"
 [roles.issuer.knobs]
-knob_schema = 3
+knob_schema = 4
 toad = 2
-poll_ms = 50.0
+poll_ms = "n/a"
+wait_s = 25.0
+answer_rate = 2.0
+answer_burst = 20
 operation_timeout_s = 60.0
 homes = 1
 clients = 1

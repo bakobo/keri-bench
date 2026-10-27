@@ -347,3 +347,19 @@ def test_an_external_signer_without_a_record_port_is_a_usage_error(capsys):
         issuer.main(["--witness", "w", "--toad", "1", "--registrar-url", "r", "--controller",
                      "c", "--control-port", "1", "--signer", "external"])
     assert "--signer-port" in capsys.readouterr().err
+
+
+def test_a_home_is_built_with_the_budget_it_was_given_or_imbu_s_own():
+    # imbu's answer budget (imbu @6u3jm9e4), set by the imbu issuer adapter (this.i 5k8z0pxe);
+    # a process given none, as the bulk adapter's is, keeps imbu's default.
+    given = SimpleNamespace(answer_rate=1e6, answer_burst=2**32)
+    assert issuer._budget(given) == {"answer_rate": 1e6, "answer_burst": 2**32}
+    assert issuer._budget(SimpleNamespace(answer_rate=None, answer_burst=None)) == {}
+
+
+@pytest.mark.parametrize("given", [["--answer-rate", "2"], ["--answer-burst", "20"]])
+def test_half_an_answer_budget_is_a_usage_error(capsys, given):
+    with pytest.raises(SystemExit):
+        issuer.main(["--witness", "w", "--toad", "1", "--registrar-url", "r", "--controller",
+                     "c", "--control-port", "1", *given])
+    assert "--answer-rate and --answer-burst" in capsys.readouterr().err

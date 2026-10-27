@@ -14,8 +14,9 @@ from keri_bench.stacks import imbu
 from keri_bench.synthetic import http
 
 H, W = "monotonic@b", "realtime@h"
-KNOBS = {"toad": 1, "poll_ms": 1.0, "operation_timeout_s": 2.0, "homes": 1, "clients": 1,
-         "signer": "lockbox", "signer_latency_ms": "n/a", "signer_rate": "n/a"}
+KNOBS = {"toad": 1, "poll_ms": 1.0, "wait_s": "n/a", "operation_timeout_s": 2.0, "homes": 1,
+         "clients": 1, "signer": "lockbox", "signer_latency_ms": "n/a", "signer_rate": "n/a",
+         "answer_rate": 2.0, "answer_burst": 20}
 
 
 class FakeImbu:
@@ -97,7 +98,8 @@ async def test_issue_and_revoke_report_imbus_own_times(stand_in):
         await issuer.stop()
     assert (issued.said, issued.grant, issued.delivered_by_stack) == ("Esaid", b"grant", False)
     got = [(e.name, e.t, e.method, e.clock, e.role) for e in sink]
-    assert got[0][:3] == ("accepted", got[0][1], "observed")
+    # accepted is imbu's own stamp, as every other milestone is (this.i 5k8z0pxe).
+    assert got[0] == ("accepted", 1, "reported", W, "issuer")
     assert got[1:4] == [("anchored", 3_000, "reported", W, "issuer"),
                         ("witnessed", 4_000, "reported", W, "witness_pool"),
                         ("published", 5_500, "reported", W, "state_distribution")]
@@ -140,8 +142,8 @@ async def test_a_failed_operation_or_a_refusal_is_a_coded_error(stand_in):
                                       "published": "yesterday", "finished": 6_000}
         with pytest.raises(BenchError):
             await issuer.issue("c9", {"aid": "Eholder"})
-        # A refused operation leaves no milestone behind it.
-        assert [e.name for e in sink if set(e.credentials) & {"c8", "c9"}] == ["accepted"] * 2
+        # A refused operation leaves no milestone behind it, not even accepted.
+        assert [e.name for e in sink if set(e.credentials) & {"c8", "c9"}] == []
         stand_in.resolves_to = ["Eholder"]
         with pytest.raises(BenchError) as listed:
             await issuer.meet({"aid": "Eholder", "oobi": "http://w/oobi/Eholder"})
@@ -301,7 +303,7 @@ async def test_a_lockbox_signer_has_no_census_and_an_external_one_reads_each_hom
         home.signed, home.issuances = 7, 2
         assert await external.census() == {"signers": [{
             "latency_ms": 5.0, "rate": None, "operations": ops, "signed_responses": 7,
-            "issuances": 2}]}
+            "refused_answers": 0, "issuances": 2}]}
         # A record that is not this scenario's profile is not this run's signer.
         wrong = adapter("http://unused", [], knobs={"signer": "external",
                                                      "signer_latency_ms": 120.0})
@@ -342,3 +344,189 @@ def test_each_home_s_signer_arguments_follow_its_knobs():
                             port=1) == ["--signer", "external", "--signer-port", "1",
                                         "--signer-rate", "8.0"]
     assert imbu.signer_args(KNOBS, port=1) == []
+
+
+# --- Prefer: wait, the answer budget's refusals, and the budget as knobs (this.i 5k8z0pxe) ---
+
+SIGNED = {"Signature": "sig1=:x:"}
+DONE = {"id": "op-1", "state": "done", "milestones": {"accepted": 1, "anchored": 3_000, "witnessed": 4_000,
+                                         "published": 5_000, "finished": 6_000},
+        "result": {"said": "Esaid"}}
+PENDING = {"id": "op-1", "state": "pending", "milestones": {"accepted": 1}}
+
+
+class FakeHttp:
+    """A controller's connection that answers from a script, so each answer's headers and
+    each request's headers can be set and read."""
+
+    def __init__(self, answers) -> None:
+        self.answers = list(answers)
+        self.sent = []
+
+    async def request(self, method, url, *, body=None, headers=None):
+        self.sent.append((method, url.split("/", 3)[3], dict(headers or {})))
+        status, payload, extra = self.answers.pop(0)
+        return Answer(status, json.dumps(payload).encode(), extra)
+
+    async def close(self):
+        pass
+
+
+def scripted(answers, *, knobs=None, sink=None):
+    issuer = adapter("http://imbu", [] if sink is None else sink, knobs=knobs)
+    fake = FakeHttp(answers)
+    issuer.homes[0].clients[0].http = fake
+    return issuer, fake
+
+
+@pytest.fixture
+def pauses(monkeypatch):
+    taken = []
+
+    async def pause(seconds):
+        taken.append(seconds)
+
+    monkeypatch.setattr(imbu, "sleep", pause)
+    return taken
+
+
+WAITING = {"poll_ms": "n/a", "wait_s": 25.0}
+
+
+async def test_a_waiting_client_asks_imbu_to_hold_its_answer_and_needs_no_poll(pauses):
+    sink = []
+    issuer, fake = scripted([(202, DONE, SIGNED)], knobs=WAITING, sink=sink)
+    issued = await issuer.issue("c1", {"aid": "Eholder"})
+    assert issued.said == "Esaid"
+    # One request, carrying the preference, and one signed answer: the operation came back done.
+    assert [(m, p) for m, p, _ in fake.sent] == [("POST", "v1/imbu/issuances")]
+    assert fake.sent[0][2]["Prefer"] == "wait=25"
+    assert issuer.homes[0].signed == 1
+    assert [e.name for e in sink] == ["accepted", "anchored", "witnessed", "published"]
+    assert pauses == []
+
+
+async def test_a_waiting_client_reads_a_still_pending_operation_again_at_once(pauses):
+    issuer, fake = scripted([(202, {"operation": PENDING}, SIGNED), (200, PENDING, SIGNED),
+                             (200, DONE, SIGNED)], knobs=WAITING)
+    await issuer.issue("c1", {"aid": "Eholder"})
+    assert [(m, p) for m, p, _ in fake.sent] == [
+        ("POST", "v1/imbu/issuances"), ("GET", "v1/imbu/operations/op-1"),
+        ("GET", "v1/imbu/operations/op-1")]
+    assert all(h["Prefer"] == "wait=25" for _, _, h in fake.sent)
+    assert pauses == []
+
+
+async def test_a_waiting_client_still_refuses_a_failed_operation(pauses):
+    issuer, _ = scripted([(202, {"id": "op-1", "state": "failed", "error": "no"}, SIGNED)],
+                         knobs=WAITING)
+    with pytest.raises(BenchError) as failed:
+        await issuer.issue("c1", {"aid": "Eholder"})
+    assert failed.value.code == "e.party.imbu.operation.f"
+
+
+async def test_a_polling_client_sends_no_preference_and_reads_after_the_202(pauses):
+    issuer, fake = scripted([(202, DONE, SIGNED), (200, DONE, SIGNED)])
+    await issuer.issue("c1", {"aid": "Eholder"})
+    # The baselines' client: the 202 is never taken as the answer, so counts stay comparable.
+    assert [m for m, _, _ in fake.sent] == ["POST", "GET"]
+    assert all("Prefer" not in h for _, _, h in fake.sent)
+
+
+async def test_a_refused_answer_is_asked_again_after_its_retry_after_with_the_same_key(pauses):
+    refusal = (429, {"code": "e.grant.quota.answers.r"}, {"retry-after": "3"})
+    issuer, fake = scripted([refusal, (202, PENDING, SIGNED), refusal, (200, DONE, SIGNED)],
+                            knobs={"operation_timeout_s": 10.0})
+    await issuer.issue("c1", {"aid": "Eholder"})
+    assert [m for m, _, _ in fake.sent] == ["POST", "POST", "GET", "GET"]
+    assert fake.sent[0][2]["Idempotency-Key"] == fake.sent[1][2]["Idempotency-Key"] == "c1"
+    assert pauses == [3, 3]
+    home = issuer.homes[0]
+    # A refusal is the one answer imbu does not sign, so it is counted apart.
+    assert (home.signed, home.refused) == (2, 2)
+
+
+async def test_a_refusal_whose_wait_outlasts_the_operation_is_a_timeout(pauses):
+    issuer, _ = scripted([(429, {}, {"Retry-After": "5"})])
+    with pytest.raises(BenchError) as late:
+        await issuer.issue("c1", {"aid": "Eholder"})
+    assert late.value.code == "e.env.imbu.operation.r"
+    assert pauses == []
+
+
+@pytest.mark.parametrize("extra", [{}, {"Retry-After": "soon"}, {"Retry-After": "1.5"},
+                                   {"Retry-After": ""}])
+async def test_a_refusal_without_a_readable_retry_after_is_refused(pauses, extra):
+    issuer, _ = scripted([(429, {}, extra)])
+    with pytest.raises(BenchError) as refused:
+        await issuer.issue("c1", {"aid": "Eholder"})
+    assert refused.value.code == "e.party.imbu.refused.f"
+    assert issuer.homes[0].refused == 0
+
+
+@pytest.mark.parametrize("value, seconds", [("1", 1), ("0", 0), ("120", 120), (" 2", None),
+                                            ("-1", None), ("١", None)])
+def test_retry_after_is_whole_ascii_seconds(value, seconds):
+    assert imbu.retry_after(Answer(429, b"", {"Retry-After": value})) == seconds
+
+
+@pytest.mark.parametrize("knobs", [
+    {"poll_ms": "n/a", "wait_s": "n/a"},
+    {"poll_ms": 50.0, "wait_s": 25.0},
+    {"poll_ms": 0.0},
+    {"poll_ms": float("inf")},
+    {"poll_ms": "n/a", "wait_s": 0.0},
+    {"poll_ms": "n/a", "wait_s": 26.0},
+    {"poll_ms": "n/a", "wait_s": 2.5},
+])
+async def test_a_client_that_neither_polls_nor_waits_or_both_is_refused_before_it_starts(knobs):
+    ctx = AdapterContext(imbu.ImbuIssuer.declaration, run_dir=None, knobs={**KNOBS, **knobs},
+                         peers={}, procs=None, sink=[].append, harness_clock=H,
+                         realtime_clock=W)
+    with pytest.raises(BenchError) as refused:
+        await imbu.ImbuIssuer(ctx).start()
+    assert refused.value.code == "e.input.range.imbu.wait.f"
+
+
+@pytest.mark.parametrize("knobs", [
+    {"answer_rate": 0.0}, {"answer_rate": -2.0}, {"answer_rate": float("inf")},
+    {"answer_rate": float("nan")}, {"answer_burst": 0}, {"answer_burst": 2**32 + 1},
+])
+async def test_a_budget_imbu_would_refuse_is_refused_before_it_starts(knobs):
+    ctx = AdapterContext(imbu.ImbuIssuer.declaration, run_dir=None, knobs={**KNOBS, **knobs},
+                         peers={}, procs=None, sink=[].append, harness_clock=H,
+                         realtime_clock=W)
+    with pytest.raises(BenchError) as refused:
+        await imbu.ImbuIssuer(ctx).start()
+    assert refused.value.code == "e.input.range.imbu.budget.f"
+
+
+def test_each_home_is_given_the_scenario_s_budget():
+    assert imbu.budget_args({**KNOBS, "answer_rate": 1e6, "answer_burst": 2**32}) == [
+        "--answer-rate", "1000000.0", "--answer-burst", str(2**32)]
+
+
+async def test_the_census_counts_the_refusals_beside_the_signed_answers(tmp_path):
+    async def stats(method, path, body):
+        return 200, {"latency_ms": None, "rate": None, "operations": []}
+
+    server = await http.serve(stats, 0)
+    try:
+        issuer = adapter("http://unused", [], knobs={"signer": "external"})
+        home = issuer.homes[0]
+        home.signer_port = server.sockets[0].getsockname()[1]
+        home.signed, home.refused, home.issuances = 3, 4, 1
+        census = await issuer.census()
+        assert census["signers"][0]["refused_answers"] == 4
+        await issuer.stop()
+    finally:
+        server.close()
+        await server.wait_closed()
+
+
+def test_a_202_whose_body_is_not_an_operation_document_offers_none():
+    # A waiting client then reads the operation instead of taking the 202 as its answer.
+    assert imbu.operation_document(Answer(202, b"not json", {})) is None
+    assert imbu.operation_document(answer([1])) is None
+    assert imbu.operation_document(answer({"operation": {"id": "a"}})) == {"id": "a"}
+    assert imbu.operation_document(answer({"id": "b"})) == {"id": "b"}

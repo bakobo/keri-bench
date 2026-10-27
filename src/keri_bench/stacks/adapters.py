@@ -31,10 +31,12 @@ from ..vocabulary import Role
 
 VERSION = "2"
 HETI = "841fcbd3c6952be729666015ecaa0e28155004cf"
-IMBU = "8512c1da5c6d9f09e7bb52f3068f4c7689666f0d"
-WITNESS = "452215130900e40aea126b90bdc597569429919f"
-"""The bakobo/witness commit the Registrar runs from, the summit harness's pin. It pins another
-keripy than heti does, so it runs in its own uvx environment, as the summit runs it."""
+IMBU = "670a3d874a367aeb3c8cea132b5d0ae98646a3a1"
+WITNESS = "ed1dcfc563ebff6545738f820d7410043dcbfbce"
+"""The bakobo/witness commit the Registrar runs from: main with the Registrar that takes a
+publication without the issuer KEL (witness @23vjzsf0), which imbu 670a3d8 sends (this.i
+5k8z0pxe). It pins another keripy than heti does, so it runs in its own uvx environment, as the
+summit runs it."""
 
 REGISTRAR = ("uvx", "--from", f"witness @ git+https://github.com/bakobo/witness@{WITNESS}",
              "witness", "registrar")

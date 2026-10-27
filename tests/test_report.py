@@ -1167,6 +1167,22 @@ def test_the_census_counts_by_kind_and_sets_signatures_against_responses(tmp_pat
     assert home["ok"] is True and out["ok"] is True
 
 
+def test_the_census_carries_what_the_hsm_signed_per_credential_and_the_refused_answers(tmp_path):
+    """this.i 5k8z0pxe: everything but the inception, per credential, is what an HSM is asked
+    for at a given issuance rate; answers imbu refused unsigned are carried beside it."""
+    ops = [["incept", 0, 0, 10 * MS_]] + [["sign", t, t, t + 10 * MS_]
+                                          for t in range(0, 6 * 100 * MS_, 100 * MS_)]
+    home, = census_run(tmp_path, [signer(ops, responses=2, issuances=2) |
+                                  {"refused_answers": 7}])["census"]["issuer"]["signers"]
+    # Six signatures, one of them the inception event's own: five for two credentials.
+    assert (home["issuances"], home["signatures_per_issuance"], home["refused_answers"]) == \
+        (2, 2.5, 7)
+    # A record from before the answer budget has no refusals to report, and no issuance none.
+    older, = census_run(tmp_path / "b", [signer(ops, issuances=0)])["census"]["issuer"][
+        "signers"]
+    assert (older["refused_answers"], older["signatures_per_issuance"]) == (None, None)
+
+
 def test_a_signer_slower_than_its_profile_by_more_than_5_percent_refuses_the_run(tmp_path):
     ops = [["sign", t, t, t + 11 * MS_] for t in range(0, 5 * 100 * MS_, 100 * MS_)]
     report = census_run(tmp_path, [signer(ops)])
