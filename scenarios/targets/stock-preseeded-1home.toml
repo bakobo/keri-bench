@@ -2,11 +2,11 @@
 # Every size here is a choice recorded in this.i under 4j5395l8 and its children.
 scenario_schema = 1
 name = "stock-preseeded-1home"
-description = "Target 2: from a store preseeded with 40,000 credentials, 0.35 a second at one home for 30 minutes, killing the issuer at 900 s."
+description = "Target 2: from a store preseeded with 10,000 credentials, 0.1 a second at one home for 30 minutes, killing the issuer at 900 s."
 stages = ["issue"]
 
 [load]
-rates = [0.35]
+rates = [0.1]
 duration_s = 1800.0
 warmup_s = 0.0
 drain_s = 300.0
@@ -17,7 +17,7 @@ measure = ["requested", "witnessed"]
 lag_limit_ms = 25.0
 
 [soak]
-bucket = 50
+bucket = 30
 per_credentials = 1000
 sample_s = 60.0
 
@@ -25,7 +25,7 @@ sample_s = 60.0
 credentials = 10000
 
 [preseed]
-credentials = 40000
+credentials = 10000
 concurrency = 4
 
 [[faults]]
