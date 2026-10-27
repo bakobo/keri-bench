@@ -1,0 +1,62 @@
+# Today's imbu against Utah's stated targets (bench-targets). Needs `uv sync --extra stacks`.
+# Every size here is a choice recorded in this.i under 4j5395l8 and its children.
+scenario_schema = 1
+name = "hsm-15ms-poll-3homes"
+description = "Target 5: as hsm-15ms-wait-3homes with the client polling every 50 ms and the answer budget out of the way."
+stages = ["issue"]
+
+[load]
+rates = [2.8]
+duration_s = 120.0
+warmup_s = 10.0
+drain_s = 120.0
+repetitions = 3
+measure = ["requested", "witnessed"]
+
+[statistics]
+lag_limit_ms = 25.0
+
+[roles.witness_pool]
+adapter = "heti.witness_pool"
+[roles.witness_pool.knobs]
+knob_schema = 1
+count = 3
+
+[roles.state_distribution]
+adapter = "registrar.state_distribution"
+[roles.state_distribution.knobs]
+knob_schema = 1
+window_s = 900.0
+delivery_timeout_s = 450.0
+resync_s = 2700.0
+
+[roles.issuer]
+adapter = "imbu.issuer"
+[roles.issuer.knobs]
+knob_schema = 4
+toad = 2
+poll_ms = 50.0
+wait_s = "n/a"
+answer_rate = 1000000.0
+answer_burst = 4294967296
+operation_timeout_s = 60.0
+homes = 3
+clients = 4
+signer = "external"
+signer_latency_ms = 15.0
+signer_rate = "n/a"
+
+[roles.holder]
+adapter = "heti.holder"
+[roles.holder.knobs]
+knob_schema = 1
+toad = 2
+
+[roles.verifier]
+adapter = "heti.verifier"
+[roles.verifier.knobs]
+knob_schema = 1
+toad = 2
+freshness_s = 900.0
+retry_ms = 5000.0
+deadline_s = 1200.0
