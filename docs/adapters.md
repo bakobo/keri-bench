@@ -7,7 +7,7 @@ The test plan defines each milestone by the event that counts and leaves stack-s
 | Milestone | Adapter | Method, clock | What counts |
 |---|---|---|---|
 | `requested` | harness driver | observed, harness | The scheduled send time. |
-| `accepted` | `imbu.issuer` | observed, harness | imbu's 202 answer to the issuance request. |
+| `accepted` | `imbu.issuer` | reported, realtime | The time imbu's operation records accepting the request (imbu 670a3d8 stamps it itself; adapter version 4). |
 | `anchored` | `imbu.issuer` | reported, realtime | The time imbu's operation resource records, RFC 3339 with microseconds (imbu `src/imbu/operations.py`). |
 | `constructed`, `registry_updated` | none | unobserved | imbu's operation stamps neither, so pair 1's split before anchoring is a named gap. |
 | `witnessed` | `imbu.issuer`, filed under the witness pool | reported, realtime | Receipts reached toad, as imbu's operation records it (`this.i` 0ys878gy). |
