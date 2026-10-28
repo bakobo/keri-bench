@@ -102,7 +102,8 @@ def growth(reports: Sequence[Mapping], *, at: Sequence[float],
     """Every curve at both degrees, what each gives at ``at``, and for the latency curves
     where each reaches ``bound_s``."""
     for report in reports:
-        if not isinstance(report.get("drift"), Mapping):
+        drift = report.get("drift")
+        if not isinstance(drift, Mapping) or not isinstance(drift.get("buckets"), list):
             raise BenchError(E_REPORT, "A report without a soak's drift buckets has no stock "
                              "to fit against.")
     stocks = [b["store_credentials"] for r in reports for b in r["drift"]["buckets"]]

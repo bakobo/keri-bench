@@ -104,9 +104,11 @@ def test_growth_says_which_curves_had_too_little_to_fit():
     assert "crosses_bound_at" not in out["p50_s"]["quadratic"]
 
 
-def test_a_report_without_soak_buckets_is_refused():
+@pytest.mark.parametrize("report", [{"drift": "not measured"}, {"drift": {}},
+                                    {"drift": {"buckets": ""}}, {"drift": {"buckets": {}}}])
+def test_a_report_without_soak_buckets_is_refused(report):
     with pytest.raises(BenchError) as refused:
-        growth.growth([{"drift": "not measured"}], at=[], bound_s=None)
+        growth.growth([report], at=[], bound_s=None)
     assert refused.value.code == "e.input.format.growth.report.f"
 
 
