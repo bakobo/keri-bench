@@ -87,6 +87,22 @@ def crossing(fit: Fit, bound: float) -> float | None:
     return next((r for r in roots if r >= 0), None)
 
 
+def _number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and \
+        math.isfinite(value) and value >= 0
+
+
+def _check_bucket(bucket: Any) -> None:
+    """A bucket's stock is a count of credentials and its measures are sizes and times, so each
+    is a finite number not below zero, and a measure may be absent (None)."""
+    if not isinstance(bucket, Mapping) or not _number(bucket.get("store_credentials")) or \
+            any(bucket.get(key) is not None and not _number(bucket[key])
+                for key, _ in CURVES.values()):
+        raise BenchError(E_REPORT, f"A soak bucket needs a stock not below zero and measures "
+                         f"that are numbers not below zero or null; this one is "
+                         f"{str(bucket)[:200]}.")
+
+
 def _points(reports: Iterable[Mapping], key: str, scale: float) -> tuple[list, list]:
     xs, ys = [], []
     for report in reports:
@@ -102,10 +118,12 @@ def growth(reports: Sequence[Mapping], *, at: Sequence[float],
     """Every curve at both degrees, what each gives at ``at``, and for the latency curves
     where each reaches ``bound_s``."""
     for report in reports:
-        drift = report.get("drift")
+        drift = report.get("drift") if isinstance(report, Mapping) else None
         if not isinstance(drift, Mapping) or not isinstance(drift.get("buckets"), list):
             raise BenchError(E_REPORT, "A report without a soak's drift buckets has no stock "
                              "to fit against.")
+        for bucket in drift["buckets"]:
+            _check_bucket(bucket)
     stocks = [b["store_credentials"] for r in reports for b in r["drift"]["buckets"]]
     out: dict[str, Any] = {"buckets": len(stocks),
                            "stock": [min(stocks), max(stocks)] if stocks else None,

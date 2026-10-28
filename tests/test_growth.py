@@ -104,8 +104,17 @@ def test_growth_says_which_curves_had_too_little_to_fit():
     assert "crosses_bound_at" not in out["p50_s"]["quadratic"]
 
 
-@pytest.mark.parametrize("report", [{"drift": "not measured"}, {"drift": {}},
-                                    {"drift": {"buckets": ""}}, {"drift": {"buckets": {}}}])
+@pytest.mark.parametrize("report", [
+    None, [], {"drift": "not measured"}, {"drift": {}},
+    {"drift": {"buckets": ""}}, {"drift": {"buckets": {}}},
+    {"drift": {"buckets": [None]}},
+    {"drift": {"buckets": [{"store_bytes": 1}]}},                       # no stock
+    {"drift": {"buckets": [bucket(-3, 1000, 1.0, 2.0)]}},               # negative stock
+    {"drift": {"buckets": [bucket(True, 1000, 1.0, 2.0)]}},             # a boolean is not a count
+    {"drift": {"buckets": [bucket(25, -1, 1.0, 2.0)]}},                 # negative size
+    {"drift": {"buckets": [{**bucket(25, 1000, 1.0, 2.0), "p50_ns": "1"}]}},
+    {"drift": {"buckets": [{**bucket(25, 1000, 1.0, 2.0), "p99_ns": float("nan")}]}},
+])
 def test_a_report_without_soak_buckets_is_refused(report):
     with pytest.raises(BenchError) as refused:
         growth.growth([report], at=[], bound_s=None)
