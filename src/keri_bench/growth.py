@@ -83,7 +83,8 @@ def crossing(fit: Fit, bound: float) -> float | None:
     if disc < 0:
         return None
     roots = sorted(((-c1 - math.sqrt(disc)) / (2 * c2), (-c1 + math.sqrt(disc)) / (2 * c2)))
-    return next(r for r in roots if r >= 0)
+    # Both roots can lie below zero, on a curve that only falls from where stock begins.
+    return next((r for r in roots if r >= 0), None)
 
 
 def _points(reports: Iterable[Mapping], key: str, scale: float) -> tuple[list, list]:
@@ -105,7 +106,8 @@ def growth(reports: Sequence[Mapping], *, at: Sequence[float],
             raise BenchError(E_REPORT, "A report without a soak's drift buckets has no stock "
                              "to fit against.")
     stocks = [b["store_credentials"] for r in reports for b in r["drift"]["buckets"]]
-    out: dict[str, Any] = {"buckets": len(stocks), "stock": [min(stocks), max(stocks)],
+    out: dict[str, Any] = {"buckets": len(stocks),
+                           "stock": [min(stocks), max(stocks)] if stocks else None,
                            "bound_s": bound_s}
     for name, (key, scale) in CURVES.items():
         xs, ys = _points(reports, key, scale)

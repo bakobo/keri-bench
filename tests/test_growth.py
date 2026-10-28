@@ -119,3 +119,15 @@ def test_the_command_reads_reports_and_prints_the_fits(tmp_path, capsys):
     out = json.loads((tmp_path / "growth.json").read_text())
     assert out["reports"] == [str(path)]
     assert out["store_bytes"]["linear"]["at"]["1000"] == pytest.approx(40_000.0)
+
+
+def test_a_parabola_whose_crossings_are_both_at_negative_stock_never_crosses():
+    # -x^2 - 3x + 100 starts below a bound of 101 and only falls; its roots of
+    # -x^2 - 3x - 1 = 0 are both below zero.
+    assert growth.crossing(growth.Fit((100.0, -3.0, -1.0), 1.0, 5), 101.0) is None
+
+
+def test_a_report_with_no_buckets_says_every_curve_was_not_measured():
+    out = growth.growth([{"drift": {"buckets": []}}], at=[], bound_s=1.0)
+    assert out["buckets"] == 0 and out["stock"] is None
+    assert "not measured" in out["p50_s"]["linear"]
