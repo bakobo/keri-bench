@@ -1,0 +1,693 @@
+{
+  "adapters": {
+    "harness.driver": {
+      "adapter": "harness.driver",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {
+        "requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "issuer",
+      "tested_against": {},
+      "version": "1"
+    },
+    "harness.relay": {
+      "adapter": "harness.relay",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {
+        "grant_sent": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "issuer",
+      "tested_against": {},
+      "version": "1"
+    },
+    "holder": {
+      "adapter": "heti.holder",
+      "knobs": {
+        "knobs": {
+          "toad": {
+            "allow_na": false,
+            "description": "Receipts the holder's facet requires.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "delivered": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "proof_generated": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "stored": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "holder",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+      },
+      "version": "2"
+    },
+    "issuer": {
+      "adapter": "imbu.issuer",
+      "knobs": {
+        "knobs": {
+          "answer_burst": {
+            "allow_na": false,
+            "description": "Signed answers each controller may hold unspent.",
+            "type": "int",
+            "unit": ""
+          },
+          "answer_rate": {
+            "allow_na": false,
+            "description": "Signed answers each controller regains a second (imbu's answer budget).",
+            "type": "float",
+            "unit": "/s"
+          },
+          "clients": {
+            "allow_na": false,
+            "description": "How many controllers each home serves, each with its own key and connection pool.",
+            "type": "int",
+            "unit": ""
+          },
+          "homes": {
+            "allow_na": false,
+            "description": "How many imbu issuers, each its own home and process, share the deployment (this.i 2lkqz9mq).",
+            "type": "int",
+            "unit": ""
+          },
+          "operation_timeout_s": {
+            "allow_na": false,
+            "description": "How long an operation may run before the adapter gives up on it.",
+            "type": "float",
+            "unit": "s"
+          },
+          "poll_ms": {
+            "allow_na": true,
+            "description": "How often the adapter reads an operation until it finishes; the milestone times come from imbu, not from this poll. n/a when the adapter waits instead.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "signer": {
+            "allow_na": false,
+            "description": "lockbox: the principal's keys are in the lockbox; external: heti's ThrottledSigner holds them (this.i 2p26rn9h).",
+            "type": "str",
+            "unit": ""
+          },
+          "signer_latency_ms": {
+            "allow_na": true,
+            "description": "The external signer's latency per operation.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "signer_rate": {
+            "allow_na": true,
+            "description": "The external signer's cap on operation starts per second.",
+            "type": "float",
+            "unit": "/s"
+          },
+          "toad": {
+            "allow_na": false,
+            "description": "Witness receipts imbu requires before an event is settled.",
+            "type": "int",
+            "unit": ""
+          },
+          "wait_s": {
+            "allow_na": true,
+            "description": "Prefer: wait sent on each request and operation read, so imbu answers once the operation settles; n/a when the adapter polls.",
+            "type": "float",
+            "unit": "s"
+          }
+        },
+        "version": 4
+      },
+      "milestones": {
+        "accepted": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "anchored": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "published": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_anchored": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_published": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "revocation_witnessed": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "witnessed": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        }
+      },
+      "role": "issuer",
+      "tested_against": {
+        "imbu": "670a3d874a367aeb3c8cea132b5d0ae98646a3a1"
+      },
+      "version": "4"
+    },
+    "state_distribution": {
+      "adapter": "registrar.state_distribution",
+      "knobs": {
+        "knobs": {
+          "delivery_timeout_s": {
+            "allow_na": false,
+            "description": "How long the Registrar waits on a subscriber.",
+            "type": "float",
+            "unit": "s"
+          },
+          "resync_s": {
+            "allow_na": false,
+            "description": "How often the Observer resynchronizes; must exceed the window.",
+            "type": "float",
+            "unit": "s"
+          },
+          "window_s": {
+            "allow_na": false,
+            "description": "The Registrar's batching window.",
+            "type": "float",
+            "unit": "s"
+          }
+        },
+        "version": 1
+      },
+      "milestones": {},
+      "role": "state_distribution",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf",
+        "witness": "ed1dcfc563ebff6545738f820d7410043dcbfbce"
+      },
+      "version": "2"
+    },
+    "verifier": {
+      "adapter": "heti.verifier",
+      "knobs": {
+        "knobs": {
+          "deadline_s": {
+            "allow_na": false,
+            "description": "How long verification is retried before the credential counts as not verified.",
+            "type": "float",
+            "unit": "s"
+          },
+          "freshness_s": {
+            "allow_na": false,
+            "description": "How old the Observer's state may be before the verifier refuses to rely on it.",
+            "type": "float",
+            "unit": "s"
+          },
+          "retry_ms": {
+            "allow_na": false,
+            "description": "How soon a refused verification is tried again.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "toad": {
+            "allow_na": false,
+            "description": "Receipts the verifier's facet requires.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "sync_full_done": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "sync_full_started": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "verified": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "verifier",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+      },
+      "version": "2"
+    },
+    "witness_pool": {
+      "adapter": "heti.witness_pool",
+      "knobs": {
+        "knobs": {
+          "count": {
+            "allow_na": false,
+            "description": "How many witnesses the pool runs.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {},
+      "role": "witness_pool",
+      "tested_against": {
+        "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+      },
+      "version": "2"
+    }
+  },
+  "calibration": {
+    "budget": {
+      "anchored->witnessed": {
+        "p50_error_ns": 167504,
+        "p99_error_ns": 214316
+      },
+      "constructed->registry_updated": {
+        "p50_error_ns": 161129,
+        "p99_error_ns": 186653
+      },
+      "delivered->stored": {
+        "p50_error_ns": 1606401,
+        "p99_error_ns": 1740218
+      },
+      "proof_generated->verified": {
+        "p50_error_ns": 1989875,
+        "p99_error_ns": 1670282
+      },
+      "registry_updated->anchored": {
+        "p50_error_ns": 157027,
+        "p99_error_ns": 228954
+      },
+      "revocation_anchored->revocation_witnessed": {
+        "p50_error_ns": 206116,
+        "p99_error_ns": 256829
+      },
+      "revocation_requested->revocation_anchored": {
+        "p50_error_ns": 1654408,
+        "p99_error_ns": 1455213
+      },
+      "revocation_witnessed->revocation_published": {
+        "p50_error_ns": 775590,
+        "p99_error_ns": 707451
+      },
+      "stored->proof_generated": {
+        "p50_error_ns": 1918007,
+        "p99_error_ns": 1848214
+      },
+      "witnessed->published": {
+        "p50_error_ns": 530317,
+        "p99_error_ns": 399517
+      }
+    },
+    "harness_commit": "0a962743dfee27fd338348070600c110d5b04d71",
+    "ok": true,
+    "path": "runs/targets/calibration/calibration.json",
+    "saturation_relative_error": 0.0040048723050234965
+  },
+  "clocks": {
+    "harness": "monotonic@d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "realtime": "realtime@kelun"
+  },
+  "components": {
+    "holder": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+    },
+    "issuer": {
+      "imbu": "670a3d874a367aeb3c8cea132b5d0ae98646a3a1"
+    },
+    "state_distribution": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf",
+      "witness": "ed1dcfc563ebff6545738f820d7410043dcbfbce"
+    },
+    "verifier": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+    },
+    "witness_pool": {
+      "heti": "841fcbd3c6952be729666015ecaa0e28155004cf"
+    }
+  },
+  "harness_commit": "dab94693ab0f0d834201d5000445505ebc64fedc",
+  "host": {
+    "boot_id": "d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "cpu_count": 8,
+    "cpu_model": "Intel Core Processor (Haswell, no TSX)",
+    "hostname": "kelun",
+    "kernel": "7.0.0-38-generic",
+    "machine": "x86_64",
+    "memory_bytes": 24598093824,
+    "python": "3.14.6"
+  },
+  "knobs": {
+    "holder": {
+      "toad": 2
+    },
+    "issuer": {
+      "answer_burst": 20,
+      "answer_rate": 2.0,
+      "clients": 1,
+      "homes": 1,
+      "operation_timeout_s": 60.0,
+      "poll_ms": "n/a",
+      "signer": "lockbox",
+      "signer_latency_ms": "n/a",
+      "signer_rate": "n/a",
+      "toad": 2,
+      "wait_s": 25.0
+    },
+    "state_distribution": {
+      "delivery_timeout_s": 1.0,
+      "resync_s": 6.0,
+      "window_s": 2.0
+    },
+    "verifier": {
+      "deadline_s": 60.0,
+      "freshness_s": 30.0,
+      "retry_ms": 250.0,
+      "toad": 2
+    },
+    "witness_pool": {
+      "count": 3
+    }
+  },
+  "measurement_cost": {
+    "harness_cpu_s": 58.96871700000001,
+    "links": {
+      "holder.api": {
+        "exchanges": 144,
+        "p50_ns": 196727,
+        "p99_ns": 366031,
+        "samples": 200
+      },
+      "issuer.control.0": {
+        "exchanges": 37,
+        "p50_ns": 190090,
+        "p99_ns": 354286,
+        "samples": 200
+      },
+      "state_distribution.observer": {
+        "exchanges": 119,
+        "p50_ns": 306937,
+        "p99_ns": 445850,
+        "samples": 200
+      },
+      "state_distribution.registrar": {
+        "exchanges": 38,
+        "p50_ns": 182932,
+        "p99_ns": 336711,
+        "samples": 200
+      },
+      "verifier.api": {
+        "exchanges": 83,
+        "p50_ns": 197015,
+        "p99_ns": 343937,
+        "samples": 200
+      },
+      "witness_pool.w0": {
+        "exchanges": 445,
+        "p50_ns": 179879,
+        "p99_ns": 684918,
+        "samples": 200
+      },
+      "witness_pool.w1": {
+        "exchanges": 434,
+        "p50_ns": 186911,
+        "p99_ns": 395287,
+        "samples": 200
+      },
+      "witness_pool.w2": {
+        "exchanges": 99,
+        "p50_ns": 187749,
+        "p99_ns": 398445,
+        "samples": 200
+      }
+    }
+  },
+  "provenance_schema": 1,
+  "reconciliation": {
+    "anchors": {
+      "c000000": null,
+      "c000001": null,
+      "c000002": null,
+      "c000003": null,
+      "c000004": null,
+      "c000005": null,
+      "c000006": null,
+      "c000007": null,
+      "c000008": null,
+      "c000009": null,
+      "c000010": null,
+      "c000011": null,
+      "c000012": null,
+      "c000013": null,
+      "c000014": null,
+      "c000015": null,
+      "c000016": null,
+      "c000017": null,
+      "c000018": null,
+      "c000019": null,
+      "c000020": null,
+      "c000021": null,
+      "c000022": null,
+      "c000023": null,
+      "c000024": null,
+      "c000025": null,
+      "c000026": null,
+      "c000027": null,
+      "c000028": null,
+      "c000029": null,
+      "c000030": null,
+      "c000031": null,
+      "c000032": null,
+      "c000033": null,
+      "c000034": null,
+      "c000035": null
+    },
+    "verifier": {
+      "c000000": {
+        "said": "EPWAK7n0KYYF-npNS_kwG22sI3eOIhYn2HX2ABSGx5Wf",
+        "status": "valid"
+      },
+      "c000001": {
+        "said": "ENwHY3Yni2rlgwDPywLFQGgwr99L3ReW_k90O9cjVcsr",
+        "status": "valid"
+      },
+      "c000002": {
+        "said": "EO7VPbpFieYPZcNlwOL9L0Bz-qLNT4BVauJB18UX1NHE",
+        "status": "valid"
+      },
+      "c000003": {
+        "said": "EFrpGVQLFypnwiTA2sHEnvab_sa-mjXQ4FPTdOndG13h",
+        "status": "valid"
+      },
+      "c000004": {
+        "said": "EPugeY9dgRkXg2p4fh0VoJQV0jaaYrijnUtof0gxgeEr",
+        "status": "valid"
+      },
+      "c000005": {
+        "said": "EETWQHOiHbksD6_mB0mbNQGylOirH3UZLTljOmFDhLm8",
+        "status": "valid"
+      },
+      "c000006": {
+        "said": "EOvfhFgpwM0kwOdAxugv3appVazhjsFIp0auhMcJHDbp",
+        "status": "valid"
+      },
+      "c000007": {
+        "said": "EAan3oSA7PYQbuOcfxzkSmhP2I38z_Py6WshR8_8zkht",
+        "status": "valid"
+      },
+      "c000008": {
+        "said": "EP3uk5a07Wow99AAx6YOI17ohcIcKxm9ZkKM93d7tHib",
+        "status": "valid"
+      },
+      "c000009": {
+        "said": "EESN7xBjTF_rWIN-D-zqpNgtyL6scm7dhbuAUDs-Ccae",
+        "status": "valid"
+      },
+      "c000010": {
+        "said": "EHqBuFfYO7DGhfHRyPQHCH6YkFTKCMXtyHnElxuHQoUl",
+        "status": "valid"
+      },
+      "c000011": {
+        "said": "ENfOsJrFx34OaNHMaYMOGGimyxWglPU21p_c9clkHG4G",
+        "status": "valid"
+      },
+      "c000012": {
+        "said": "EOgq40mf6tbuTL1z2PbhqvJdpgB1-u4CyRvBmljFcDfA",
+        "status": "valid"
+      },
+      "c000013": {
+        "said": "EFuz4CyD_7nqsCekI4zfLxzUo3wgtpADc82PpNFlDDMQ",
+        "status": "valid"
+      },
+      "c000014": {
+        "said": "EHGp-zMZdvPF7KBgkTpGeFCNtVp2_OiJ3kysQ50CsGJ6",
+        "status": "valid"
+      },
+      "c000015": {
+        "said": "EJHe-7BJFCe3MmZ7MD7Gfqu6AbviekOIKGfT2CTNsG9u",
+        "status": "valid"
+      },
+      "c000016": {
+        "said": "EMKGaOdAeFhzWbJBJE_dNOmCVJEyZo1PL8hddO89N3RM",
+        "status": "valid"
+      },
+      "c000017": {
+        "said": "EJsSAdh8D_R5NZlcK5cDMqVDERulXIpCpIRDulHyN_EP",
+        "status": "valid"
+      },
+      "c000018": {
+        "said": "ENBVY20ecXX79kwh9Wuj8Q1lGCD6SkZo61iHeeD_2NEF",
+        "status": "valid"
+      },
+      "c000019": {
+        "said": "ELcrG0TGNLuN-3M7FTgix7PxvOpMFGUijH7JzSGoqHPp",
+        "status": "valid"
+      },
+      "c000020": {
+        "said": "EKD4nTZegLD7lVQiLwTpkjx2D7Nf6xeCKEH1BU3bJdi-",
+        "status": "valid"
+      },
+      "c000021": {
+        "said": "EDOudu9YQfU0xFg1F31UkRP2JgLDelcnBf3vw1JFcHyd",
+        "status": "valid"
+      },
+      "c000022": {
+        "said": "EPCcDJsCTxcXgBJFHKAHSqQ53FZLR-Ld9gWaP_GDCcEv",
+        "status": "valid"
+      },
+      "c000023": {
+        "said": "EIWrry_nV3xaYR2BYylbs6YxT6zp7zw4KTTMWLW6jDhq",
+        "status": "valid"
+      },
+      "c000024": {
+        "said": "EEkCwE4kmm01aJRYtcy-ikcMOwur6_CgsD4J7zOn9b3I",
+        "status": "valid"
+      },
+      "c000025": {
+        "said": "EOaotnMheFs1iRB1Rxro28xnLSD80O08UhQlS0O3aoJ9",
+        "status": "valid"
+      },
+      "c000026": {
+        "said": "EOLkX7OWC2vcqeW2Xm7BJVeDPnMSqWklq6tqjGhB_GtA",
+        "status": "valid"
+      },
+      "c000027": {
+        "said": "EC9r3_OqlIw4pN0jeKZbDJv0G9PjjJioebw4kBm9LS8T",
+        "status": "valid"
+      },
+      "c000028": {
+        "said": "EOQnPF9Zg-qce2qb3p-lj9ZZH9rfLTt_zZ6jjVBXngBu",
+        "status": "valid"
+      },
+      "c000029": {
+        "said": "EHhsg-STY2h1UsOQUy9LHahVT_BPB3LsakrSe9RqJHWg",
+        "status": "valid"
+      },
+      "c000030": {
+        "said": "EGweJcGH1hSHzynAXCAIMQYBnz8gwtTePo-lqUcoJJ0T",
+        "status": "valid"
+      },
+      "c000031": {
+        "said": "EFNe_xtxPkt6WXbiwH2CPMlBpAjIwyO3Kdd-WDbGdlVi",
+        "status": "valid"
+      },
+      "c000032": {
+        "said": "EM09Wp1DGGcly3vdm8qK5AFJPQsMRVyVOx4dT0Fcu7VK",
+        "status": "valid"
+      },
+      "c000033": {
+        "said": "EDU4a5B405kGO_5gUCpa2vVhG_PyzIBTaJlZGtAPDZZn",
+        "status": "valid"
+      },
+      "c000034": {
+        "said": "EJZXI6rjUkHhZpY4bbnT09-cnVAR9joyq3XvoKKfOot4",
+        "status": "valid"
+      },
+      "c000035": {
+        "said": "EFd-M9TJuxkb1dKmTJolcOvNYkR823_gR57VYqvsdvbB",
+        "status": "valid"
+      }
+    }
+  },
+  "run": {
+    "duration_s": 60.0,
+    "host_load": {
+      "before": [
+        2.31,
+        2.36,
+        2.45
+      ],
+      "end": [
+        2.04,
+        2.31,
+        2.43
+      ],
+      "window": [
+        2.17,
+        2.33,
+        2.44
+      ]
+    },
+    "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+    "lag_limit_ms": 25.0,
+    "measure": [
+      "requested",
+      "verified"
+    ],
+    "rate": 0.6,
+    "repetition": 3,
+    "scenario": "crash-witness-1home",
+    "stages": [
+      "issue",
+      "deliver",
+      "present",
+      "verify"
+    ],
+    "warmup_s": 0.0
+  },
+  "scenario": "# Today's imbu against Utah's stated targets (bench-targets). Needs `uv sync --extra stacks`.\n# Every size here is a choice recorded in this.i under 4j5395l8; otherwise the baseline's (82r8lxy5).\nscenario_schema = 1\nname = \"crash-witness-1home\"\ndescription = \"The lifecycle to verified at the rate one home's lifecycle sustains, one home, crashing witness_pool.w0 at 20 s.\"\nstages = [\"issue\", \"deliver\", \"present\", \"verify\"]\n\n[load]\nrates = [0.6]\nduration_s = 60.0\nwarmup_s = 0.0\ndrain_s = 120.0\nrepetitions = 3\nmeasure = [\"requested\", \"verified\"]\n\n[statistics]\nlag_limit_ms = 25.0\n\n[roles.witness_pool]\nadapter = \"heti.witness_pool\"\n[roles.witness_pool.knobs]\nknob_schema = 1\ncount = 3\n\n[roles.state_distribution]\nadapter = \"registrar.state_distribution\"\n[roles.state_distribution.knobs]\nknob_schema = 1\nwindow_s = 2.0\ndelivery_timeout_s = 1.0\nresync_s = 6.0\n\n[roles.issuer]\nadapter = \"imbu.issuer\"\n[roles.issuer.knobs]\nknob_schema = 4\ntoad = 2\npoll_ms = \"n/a\"\nwait_s = 25.0\nanswer_rate = 2.0\nanswer_burst = 20\noperation_timeout_s = 60.0\nhomes = 1\nclients = 1\nsigner = \"lockbox\"\nsigner_latency_ms = \"n/a\"\nsigner_rate = \"n/a\"\n\n[roles.holder]\nadapter = \"heti.holder\"\n[roles.holder.knobs]\nknob_schema = 1\ntoad = 2\n\n[roles.verifier]\nadapter = \"heti.verifier\"\n[roles.verifier.knobs]\nknob_schema = 1\ntoad = 2\nfreshness_s = 30.0\nretry_ms = 250.0\ndeadline_s = 60.0\n\n[[faults]]\nkind = \"crash\"\ntarget = \"witness_pool.w0\"\nat_s = 20.0\n",
+  "scenario_sha256": "7bd2747cc27265c377a46dcc0410f9ef2a3b71e13470de5fbc00fe3a881539b1"
+}

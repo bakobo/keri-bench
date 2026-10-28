@@ -111,6 +111,44 @@ async def test_imbu_signs_through_the_throttled_signer_and_the_census_counts_it(
     assert home["per_issuance"] == 2.0
 
 
+async def test_a_waiting_client_costs_imbu_one_signed_answer_an_operation(tmp_path):
+    """this.i 5k8z0pxe: with Prefer: wait each operation is answered once, so the principal signs
+    one answer per credential beside its ixn and grant (imbu @8f8e7hkm)."""
+    path = tmp_path / "scenario.toml"
+    path.write_text(scenario(stages='["issue"]', rate="1.0", duration="4.0",
+                             signer="external", latency="0.0", poll='"n/a"', wait="25.0"))
+    report = await runner.run_once(load_scenario(path), tmp_path / "out", rate=1.0,
+                                   repetition=1, harness_commit="test")
+    _, events = read_timeline(tmp_path / "out" / "rate-1" / "rep-1" / "timeline.jsonl")
+    assert [e.attrs for e in events if e.name == "stage_failed"] == []
+    home, = report["census"]["issuer"]["signers"]
+    # One answer per issuance, and one for resolving the holder before the window.
+    issued = sum(1 for e in events if e.name == "witnessed")
+    assert home["issuances"] == issued >= 3
+    assert home["signed_responses"] == issued + 1
+    assert home["refused_answers"] == 0
+    assert home["per_issuance"] == 2.0
+    accepted = [e for e in events if e.name == "accepted"]
+    assert accepted and all(e.method == "reported" for e in accepted)
+
+
+async def test_a_client_past_its_answer_budget_waits_out_imbu_s_refusals(tmp_path):
+    """imbu @6u3jm9e4: a controller polling every 50 ms on a budget of 2 a second is refused,
+    unsigned, and the adapter asks again after Retry-After rather than failing the credential."""
+    path = tmp_path / "scenario.toml"
+    path.write_text(scenario(stages='["issue"]', rate="1.0", duration="4.0",
+                             signer="external", latency="0.0", answer_rate="2.0",
+                             answer_burst=2))
+    report = await runner.run_once(load_scenario(path), tmp_path / "out", rate=1.0,
+                                   repetition=1, harness_commit="test")
+    _, events = read_timeline(tmp_path / "out" / "rate-1" / "rep-1" / "timeline.jsonl")
+    assert [e.attrs for e in events if e.name == "stage_failed"] == []
+    home, = report["census"]["issuer"]["signers"]
+    assert home["refused_answers"] > 0
+    assert len([e for e in events if e.name == "witnessed"]) == home["issuances"] >= 3
+    assert home["signatures_per_issuance"] is not None
+
+
 BULK_ISSUER = """[roles.issuer]
 adapter = "imbu.bulk_issuer"
 [roles.issuer.knobs]

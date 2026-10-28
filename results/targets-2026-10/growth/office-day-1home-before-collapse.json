@@ -1,0 +1,207 @@
+{
+ "drift": {
+  "buckets": [
+   {
+    "credentials": 200,
+    "elapsed_s": 285.714483459,
+    "index": 0,
+    "missing": 0,
+    "p50_ns": 422313983,
+    "p99_ns": 567279615,
+    "store_bytes": 1593503,
+    "store_credentials": 100
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 857.143054888,
+    "index": 1,
+    "missing": 0,
+    "p50_ns": 558366719,
+    "p99_ns": 668991487,
+    "store_bytes": 4420295,
+    "store_credentials": 300
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 1428.571626316,
+    "index": 2,
+    "missing": 0,
+    "p50_ns": 678428671,
+    "p99_ns": 818937855,
+    "store_bytes": 6640327,
+    "store_credentials": 500
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 2000.000197745,
+    "index": 3,
+    "missing": 0,
+    "p50_ns": 796917759,
+    "p99_ns": 976748543,
+    "store_bytes": 9379999,
+    "store_credentials": 700
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 2571.428769174,
+    "index": 4,
+    "missing": 0,
+    "p50_ns": 930086911,
+    "p99_ns": 1083179007,
+    "store_bytes": 12202143,
+    "store_credentials": 900
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 3142.857340602,
+    "index": 5,
+    "missing": 0,
+    "p50_ns": 1051197439,
+    "p99_ns": 1275068415,
+    "store_bytes": 14897311,
+    "store_credentials": 1100
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 3714.285912031,
+    "index": 6,
+    "missing": 0,
+    "p50_ns": 1164967935,
+    "p99_ns": 1405091839,
+    "store_bytes": 17150111,
+    "store_credentials": 1300
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 4285.714483459,
+    "index": 7,
+    "missing": 0,
+    "p50_ns": 1274019839,
+    "p99_ns": 1544552447,
+    "store_bytes": 19919007,
+    "store_credentials": 1500
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 4857.143054888,
+    "index": 8,
+    "missing": 0,
+    "p50_ns": 1412431871,
+    "p99_ns": 1725956095,
+    "store_bytes": 22659231,
+    "store_credentials": 1700
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 5428.571626316,
+    "index": 9,
+    "missing": 0,
+    "p50_ns": 1465909247,
+    "p99_ns": 1849688063,
+    "store_bytes": 25350303,
+    "store_credentials": 1900
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 6000.000197745,
+    "index": 10,
+    "missing": 0,
+    "p50_ns": 1572863999,
+    "p99_ns": 1822425087,
+    "store_bytes": 27631775,
+    "store_credentials": 2100
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 6571.428769174,
+    "index": 11,
+    "missing": 0,
+    "p50_ns": 1688207359,
+    "p99_ns": 2038431743,
+    "store_bytes": 30449823,
+    "store_credentials": 2300
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 7142.857340602,
+    "index": 12,
+    "missing": 0,
+    "p50_ns": 1787822079,
+    "p99_ns": 2047868927,
+    "store_bytes": 33083551,
+    "store_credentials": 2500
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 7714.285912031,
+    "index": 13,
+    "missing": 0,
+    "p50_ns": 1903165439,
+    "p99_ns": 2250244095,
+    "store_bytes": 35852447,
+    "store_credentials": 2700
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 8285.714483459,
+    "index": 14,
+    "missing": 0,
+    "p50_ns": 2011168767,
+    "p99_ns": 2533359615,
+    "store_bytes": 38494367,
+    "store_credentials": 2900
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 8857.143054888,
+    "index": 15,
+    "missing": 0,
+    "p50_ns": 2136997887,
+    "p99_ns": 2545942527,
+    "store_bytes": 40845471,
+    "store_credentials": 3100
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 9428.571626316,
+    "index": 16,
+    "missing": 0,
+    "p50_ns": 2250244095,
+    "p99_ns": 2686451711,
+    "store_bytes": 43708575,
+    "store_credentials": 3300
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 10000.000197745,
+    "index": 17,
+    "missing": 0,
+    "p50_ns": 2367684607,
+    "p99_ns": 3015704575,
+    "store_bytes": 46370975,
+    "store_credentials": 3500
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 10571.428769174,
+    "index": 18,
+    "missing": 0,
+    "p50_ns": 2514485247,
+    "p99_ns": 3812622335,
+    "store_bytes": 49193119,
+    "store_credentials": 3700
+   },
+   {
+    "credentials": 200,
+    "elapsed_s": 11142.857340602,
+    "index": 19,
+    "missing": 0,
+    "p50_ns": 3240099839,
+    "p99_ns": 7281311743,
+    "store_bytes": 51470495,
+    "store_credentials": 3900
+   }
+  ]
+ },
+ "note": "office-day-1home/rate-0.35/rep-1/report.json's soak buckets up to 4,000 credentials, before the home fell behind; later buckets measure the backlog, not the stock."
+}

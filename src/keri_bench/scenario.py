@@ -45,6 +45,7 @@ E_RECOGNITION = "e.input.range.scenario.recognition.f"
 E_STOP = "e.input.range.scenario.stop.f"
 E_SOAK = "e.input.range.scenario.soak.f"
 E_PRESEED = "e.input.range.scenario.preseed.f"
+E_LIFECYCLE = "e.input.range.scenario.lifecycle.f"
 
 
 @dataclass(frozen=True)
@@ -120,6 +121,15 @@ class Preseed:
 
 
 @dataclass(frozen=True)
+class Lifecycle:
+    """Which credentials run the stages after issue (this.i 8654nxrl)."""
+
+    full_every: int
+    """The credential scheduled at index i runs every stage when i is a multiple of this, and
+    is issued only otherwise."""
+
+
+@dataclass(frozen=True)
 class Scenario:
     name: str
     description: str
@@ -134,6 +144,7 @@ class Scenario:
     sha256: str
     soak: Soak | None = None
     preseed: Preseed | None = None
+    lifecycle: Lifecycle | None = None
 
 
 def _need(table: Mapping, key: str, where: str) -> Any:
@@ -293,6 +304,17 @@ def _preseed(table: Mapping | None) -> Preseed | None:
     return Preseed(credentials, concurrency)
 
 
+def _lifecycle(table: Mapping | None) -> Lifecycle | None:
+    if table is None:
+        return None
+    _only(table, {"full_every"}, "[lifecycle]")
+    every = _need(table, "full_every", "[lifecycle]")
+    if not (_count(every) and every >= 1):
+        raise BenchError(E_LIFECYCLE, f"[lifecycle] full_every must be a positive whole number, "
+                         f"not {every!r}.")
+    return Lifecycle(every)
+
+
 def load_scenario(path: Path) -> Scenario:
     raw = Path(path).read_bytes()
     if len(raw) > MAX_BYTES:
@@ -316,4 +338,5 @@ def load_scenario(path: Path) -> Scenario:
         faults=tuple(_fault(f) for f in table.get("faults", [])),
         stop=_stop(table.get("stop")), soak=_soak(table.get("soak")),
         preseed=_preseed(table.get("preseed")),
+        lifecycle=_lifecycle(table.get("lifecycle")),
         text=text, sha256=hashlib.sha256(raw).hexdigest())

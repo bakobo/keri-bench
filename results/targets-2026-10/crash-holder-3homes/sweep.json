@@ -1,0 +1,32 @@
+{
+  "scenario": "crash-holder-3homes",
+  "measure": [
+    "requested",
+    "verified"
+  ],
+  "steps": [
+    {
+      "offered": 0.6,
+      "runs": 3,
+      "achieved": {
+        "n": 3,
+        "min": 0.5657095654110436,
+        "max": 0.5657099921338442,
+        "mean": 0.5657098280599059,
+        "stdev": 2.2980611144668282e-07
+      },
+      "p99_ns": {
+        "n": 3,
+        "min": 38352715775,
+        "max": 38352715775,
+        "mean": 38352715775.0,
+        "stdev": 0.0
+      }
+    }
+  ],
+  "saturation": null,
+  "refused": [],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 6
+}

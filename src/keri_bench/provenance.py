@@ -57,6 +57,11 @@ def host_fingerprint() -> dict[str, Any]:
             "python": sys.version.split()[0], "boot_id": BOOT_ID.read_text().strip()}
 
 
+def load_average() -> list[float]:
+    """The host's 1, 5 and 15 minute load averages: on a shared host, how busy it was."""
+    return [round(value, 2) for value in os.getloadavg()]
+
+
 def harness_commit(repo: Path) -> str:
     """The harness's commit, with ``-dirty`` when uncommitted changes could affect a number."""
     try:

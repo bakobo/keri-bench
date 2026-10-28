@@ -46,10 +46,13 @@ class HttpClient:
                       headers: Mapping[str, str] | None = None) -> Answer:
         async with self._ensure().request(method, url, data=body, headers=headers,
                                           skip_auto_headers=("User-Agent",)) as answer:
-            data = await answer.content.read(MAX_ANSWER + 1)
-            if len(data) > MAX_ANSWER:
-                raise ValueError(f"The answer from {url} is larger than {MAX_ANSWER} bytes.")
-            return Answer(answer.status, data, dict(answer.headers))
+            # read(n) returns what has arrived, up to n, not the whole body: read to the end.
+            data = bytearray()
+            while chunk := await answer.content.read(MAX_ANSWER + 1 - len(data)):
+                data += chunk
+                if len(data) > MAX_ANSWER:
+                    raise ValueError(f"The answer from {url} is larger than {MAX_ANSWER} bytes.")
+            return Answer(answer.status, bytes(data), dict(answer.headers))
 
     async def get(self, url: str, **kw) -> Answer:
         return await self.request("GET", url, **kw)

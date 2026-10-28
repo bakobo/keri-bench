@@ -1,4 +1,4 @@
-"""The imbu issuer adapter, against imbu's asynchronous operations (imbu 8512c1d, plan item
+"""The imbu issuer adapter, against imbu's asynchronous operations (imbu 670a3d8, plan item
 imbu-async, decision Q-EVAG).
 
 A mutating request answers 202 with ``Location: /v1/imbu/operations/{id}`` and the operation in
@@ -17,7 +17,13 @@ What imbu's operation carries, as this adapter reads it:
   finished; imbu stamps no ``constructed`` or ``registry_updated``, so neither is declared here;
 - the operation is finished when ``state`` is ``done``, and failed when it is ``failed``, with
   ``result.said`` and ``result.grant`` (base64) on success;
-- the client's idempotency key travels as the ``Idempotency-Key`` header.
+- the client's idempotency key travels as the ``Idempotency-Key`` header;
+- ``Prefer: wait=<s>`` (imbu @8f8e7hkm) holds a mutating request's or an operation read's answer
+  for up to 25 s until the operation settles, so a client that waits needs one signed answer per
+  operation instead of one per poll; the ``wait_s`` knob sends it, and ``poll_ms`` polls instead;
+- each controller has a budget of signed answers (imbu @6u3jm9e4), set by the ``answer_rate``
+  and ``answer_burst`` knobs; past it imbu answers 429 unsigned with ``Retry-After``, and the
+  adapter asks again after that many seconds with the same request and key (this.i 5k8z0pxe).
 
 Each issuance through ``/v1/imbu/issuances`` gets a registry of its own (imbu @2tdzyh85, Daniel's
 Q-ZSCW), as SEDI's pool does, so every credential verifies independently against the Observer.
@@ -53,7 +59,7 @@ from ..procs import free_port
 from ..vocabulary import Role
 from .adapters import IMBU, PYTHON, STARTUP, passcode
 
-VERSION = "3"
+VERSION = "4"
 WALL = 1_000
 """imbu stamps milestones in RFC 3339 with microseconds (imbu operations.now), so a microsecond
 is the resolution claimed for them."""
@@ -69,7 +75,15 @@ E_TIMEOUT = "e.env.imbu.operation.r"
 E_DEPLOYMENT = "e.input.range.imbu.deployment.f"
 E_SIGNER = "e.input.range.imbu.signer.f"
 E_SIGNER_RECORD = "e.input.format.imbu.signer.f"
+E_WAIT = "e.input.range.imbu.wait.f"
+E_BUDGET = "e.input.range.imbu.budget.f"
 NA = "n/a"
+WAIT_LIMIT = 25
+"""The longest imbu holds a waiting answer, in seconds (imbu control/routes.py WAIT_LIMIT)."""
+BURST_LIMIT = 2**32
+"""The largest answer burst imbu accepts (imbu control/budget.py MAX_ANSWER_BURST)."""
+sleep = asyncio.sleep
+"""How the adapter waits out a Retry-After; a name of its own so a test need not wait."""
 
 
 def stamp(value: Any) -> int:
@@ -128,6 +142,8 @@ class Home:
     signer_port: int | None = None
     signed: int = 0
     """Answers imbu signed with the principal's key: one signature each (this.i 2p26rn9h)."""
+    refused: int = 0
+    """Answers imbu refused unsigned because the controller's budget was spent (5k8z0pxe)."""
     issuances: int = 0
 
 
@@ -143,6 +159,54 @@ def check_signer(knobs) -> None:
                      f"ms and rate {rate!r}; it must be lockbox with both n/a, or external with "
                      f"a latency that is n/a or finite and not negative, and a rate that is n/a or finite and "
                      f"positive.")
+
+
+def check_waiting(knobs) -> None:
+    """Refuse a client that neither polls nor waits, or does both, or waits for a time imbu
+    cannot be asked for: whole seconds from 1 to imbu's bound."""
+    poll, wait = knobs["poll_ms"], knobs["wait_s"]
+    if wait == NA and poll != NA and 0 < poll < math.inf:
+        return
+    if poll == NA and wait != NA and 1 <= wait <= WAIT_LIMIT and wait == int(wait):
+        return
+    raise BenchError(E_WAIT, f"The imbu issuer polls every {poll!r} ms and waits {wait!r} s; "
+                     f"exactly one of them must be n/a, a poll must be finite and positive, and "
+                     f"a wait must be whole seconds from 1 to {WAIT_LIMIT}.")
+
+
+def check_budget(knobs) -> None:
+    """Refuse an answer budget imbu would refuse at startup, before any process starts."""
+    rate, burst = knobs["answer_rate"], knobs["answer_burst"]
+    if 0 < rate < math.inf and 1 <= burst <= BURST_LIMIT:
+        return
+    raise BenchError(E_BUDGET, f"The imbu issuer's answer budget is {rate!r} a second with a "
+                     f"burst of {burst!r}; the rate must be finite and positive and the burst "
+                     f"from 1 to {BURST_LIMIT}.")
+
+
+def budget_args(knobs) -> list[str]:
+    """Each home's answer budget, as the issuer process takes it (stacks/issuer.py)."""
+    return ["--answer-rate", str(knobs["answer_rate"]), "--answer-burst",
+            str(knobs["answer_burst"])]
+
+
+def retry_after(answer: Answer) -> int | None:
+    """A refusal's Retry-After as whole seconds, or None when it is missing or unreadable."""
+    for name, value in answer.headers.items():
+        if name.lower() == "retry-after":
+            return int(value) if value.isascii() and value.isdigit() else None
+    return None
+
+
+def operation_document(answer: Answer) -> dict | None:
+    """The operation a 202 carries in its body, if it carries one."""
+    try:
+        body = answer.json()
+    except ValueError:
+        return None
+    if isinstance(body, dict) and isinstance(body.get("operation"), dict):
+        return body["operation"]
+    return body if isinstance(body, dict) else None
 
 
 def signer_args(knobs, *, port: int) -> list[str]:
@@ -161,17 +225,23 @@ class ImbuIssuer(IssuerAdapter):
     declaration = Declaration(
         adapter="imbu.issuer", role=Role.ISSUER, version=VERSION,
         milestones={
-            "accepted": Observation("observed", "harness"),
-            **{name: Observation("reported", "realtime", WALL) for name in ISSUE_MILESTONES},
+            **{name: Observation("reported", "realtime", WALL)
+               for name in ("accepted", *ISSUE_MILESTONES)},
             "revocation_requested": Observation("observed", "harness"),
             **{name: Observation("reported", "realtime", WALL)
                for name in REVOKE_MILESTONES.values()},
         },
-        knobs=KnobSchema(3, {
+        knobs=KnobSchema(4, {
             "toad": Knob(int, "Witness receipts imbu requires before an event is settled."),
             "poll_ms": Knob(float, "How often the adapter reads an operation until it finishes; "
-                            "the milestone times come from imbu, not from this poll.",
-                            unit="ms"),
+                            "the milestone times come from imbu, not from this poll. n/a when "
+                            "the adapter waits instead.", allow_na=True, unit="ms"),
+            "wait_s": Knob(float, "Prefer: wait sent on each request and operation read, so imbu "
+                           "answers once the operation settles; n/a when the adapter polls.",
+                           allow_na=True, unit="s"),
+            "answer_rate": Knob(float, "Signed answers each controller regains a second "
+                                "(imbu's answer budget).", unit="/s"),
+            "answer_burst": Knob(int, "Signed answers each controller may hold unspent."),
             "operation_timeout_s": Knob(float, "How long an operation may run before the "
                                         "adapter gives up on it.", unit="s"),
             "homes": Knob(int, "How many imbu issuers, each its own home and process, share "
@@ -204,6 +274,8 @@ class ImbuIssuer(IssuerAdapter):
             raise BenchError(E_DEPLOYMENT, f"The imbu issuer needs at least one home and one "
                              f"client per home, not {homes} and {clients}.")
         check_signer(self.ctx.knobs)
+        check_waiting(self.ctx.knobs)
+        check_budget(self.ctx.knobs)
         state = self.ctx.peers[Role.STATE_DISTRIBUTION]
         found = []
         for index in range(homes):
@@ -216,6 +288,7 @@ class ImbuIssuer(IssuerAdapter):
                 args += ["--witness", oobi]
             home.signer_port = free_port()
             args += signer_args(self.ctx.knobs, port=home.signer_port)
+            args += budget_args(self.ctx.knobs)
             process = await self.ctx.procs.start(
                 f"issuer.h{index}", (PYTHON, "-m", "keri_bench.stacks.issuer"), tuple(args),
                 env={"BENCH_PASSCODE": passcode(),
@@ -267,18 +340,39 @@ class ImbuIssuer(IssuerAdapter):
         """The headers a controller signs a request with: its own key, here."""
         return fiki.sign_request(key=client.key, method=method, url=url, body=body)
 
+    def _wait(self) -> int | None:
+        """Seconds to prefer imbu holds an answer, or None when the adapter polls. The bulk
+        adapter's knobs name no wait, so it polls."""
+        wait = self.ctx.knobs.get("wait_s", NA)
+        return None if wait == NA else int(wait)
+
     async def _call(self, home: Home, client: Client, method: str, path: str,
-                    payload: Mapping | None = None, key: str | None = None) -> Answer:
+                    payload: Mapping | None = None, key: str | None = None,
+                    deadline: int | None = None) -> Answer:
+        """One request, signed afresh each time it is sent, and sent again after a refusal's
+        Retry-After until ``deadline`` (by default the operation timeout from now)."""
         url = f"{home.control}{path}"
         body = json.dumps(payload).encode() if payload is not None else None
-        headers = {**await self._sign(client, method, url, body),
-                   "Content-Type": "application/json"}
-        if key is not None:
-            headers["Idempotency-Key"] = key
-        answer = await client.http.request(method, url, body=body, headers=headers)
-        if any(name.lower() == "signature" for name in answer.headers):
-            home.signed += 1
-        return answer
+        if deadline is None:
+            deadline = self.ctx.now() + round(self.ctx.knobs["operation_timeout_s"] * 1e9)
+        while True:
+            headers = {**await self._sign(client, method, url, body),
+                       "Content-Type": "application/json"}
+            if key is not None:
+                headers["Idempotency-Key"] = key
+            if (wait := self._wait()) is not None:
+                headers["Prefer"] = f"wait={wait}"
+            answer = await client.http.request(method, url, body=body, headers=headers)
+            if any(name.lower() == "signature" for name in answer.headers):
+                home.signed += 1
+            pause = retry_after(answer) if answer.status == 429 else None
+            if pause is None:
+                return answer
+            home.refused += 1
+            if self.ctx.now() + pause * 1_000_000_000 > deadline:
+                raise BenchError(E_TIMEOUT, f"imbu refused {method} {path} until {pause} s "
+                                 f"from now, past the operation's deadline.")
+            await sleep(pause)
 
     async def census(self) -> dict | None:
         """Each home's external signer's record, with the answers imbu signed and the
@@ -299,27 +393,41 @@ class ImbuIssuer(IssuerAdapter):
                                  f"{answer.status} with a record that is not the profile "
                                  f"{wanted}: {answer.body[:200]!r}")
             signers.append({**record, "signed_responses": home.signed,
-                            "issuances": home.issuances})
+                            "refused_answers": home.refused, "issuances": home.issuances})
         return {"signers": signers}
 
-    async def _finish(self, home: Home, client: Client, operation: str) -> dict:
+    async def _finish(self, home: Home, client: Client, operation: str,
+                      first: dict | None = None) -> dict:
+        """Read the operation until it is done. ``first`` is the 202's own document, which a
+        waiting client takes as the answer when it is already settled; a polling client passes
+        none and always reads, as the baselines' client did, so their counts compare."""
         knobs = self.ctx.knobs
         deadline = self.ctx.now() + round(knobs["operation_timeout_s"] * 1e9)
+        waiting = self._wait() is not None
+        op = first
         while True:
-            answer = await self._call(home, client, "GET", f"/v1/imbu/operations/{operation}")
+            if op is not None:
+                if op.get("state") == "done":
+                    return op
+                if op.get("state") == "failed":
+                    raise BenchError(E_FAILED, f"imbu's operation {operation} failed: "
+                                     f"{op.get('error')!r}"[:500])
+                if self.ctx.now() >= deadline:
+                    raise BenchError(E_TIMEOUT, f"imbu's operation {operation} had not "
+                                     f"finished after {knobs['operation_timeout_s']} s.")
+                if not waiting:
+                    await asyncio.sleep(knobs["poll_ms"] / 1e3)
+            answer = await self._call(home, client, "GET", f"/v1/imbu/operations/{operation}",
+                                      deadline=deadline)
             if answer.status != 200:
                 raise BenchError(E_REFUSED, f"imbu answered {answer.status} when asked for "
                                  f"operation {operation}: {answer.body[:300]!r}")
             op = answer.json()
-            if op.get("state") == "done":
-                return op
-            if op.get("state") == "failed":
-                raise BenchError(E_FAILED, f"imbu's operation {operation} failed: "
-                                 f"{op.get('error')!r}"[:500])
-            if self.ctx.now() >= deadline:
-                raise BenchError(E_TIMEOUT, f"imbu's operation {operation} had not finished "
-                                 f"after {knobs['operation_timeout_s']} s.")
-            await asyncio.sleep(knobs["poll_ms"] / 1e3)
+
+    async def _settled(self, home: Home, client: Client, answer: Answer) -> dict:
+        """The finished operation a 202 began."""
+        first = operation_document(answer) if self._wait() is not None else None
+        return await self._finish(home, client, operation_id(answer), first)
 
     def _report(self, op: dict, credential: str, names: Mapping[str, str],
                 attrs: dict) -> None:
@@ -352,7 +460,7 @@ class ImbuIssuer(IssuerAdapter):
             if answer.status != 202:
                 raise BenchError(E_REFUSED, f"imbu answered {answer.status} to resolving the "
                                  f"holder, not 202: {answer.body[:300]!r}")
-            resolved = (await self._finish(home, client, operation_id(answer))).get("result")
+            resolved = (await self._settled(home, client, answer)).get("result")
             if not isinstance(resolved, dict) or resolved.get("aid") != holder["aid"]:
                 raise BenchError(E_SHAPE, f"imbu resolved the holder's OOBI to {resolved!r}, "
                                  f"not the holder {holder['aid']!r}."[:500])
@@ -368,11 +476,10 @@ class ImbuIssuer(IssuerAdapter):
             raise BenchError(E_REFUSED, f"imbu answered {answer.status} to an issuance, not "
                              f"202: {answer.body[:300]!r}")
         home.issuances += 1
-        self.ctx.emit("accepted", credentials=[credential], attrs=where)
-        op = await self._finish(home, client, operation_id(answer))
+        op = await self._settled(home, client, answer)
         result = op.get("result") or {}
         said = result.get("said")
-        self._report(op, credential, {name: name for name in ISSUE_MILESTONES},
+        self._report(op, credential, {name: name for name in ("accepted", *ISSUE_MILESTONES)},
                      {**where, "said": said} if said else where)
         self.ctx.shared.setdefault("said", {})[credential] = said
         grant = base64.b64decode(result["grant"]) if result.get("grant") else None
@@ -387,7 +494,7 @@ class ImbuIssuer(IssuerAdapter):
         if answer.status != 202:
             raise BenchError(E_REFUSED, f"imbu answered {answer.status} to a revocation, not "
                              f"202: {answer.body[:300]!r}")
-        self._report(await self._finish(home, client, operation_id(answer)), credential,
+        self._report(await self._settled(home, client, answer), credential,
                      REVOKE_MILESTONES, self._where(home, client))
 
     async def stop(self) -> None:
