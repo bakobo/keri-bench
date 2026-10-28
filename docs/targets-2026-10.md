@@ -17,7 +17,7 @@ In our words, from Utah's answers of 2026-10-25:
 | 1. Volume, peak hour (2.8 a second) | **Fails** at 1 home and at 3 | One home saturates near 1.5 a second; three carry 2.8 for about 1,900 credentials and then fall behind for good. |
 | 1. Volume, office day (0.35 a second) | **Fails** at 1 home, **passes** at 3 for one day | One home keeps up for 4,036 credentials and never recovers; three homes witness all 10,000 (p50 1.39 s, p99 2.50 s) but are on course to fall behind on the fourth or fifth day. |
 | 2. Stock to a million | No pass/fail given; **storage is linear, issuance is not** | 13.2 KB a credential on disk, 13 GB at a million. Time per credential grows 0.76 ms with each credential in the issuer's KEL, so it crosses the office-day rate near 4,000 credentials per KEL; a million is extrapolated, not run. |
-| 3. Revocation within 30 minutes | **Passes** for the 9 measured, 872–927 s | About 900 s, one Registrar window, while heti's Observer refused most of the Registrar's batches; heti's holder and verifier stopped the sample after the first hour. |
+| 3. Revocation within 30 minutes | **Not established** at the volume target; the 9 measured are within it, 872–927 s | Only 9 of 100 sampled credentials reached revocation, all from the first hour; heti's holder and verifier timed out for the rest, so freshness later in the run, as the issuers' KELs grew, is unmeasured. |
 | 4. Crash recovery | No target | Every role ready in 3.7 s or less, next success within 4.2 s, only in-flight credentials lost; an issuer holding 10,000 takes 10.8 s and 18.4 s. |
 | 5. HSM | Ample headroom | 3 signatures a credential with Prefer: wait, 6.6 when polling; 8.4 or 18.5 a second at the peak, against thousands a second. |
 
@@ -108,7 +108,7 @@ Restart at 10,000: imbu killed at 900 s was ready again in 10.8 s and completed 
 
 ## Target 3: revocation freshness
 
-**Passes for the revocations that could be measured, with about 15 minutes to spare, but only nine could be, all issued in the run's first hour.** The office day at three homes sent every 101st credential through the whole lifecycle and revoked it once a verifier had accepted it. The deployment was configured as Utah would run it: the Registrar's 900 s window, verifier freshness 900 s, so the design bound W + F is the 30-minute target exactly, and recognition is polled every 10 s until two polls agree.
+**Not established at the volume target.** The nine revocations that could be measured were recognised within 30 minutes, with about 15 minutes to spare, but they were all issued in the run's first hour, and the other 91 sampled credentials never reached revocation. That is not enough to say the target holds through an office day, so this report gives no pass. The office day at three homes sent every 101st credential through the whole lifecycle and revoked it once a verifier had accepted it. The deployment was configured as Utah would run it: the Registrar's 900 s window, verifier freshness 900 s, so the design bound W + F is the 30-minute target exactly, and recognition is polled every 10 s until two polls agree.
 
 | | p50 | max | of 1,800 s |
 |---|---|---|---|
