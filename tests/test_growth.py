@@ -114,11 +114,26 @@ def test_growth_says_which_curves_had_too_little_to_fit():
     {"drift": {"buckets": [bucket(25, -1, 1.0, 2.0)]}},                 # negative size
     {"drift": {"buckets": [{**bucket(25, 1000, 1.0, 2.0), "p50_ns": "1"}]}},
     {"drift": {"buckets": [{**bucket(25, 1000, 1.0, 2.0), "p99_ns": float("nan")}]}},
+    {"drift": {"buckets": [bucket(1.5, 1000, 1.0, 2.0)]}},              # a fraction of a credential
+    {"drift": {"buckets": [bucket(10**309, 1000, 1.0, 2.0)]}},          # past a float, as a count
+    {"drift": {"buckets": [bucket(25, 1000, 2.0, 1.0)]}},               # p99 below p50
 ])
+
 def test_a_report_without_soak_buckets_is_refused(report):
     with pytest.raises(BenchError) as refused:
         growth.growth([report], at=[], bound_s=None)
     assert refused.value.code == "e.input.format.growth.report.f"
+
+
+def test_values_past_two_to_the_63_are_refused_not_crashed_on():
+    for stock, size in ((10**309, 1000), (25, 10**309), (25, 1e300)):
+        with pytest.raises(BenchError) as refused:
+            growth.growth([{"drift": {"buckets": [bucket(stock, size, None, None)]}}],
+                          at=[], bound_s=None)
+        assert refused.value.code == "e.input.format.growth.report.f"
+    # 2**63 itself is the largest a soak reports, so it is accepted.
+    assert growth.growth([{"drift": {"buckets": [bucket(2**63, 2**63, None, None)]}}],
+                         at=[], bound_s=None)["buckets"] == 1
 
 
 def test_the_command_reads_reports_and_prints_the_fits(tmp_path, capsys):

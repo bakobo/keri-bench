@@ -87,20 +87,32 @@ def crossing(fit: Fit, bound: float) -> float | None:
     return next((r for r in roots if r >= 0), None)
 
 
+LARGEST = 2**63
+"""No stock, byte count or nanosecond time a soak reports is larger; past it a value would
+overflow on its way to a float."""
+
+
+def _count(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= LARGEST
+
+
 def _number(value: Any) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool) and \
-        math.isfinite(value) and value >= 0
+    # An int is compared as one, never converted; a NaN fails both comparisons.
+    return _count(value) or (isinstance(value, float) and 0 <= value <= LARGEST)
 
 
 def _check_bucket(bucket: Any) -> None:
-    """A bucket's stock is a count of credentials and its measures are sizes and times, so each
-    is a finite number not below zero, and a measure may be absent (None)."""
-    if not isinstance(bucket, Mapping) or not _number(bucket.get("store_credentials")) or \
+    """A bucket's stock is a count of credentials and its measures are sizes and times, so the
+    stock is a whole number and each measure a finite number, none below zero; a measure may be
+    absent (None), and a p99 below its bucket's p50 is impossible."""
+    if not isinstance(bucket, Mapping) or not _count(bucket.get("store_credentials")) or \
             any(bucket.get(key) is not None and not _number(bucket[key])
-                for key, _ in CURVES.values()):
-        raise BenchError(E_REPORT, f"A soak bucket needs a stock not below zero and measures "
-                         f"that are numbers not below zero or null; this one is "
-                         f"{str(bucket)[:200]}.")
+                for key, _ in CURVES.values()) or \
+            (bucket.get("p50_ns") is not None and bucket.get("p99_ns") is not None
+             and bucket["p99_ns"] < bucket["p50_ns"]):
+        raise BenchError(E_REPORT, f"A soak bucket needs a whole stock and measures that are "
+                         f"numbers or null, each from 0 to 2**63, and a p99 not below its "
+                         f"p50; this one is {str(bucket)[:200]}.")
 
 
 def _points(reports: Iterable[Mapping], key: str, scale: float) -> tuple[list, list]:
