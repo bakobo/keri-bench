@@ -108,7 +108,7 @@ Restart at 10,000: imbu killed at 900 s was ready again in 10.8 s and completed 
 
 ## Target 3: revocation freshness
 
-**Not established at the volume target.** The nine revocations that could be measured were recognised within 30 minutes, with about 15 minutes to spare, but they were all issued in the run's first hour, and the other 91 sampled credentials never reached revocation. That is not enough to say the target holds through an office day, so this report gives no pass. The office day at three homes sent every 101st credential through the whole lifecycle and revoked it once a verifier had accepted it. The deployment was configured as Utah would run it: the Registrar's 900 s window, verifier freshness 900 s, so the design bound W + F is the 30-minute target exactly, and recognition is polled every 10 s until two polls agree.
+**Not established at the volume target.** The nine revocations that could be measured were recognised within 30 minutes, with about 15 minutes to spare, but they were all issued in the run's first hour, and the other 91 sampled credentials never reached revocation. That is not enough to say the target holds through an office day, so this report gives no pass; the rerun that would is tick `~26me`. The office day at three homes sent every 101st credential through the whole lifecycle and revoked it once a verifier had accepted it. The deployment was configured as Utah would run it: the Registrar's 900 s window, verifier freshness 900 s, so the design bound W + F is the 30-minute target exactly, and recognition is polled every 10 s until two polls agree.
 
 | | p50 | max | of 1,800 s |
 |---|---|---|---|
