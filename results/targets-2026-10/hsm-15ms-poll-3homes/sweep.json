@@ -1,0 +1,32 @@
+{
+  "scenario": "hsm-15ms-poll-3homes",
+  "measure": [
+    "requested",
+    "witnessed"
+  ],
+  "steps": [
+    {
+      "offered": 2.8,
+      "runs": 3,
+      "achieved": {
+        "n": 3,
+        "min": 2.7999848414256485,
+        "max": 2.799989756422622,
+        "mean": 2.799988096468741,
+        "stdev": 2.8191365708231556e-06
+      },
+      "p99_ns": {
+        "n": 3,
+        "min": 497549311,
+        "max": 527958015,
+        "mean": 517647017.6666667,
+        "stdev": 17407098.53540415
+      }
+    }
+  ],
+  "saturation": null,
+  "refused": [],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 6
+}

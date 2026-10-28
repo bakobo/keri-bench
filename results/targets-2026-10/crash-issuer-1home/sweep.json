@@ -1,0 +1,32 @@
+{
+  "scenario": "crash-issuer-1home",
+  "measure": [
+    "requested",
+    "verified"
+  ],
+  "steps": [
+    {
+      "offered": 0.6,
+      "runs": 3,
+      "achieved": {
+        "n": 3,
+        "min": 0.5485674402479029,
+        "max": 0.5485677594367862,
+        "mean": 0.5485675478165558,
+        "stdev": 1.8327693218594702e-07
+      },
+      "p99_ns": {
+        "n": 3,
+        "min": 38352715775,
+        "max": 38352715775,
+        "mean": 38352715775.0,
+        "stdev": 0.0
+      }
+    }
+  ],
+  "saturation": null,
+  "refused": [],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 6
+}
