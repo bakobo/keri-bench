@@ -3,6 +3,7 @@ revision = 3
 requires-python = ">=3.14"
 
 [manifest]
+overrides = [{ name = "heti", git = "ssh://git@github.com/bakobo/heti?rev=980ee85084abfd310c515f01df4c3869fc78894a" }]
 
 [[manifest.dependency-metadata]]
 name = "overture"
@@ -536,7 +537,7 @@ wheels = [
 [[package]]
 name = "heti"
 version = "0.0.0"
-source = { git = "ssh://git@github.com/bakobo/heti?rev=1ae3590fd829848061c8c01b75ff7977332fc52b#1ae3590fd829848061c8c01b75ff7977332fc52b" }
+source = { git = "ssh://git@github.com/bakobo/heti?rev=980ee85084abfd310c515f01df4c3869fc78894a#980ee85084abfd310c515f01df4c3869fc78894a" }
 dependencies = [
     { name = "bakobo-errors" },
     { name = "fiki" },
@@ -761,7 +762,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.10" },
-    { name = "heti", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/heti?rev=1ae3590fd829848061c8c01b75ff7977332fc52b" },
+    { name = "heti", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/heti?rev=980ee85084abfd310c515f01df4c3869fc78894a" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "imbu", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/imbu?rev=2c3b07271f22e490dfac74ced5948fbcf1d0f311" },
     { name = "sniffio", specifier = ">=1.3" },

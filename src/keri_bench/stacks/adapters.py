@@ -30,7 +30,7 @@ from ..procs import free_port
 from ..vocabulary import Role
 
 VERSION = "2"
-HETI = "1ae3590fd829848061c8c01b75ff7977332fc52b"
+HETI = "980ee85084abfd310c515f01df4c3869fc78894a"
 IMBU = "2c3b07271f22e490dfac74ced5948fbcf1d0f311"
 WITNESS = "ed1dcfc563ebff6545738f820d7410043dcbfbce"
 """The bakobo/witness commit the Registrar runs from: main with the Registrar that takes a
