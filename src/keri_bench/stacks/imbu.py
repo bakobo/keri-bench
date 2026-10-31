@@ -1,4 +1,4 @@
-"""The imbu issuer adapter, against imbu's asynchronous operations (imbu 670a3d8, plan item
+"""The imbu issuer adapter, against imbu's asynchronous operations (imbu 2c3b072, plan item
 imbu-async, decision Q-EVAG).
 
 A mutating request answers 202 with ``Location: /v1/imbu/operations/{id}`` and the operation in
@@ -23,7 +23,11 @@ What imbu's operation carries, as this adapter reads it:
   operation instead of one per poll; the ``wait_s`` knob sends it, and ``poll_ms`` polls instead;
 - each controller has a budget of signed answers (imbu @6u3jm9e4), set by the ``answer_rate``
   and ``answer_burst`` knobs; past it imbu answers 429 unsigned with ``Retry-After``, and the
-  adapter asks again after that many seconds with the same request and key (this.i 5k8z0pxe).
+  adapter asks again after that many seconds with the same request and key (this.i 5k8z0pxe);
+- a home holding as much anchoring work as it finishes in its horizon answers 503
+  ``e.env.saturated.r`` with ``Retry-After`` (imbu 44309be, @66fmushs), and the adapter asks
+  again the same way (this.i 7kmhh4wr). Each home's answer counts are written to
+  ``imbu-answers.json`` in the run directory when the adapter stops.
 
 Each issuance through ``/v1/imbu/issuances`` gets a registry of its own (imbu @2tdzyh85, Daniel's
 Q-ZSCW), as SEDI's pool does, so every credential verifies independently against the Observer.
@@ -59,7 +63,7 @@ from ..procs import free_port
 from ..vocabulary import Role
 from .adapters import IMBU, PYTHON, STARTUP, passcode
 
-VERSION = "4"
+VERSION = "5"
 WALL = 1_000
 """imbu stamps milestones in RFC 3339 with microseconds (imbu operations.now), so a microsecond
 is the resolution claimed for them."""
@@ -82,6 +86,9 @@ WAIT_LIMIT = 25
 """The longest imbu holds a waiting answer, in seconds (imbu control/routes.py WAIT_LIMIT)."""
 BURST_LIMIT = 2**32
 """The largest answer burst imbu accepts (imbu control/budget.py MAX_ANSWER_BURST)."""
+RETRIED = {429: "refused", 503: "saturated"}
+"""The refusals asked again after their Retry-After, and the Home count each is tallied in."""
+ANSWERS = "imbu-answers.json"
 sleep = asyncio.sleep
 """How the adapter waits out a Retry-After; a name of its own so a test need not wait."""
 
@@ -144,6 +151,8 @@ class Home:
     """Answers imbu signed with the principal's key: one signature each (this.i 2p26rn9h)."""
     refused: int = 0
     """Answers imbu refused unsigned because the controller's budget was spent (5k8z0pxe)."""
+    saturated: int = 0
+    """Answers imbu refused with 503 because the home's backlog was full (7kmhh4wr)."""
     issuances: int = 0
 
 
@@ -365,10 +374,11 @@ class ImbuIssuer(IssuerAdapter):
             answer = await client.http.request(method, url, body=body, headers=headers)
             if any(name.lower() == "signature" for name in answer.headers):
                 home.signed += 1
-            pause = retry_after(answer) if answer.status == 429 else None
+            tally = RETRIED.get(answer.status)
+            pause = retry_after(answer) if tally else None
             if pause is None:
                 return answer
-            home.refused += 1
+            setattr(home, tally, getattr(home, tally) + 1)
             if self.ctx.now() + pause * 1_000_000_000 > deadline:
                 raise BenchError(E_TIMEOUT, f"imbu refused {method} {path} until {pause} s "
                                  f"from now, past the operation's deadline.")
@@ -501,3 +511,9 @@ class ImbuIssuer(IssuerAdapter):
         for home in self.homes:
             for client in home.clients:
                 await client.http.close()
+        if self.ctx.run_dir is not None:
+            record = {"homes": [{"home": home.index, "signed": home.signed,
+                                 "refused_budget": home.refused,
+                                 "refused_saturated": home.saturated,
+                                 "issuances": home.issuances} for home in self.homes]}
+            (Path(self.ctx.run_dir) / ANSWERS).write_text(json.dumps(record, indent=1) + "\n")

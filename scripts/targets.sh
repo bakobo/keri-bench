@@ -55,7 +55,8 @@ mkdir -p "$results/calibration"
 cp "$work/calibration/calibration.json" "$results/calibration/"
 cp "$work/loadavg.log" "$results/"
 (cd "$work" && find . -path ./calibration -prune -o \( -name timeline.jsonl -o \
-    -name provenance.json -o -name report.json -o -name report.md -o -name sweep.json \) \
+    -name provenance.json -o -name report.json -o -name report.md -o -name sweep.json \
+    -o -name imbu-answers.json \) \
     -print) | while read -r file; do
     mkdir -p "$results/$(dirname "$file")"
     cp "$work/$file" "$results/$file"
