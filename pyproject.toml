@@ -15,13 +15,15 @@ dependencies = [
 [project.optional-dependencies]
 # The real stack's adapters (imbu issuer; heti witness pool, Observer, holder and verifier). Kept
 # out of the core so the harness, the synthetic stack and CI's calibration need no private repo.
-# Pinned to commits: imbu utah/next 670a3d8 (2026-10-25: Prefer: wait, the answer budget and the
-# publication without the issuer KEL, this.i 5k8z0pxe), and the heti that imbu pins. The Registrar
+# Pinned to commits: imbu utah/next 2c3b072 (2026-10-31: imbu-kel-growth's bounded backlog,
+# which answers 503 with Retry-After past it, on top of 670a3d8's Prefer: wait, answer budget and
+# publication without the issuer KEL; this.i 5frsx7pu, 7kmhh4wr), and the heti that imbu pins,
+# 1ae3590, with heti-kel-growth's lazy issuer KEL. The Registrar
 # (bakobo/witness) runs in its own uvx environment, as the summit harness runs it, because it pins
 # a different keripy.
 stacks = [
-    "imbu @ git+ssh://git@github.com/bakobo/imbu@670a3d874a367aeb3c8cea132b5d0ae98646a3a1",
-    "heti @ git+ssh://git@github.com/bakobo/heti@841fcbd3c6952be729666015ecaa0e28155004cf",
+    "imbu @ git+ssh://git@github.com/bakobo/imbu@2c3b07271f22e490dfac74ced5948fbcf1d0f311",
+    "heti @ git+ssh://git@github.com/bakobo/heti@1ae3590fd829848061c8c01b75ff7977332fc52b",
 ]
 
 [project.scripts]
