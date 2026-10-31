@@ -372,8 +372,8 @@ class FakeHttp:
         pass
 
 
-def scripted(answers, *, knobs=None, sink=None):
-    issuer = adapter("http://imbu", [] if sink is None else sink, knobs=knobs)
+def scripted(answers, *, knobs=None, sink=None, run_dir=None):
+    issuer = adapter("http://imbu", [] if sink is None else sink, knobs=knobs, run_dir=run_dir)
     fake = FakeHttp(answers)
     issuer.homes[0].clients[0].http = fake
     return issuer, fake
@@ -452,6 +452,71 @@ async def test_a_refusal_whose_wait_outlasts_the_operation_is_a_timeout(pauses):
         await issuer.issue("c1", {"aid": "Eholder"})
     assert late.value.code == "e.env.imbu.operation.r"
     assert pauses == []
+
+
+SATURATED = (503, {"code": "e.env.saturated.r"}, {"Retry-After": "4"})
+
+
+async def test_a_saturated_home_is_asked_again_after_its_retry_after_with_the_same_key(pauses):
+    # imbu 44309be answers 503 e.env.saturated.r with Retry-After when a home holds as much
+    # anchoring work as it finishes in its horizon (imbu @66fmushs); a 503 is never signed.
+    issuer, fake = scripted([SATURATED, SATURATED, (202, PENDING, SIGNED), (200, DONE, SIGNED)],
+                            knobs={"operation_timeout_s": 10.0})
+    issued = await issuer.issue("c1", {"aid": "Eholder"})
+    assert issued.said == "Esaid"
+    assert [m for m, _, _ in fake.sent] == ["POST", "POST", "POST", "GET"]
+    assert {h["Idempotency-Key"] for m, _, h in fake.sent if m == "POST"} == {"c1"}
+    assert pauses == [4, 4]
+    home = issuer.homes[0]
+    # Counted apart from the answer budget's refusals, which are the controller's, not the home's.
+    assert (home.signed, home.refused, home.saturated) == (2, 0, 2)
+    assert home.issuances == 1
+
+
+async def test_a_saturated_home_whose_wait_outlasts_the_operation_is_a_timeout(pauses):
+    issuer, _ = scripted([(503, {}, {"Retry-After": "5"})])
+    with pytest.raises(BenchError) as late:
+        await issuer.issue("c1", {"aid": "Eholder"})
+    assert late.value.code == "e.env.imbu.operation.r"
+    assert pauses == []
+    assert issuer.homes[0].saturated == 1
+
+
+@pytest.mark.parametrize("extra", [{}, {"Retry-After": "soon"}])
+async def test_a_503_without_a_readable_retry_after_is_refused(pauses, extra):
+    issuer, _ = scripted([(503, {}, extra)])
+    with pytest.raises(BenchError) as refused:
+        await issuer.issue("c1", {"aid": "Eholder"})
+    assert refused.value.code == "e.party.imbu.refused.f"
+    assert issuer.homes[0].saturated == 0
+
+
+@pytest.mark.parametrize("status", [500, 502, 504])
+async def test_another_5xx_is_not_retried_even_with_a_retry_after(pauses, status):
+    issuer, fake = scripted([(status, {}, {"Retry-After": "1"})])
+    with pytest.raises(BenchError) as refused:
+        await issuer.issue("c1", {"aid": "Eholder"})
+    assert refused.value.code == "e.party.imbu.refused.f"
+    assert len(fake.sent) == 1 and pauses == []
+
+
+async def test_each_homes_answers_are_written_beside_the_run_when_it_stops(pauses, tmp_path):
+    refusal = (429, {}, {"Retry-After": "1"})
+    issuer, _ = scripted([SATURATED, refusal, (202, PENDING, SIGNED), (200, DONE, SIGNED)],
+                         knobs={"operation_timeout_s": 10.0}, run_dir=tmp_path)
+    await issuer.issue("c1", {"aid": "Eholder"})
+    await issuer.stop()
+    record = json.loads((tmp_path / "imbu-answers.json").read_text())
+    assert record == {"homes": [{"home": 0, "signed": 2, "refused_budget": 1,
+                                 "refused_saturated": 1, "issuances": 1}]}
+    # Not under imbu/, whose bytes are the stock's footprint.
+    assert not (tmp_path / "imbu").exists()
+
+
+async def test_no_answers_record_is_written_without_a_run_directory(pauses):
+    issuer, _ = scripted([(202, DONE, SIGNED), (200, DONE, SIGNED)])
+    await issuer.issue("c1", {"aid": "Eholder"})
+    await issuer.stop()  # nowhere to write, and nothing raised
 
 
 @pytest.mark.parametrize("extra", [{}, {"Retry-After": "soon"}, {"Retry-After": "1.5"},
