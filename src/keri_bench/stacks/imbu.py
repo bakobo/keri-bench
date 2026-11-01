@@ -214,11 +214,28 @@ def retry_after(answer: Answer) -> int | None:
     return None
 
 
+PROBLEM_TYPE = "application/problem+json"
+"""The media type imbu sends every refusal in (imbu problem.MEDIA_TYPE)."""
+
+
+def _unique(pairs: list) -> dict:
+    """A JSON object whose names are all distinct; a repeated name makes it ambiguous."""
+    names = [name for name, _ in pairs]
+    if len(set(names)) != len(names):
+        raise ValueError("a repeated name")
+    return dict(pairs)
+
+
 def problem_code(answer: Answer) -> str | None:
-    """The code of a refusal's problem document, or None when its body carries none."""
+    """The code of a refusal's problem document, or None when the answer is not one: not
+    ``application/problem+json``, not one JSON object with distinct names, or not readable."""
+    kind = next((value for name, value in answer.headers.items()
+                 if name.lower() == "content-type"), "")
+    if kind.split(";", 1)[0].strip().lower() != PROBLEM_TYPE:
+        return None
     try:
-        body = answer.json()
-    except ValueError:
+        body = json.loads(answer.body, object_pairs_hook=_unique)
+    except (ValueError, RecursionError):
         return None
     return body.get("code") if isinstance(body, dict) else None
 
