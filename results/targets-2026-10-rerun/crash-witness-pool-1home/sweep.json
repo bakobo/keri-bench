@@ -1,0 +1,32 @@
+{
+  "scenario": "crash-witness-pool-1home",
+  "measure": [
+    "requested",
+    "verified"
+  ],
+  "steps": [
+    {
+      "offered": 0.6,
+      "runs": 3,
+      "achieved": {
+        "n": 3,
+        "min": 0.5657093357479,
+        "max": 0.5657108879997376,
+        "mean": 0.5657100734895156,
+        "stdev": 7.789682316731842e-07
+      },
+      "p99_ns": {
+        "n": 3,
+        "min": 4844421119,
+        "max": 6270484479,
+        "mean": 5336552788.333333,
+        "stdev": 809199988.1495444
+      }
+    }
+  ],
+  "saturation": null,
+  "refused": [],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 6
+}

@@ -1,0 +1,955 @@
+{
+  "adapters": {
+    "harness.driver": {
+      "adapter": "harness.driver",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {
+        "requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "issuer",
+      "tested_against": {},
+      "version": "1"
+    },
+    "harness.monitor": {
+      "adapter": "harness.monitor",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {
+        "revocation_recognised": {
+          "clock": "harness",
+          "method": "polled",
+          "resolution_ns": 25000000
+        }
+      },
+      "role": "verifier",
+      "tested_against": {},
+      "version": "1"
+    },
+    "harness.relay": {
+      "adapter": "harness.relay",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {
+        "grant_sent": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "issuer",
+      "tested_against": {},
+      "version": "1"
+    },
+    "holder": {
+      "adapter": "synthetic.holder",
+      "knobs": {
+        "knobs": {
+          "clock_skew_ms": {
+            "allow_na": false,
+            "description": "How far the role's stack clock is from wall time.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "delays": {
+            "allow_na": false,
+            "description": "Injected delays, 'start>end=median_ms/sigma' separated by commas.",
+            "type": "str",
+            "unit": ""
+          },
+          "seed": {
+            "allow_na": false,
+            "description": "Seed for every injected delay.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "delivered": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "proof_generated": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "stored": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "holder",
+      "tested_against": {
+        "synthetic": "1"
+      },
+      "version": "1"
+    },
+    "issuer": {
+      "adapter": "synthetic.issuer",
+      "knobs": {
+        "knobs": {
+          "clock_skew_ms": {
+            "allow_na": false,
+            "description": "How far the role's stack clock is from wall time.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "delays": {
+            "allow_na": false,
+            "description": "Injected delays, 'start>end=median_ms/sigma' separated by commas.",
+            "type": "str",
+            "unit": ""
+          },
+          "seed": {
+            "allow_na": false,
+            "description": "Seed for every injected delay.",
+            "type": "int",
+            "unit": ""
+          },
+          "service_rate": {
+            "allow_na": false,
+            "description": "Constructions per second: the cap.",
+            "type": "float",
+            "unit": "1/s"
+          },
+          "stall_after": {
+            "allow_na": true,
+            "description": "Stall once after this many constructions.",
+            "type": "int",
+            "unit": ""
+          },
+          "stall_ms": {
+            "allow_na": true,
+            "description": "How long the stall lasts.",
+            "type": "float",
+            "unit": "ms"
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "accepted": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "anchored": {
+          "clock": "stack:synthetic-issuer",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "constructed": {
+          "clock": "stack:synthetic-issuer",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "registry_updated": {
+          "clock": "stack:synthetic-issuer",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_anchored": {
+          "clock": "stack:synthetic-issuer",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "revocation_witnessed": {
+          "clock": "stack:synthetic-issuer",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "witnessed": {
+          "clock": "stack:synthetic-issuer",
+          "method": "reported",
+          "resolution_ns": 1000
+        }
+      },
+      "role": "issuer",
+      "tested_against": {
+        "synthetic": "1"
+      },
+      "version": "1"
+    },
+    "state_distribution": {
+      "adapter": "synthetic.state_distribution",
+      "knobs": {
+        "knobs": {
+          "clock_skew_ms": {
+            "allow_na": false,
+            "description": "How far the role's stack clock is from wall time.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "delays": {
+            "allow_na": false,
+            "description": "Injected delays, 'start>end=median_ms/sigma' separated by commas.",
+            "type": "str",
+            "unit": ""
+          },
+          "seed": {
+            "allow_na": false,
+            "description": "Seed for every injected delay.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "published": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "revocation_published": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "state_distribution",
+      "tested_against": {
+        "synthetic": "1"
+      },
+      "version": "1"
+    },
+    "verifier": {
+      "adapter": "synthetic.verifier",
+      "knobs": {
+        "knobs": {
+          "clock_skew_ms": {
+            "allow_na": false,
+            "description": "How far the role's stack clock is from wall time.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "delays": {
+            "allow_na": false,
+            "description": "Injected delays, 'start>end=median_ms/sigma' separated by commas.",
+            "type": "str",
+            "unit": ""
+          },
+          "seed": {
+            "allow_na": false,
+            "description": "Seed for every injected delay.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "sync_full_done": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "sync_full_started": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "verified": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "verifier",
+      "tested_against": {
+        "synthetic": "1"
+      },
+      "version": "1"
+    },
+    "witness_pool": {
+      "adapter": "synthetic.witness_pool",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {},
+      "role": "witness_pool",
+      "tested_against": {
+        "synthetic": "1"
+      },
+      "version": "1"
+    }
+  },
+  "calibration": "not calibrated",
+  "clocks": {
+    "harness": "monotonic@d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "realtime": "realtime@kelun"
+  },
+  "components": {
+    "holder": {
+      "synthetic": "1"
+    },
+    "issuer": {
+      "synthetic": "1"
+    },
+    "state_distribution": {
+      "synthetic": "1"
+    },
+    "verifier": {
+      "synthetic": "1"
+    },
+    "witness_pool": {}
+  },
+  "harness_commit": "571ccdbc5e54990f047176df9758ace0ac1a713d",
+  "host": {
+    "boot_id": "d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "cpu_count": 8,
+    "cpu_model": "Intel Core Processor (Haswell, no TSX)",
+    "hostname": "kelun",
+    "kernel": "7.0.0-38-generic",
+    "machine": "x86_64",
+    "memory_bytes": 24598093824,
+    "python": "3.14.6"
+  },
+  "knobs": {
+    "holder": {
+      "clock_skew_ms": 0.0,
+      "delays": "delivered>stored=60/0.3, stored>proof_generated=80/0.3",
+      "seed": 13
+    },
+    "issuer": {
+      "clock_skew_ms": 7300.0,
+      "delays": "constructed>registry_updated=60/0.3, registry_updated>anchored=80/0.3,\nanchored>witnessed=100/0.3, witnessed>published=60/0.3,\nrevocation_requested>revocation_anchored=80/0.3,\nrevocation_anchored>revocation_witnessed=100/0.3,\nrevocation_witnessed>revocation_published=60/0.3",
+      "seed": 12,
+      "service_rate": 100.0,
+      "stall_after": "n/a",
+      "stall_ms": "n/a"
+    },
+    "state_distribution": {
+      "clock_skew_ms": 0.0,
+      "delays": "",
+      "seed": 11
+    },
+    "verifier": {
+      "clock_skew_ms": 0.0,
+      "delays": "proof_generated>verified=60/0.3, sync_full_started>sync_full_done=100/0.2",
+      "seed": 14
+    },
+    "witness_pool": {}
+  },
+  "measurement_cost": {
+    "harness_cpu_s": 6.700595,
+    "links": {
+      "holder.api": {
+        "exchanges": 315,
+        "p50_ns": 180545,
+        "p99_ns": 375011,
+        "samples": 200
+      },
+      "issuer.api": {
+        "exchanges": 555,
+        "p50_ns": 248570,
+        "p99_ns": 881574,
+        "samples": 200
+      },
+      "state_distribution.api": {
+        "exchanges": 1192,
+        "p50_ns": 171895,
+        "p99_ns": 714025,
+        "samples": 200
+      },
+      "verifier.api": {
+        "exchanges": 1087,
+        "p50_ns": 213241,
+        "p99_ns": 1095551,
+        "samples": 200
+      }
+    }
+  },
+  "provenance_schema": 1,
+  "reconciliation": {
+    "anchors": {
+      "c000000": 1,
+      "c000001": 1,
+      "c000002": 1,
+      "c000003": 1,
+      "c000004": 1,
+      "c000005": 1,
+      "c000006": 1,
+      "c000007": 1,
+      "c000008": 1,
+      "c000009": 1,
+      "c000010": 1,
+      "c000011": 1,
+      "c000012": 1,
+      "c000013": 1,
+      "c000014": 1,
+      "c000015": 1,
+      "c000016": 1,
+      "c000017": 1,
+      "c000018": 1,
+      "c000019": 1,
+      "c000020": 1,
+      "c000021": 1,
+      "c000022": 1,
+      "c000023": 1,
+      "c000024": 1,
+      "c000025": 1,
+      "c000026": 1,
+      "c000027": 1,
+      "c000028": 1,
+      "c000029": 1,
+      "c000030": 1,
+      "c000031": 1,
+      "c000032": 1,
+      "c000033": 1,
+      "c000034": 1,
+      "c000035": 1,
+      "c000036": 1,
+      "c000037": 1,
+      "c000038": 1,
+      "c000039": 1,
+      "c000040": 1,
+      "c000041": 1,
+      "c000042": 1,
+      "c000043": 1,
+      "c000044": 1,
+      "c000045": 1,
+      "c000046": 1,
+      "c000047": 1,
+      "c000048": 1,
+      "c000049": 1,
+      "c000050": 1,
+      "c000051": 1,
+      "c000052": 1,
+      "c000053": 1,
+      "c000054": 1,
+      "c000055": 1,
+      "c000056": 1,
+      "c000057": 1,
+      "c000058": 1,
+      "c000059": 1,
+      "c000060": 1,
+      "c000061": 1,
+      "c000062": 1,
+      "c000063": 1,
+      "c000064": 1,
+      "c000065": 1,
+      "c000066": 1,
+      "c000067": 1,
+      "c000068": 1,
+      "c000069": 1,
+      "c000070": 1,
+      "c000071": 1,
+      "c000072": 1,
+      "c000073": 1,
+      "c000074": 1,
+      "c000075": 1,
+      "c000076": 1,
+      "c000077": 1,
+      "c000078": 1,
+      "c000079": 1,
+      "c000080": 1,
+      "c000081": 1,
+      "c000082": 1,
+      "c000083": 1,
+      "c000084": 1,
+      "c000085": 1,
+      "c000086": 1,
+      "c000087": 1,
+      "c000088": 1,
+      "c000089": 1,
+      "c000090": 1,
+      "c000091": 1,
+      "c000092": 1,
+      "c000093": 1,
+      "c000094": 1,
+      "c000095": 1,
+      "c000096": 1,
+      "c000097": 1,
+      "c000098": 1,
+      "c000099": 1,
+      "c000100": 1,
+      "c000101": 1,
+      "c000102": 1,
+      "c000103": 1,
+      "c000104": 1
+    },
+    "verifier": {
+      "c000000": {
+        "said": "Ec000000",
+        "status": "revoked"
+      },
+      "c000001": {
+        "said": "Ec000001",
+        "status": "revoked"
+      },
+      "c000002": {
+        "said": "Ec000002",
+        "status": "revoked"
+      },
+      "c000003": {
+        "said": "Ec000003",
+        "status": "revoked"
+      },
+      "c000004": {
+        "said": "Ec000004",
+        "status": "revoked"
+      },
+      "c000005": {
+        "said": "Ec000005",
+        "status": "revoked"
+      },
+      "c000006": {
+        "said": "Ec000006",
+        "status": "revoked"
+      },
+      "c000007": {
+        "said": "Ec000007",
+        "status": "revoked"
+      },
+      "c000008": {
+        "said": "Ec000008",
+        "status": "revoked"
+      },
+      "c000009": {
+        "said": "Ec000009",
+        "status": "revoked"
+      },
+      "c000010": {
+        "said": "Ec000010",
+        "status": "revoked"
+      },
+      "c000011": {
+        "said": "Ec000011",
+        "status": "revoked"
+      },
+      "c000012": {
+        "said": "Ec000012",
+        "status": "revoked"
+      },
+      "c000013": {
+        "said": "Ec000013",
+        "status": "revoked"
+      },
+      "c000014": {
+        "said": "Ec000014",
+        "status": "revoked"
+      },
+      "c000015": {
+        "said": "Ec000015",
+        "status": "revoked"
+      },
+      "c000016": {
+        "said": "Ec000016",
+        "status": "revoked"
+      },
+      "c000017": {
+        "said": "Ec000017",
+        "status": "revoked"
+      },
+      "c000018": {
+        "said": "Ec000018",
+        "status": "revoked"
+      },
+      "c000019": {
+        "said": "Ec000019",
+        "status": "revoked"
+      },
+      "c000020": {
+        "said": "Ec000020",
+        "status": "revoked"
+      },
+      "c000021": {
+        "said": "Ec000021",
+        "status": "revoked"
+      },
+      "c000022": {
+        "said": "Ec000022",
+        "status": "revoked"
+      },
+      "c000023": {
+        "said": "Ec000023",
+        "status": "revoked"
+      },
+      "c000024": {
+        "said": "Ec000024",
+        "status": "revoked"
+      },
+      "c000025": {
+        "said": "Ec000025",
+        "status": "revoked"
+      },
+      "c000026": {
+        "said": "Ec000026",
+        "status": "revoked"
+      },
+      "c000027": {
+        "said": "Ec000027",
+        "status": "revoked"
+      },
+      "c000028": {
+        "said": "Ec000028",
+        "status": "revoked"
+      },
+      "c000029": {
+        "said": "Ec000029",
+        "status": "revoked"
+      },
+      "c000030": {
+        "said": "Ec000030",
+        "status": "revoked"
+      },
+      "c000031": {
+        "said": "Ec000031",
+        "status": "revoked"
+      },
+      "c000032": {
+        "said": "Ec000032",
+        "status": "revoked"
+      },
+      "c000033": {
+        "said": "Ec000033",
+        "status": "revoked"
+      },
+      "c000034": {
+        "said": "Ec000034",
+        "status": "revoked"
+      },
+      "c000035": {
+        "said": "Ec000035",
+        "status": "revoked"
+      },
+      "c000036": {
+        "said": "Ec000036",
+        "status": "revoked"
+      },
+      "c000037": {
+        "said": "Ec000037",
+        "status": "revoked"
+      },
+      "c000038": {
+        "said": "Ec000038",
+        "status": "revoked"
+      },
+      "c000039": {
+        "said": "Ec000039",
+        "status": "revoked"
+      },
+      "c000040": {
+        "said": "Ec000040",
+        "status": "revoked"
+      },
+      "c000041": {
+        "said": "Ec000041",
+        "status": "revoked"
+      },
+      "c000042": {
+        "said": "Ec000042",
+        "status": "revoked"
+      },
+      "c000043": {
+        "said": "Ec000043",
+        "status": "revoked"
+      },
+      "c000044": {
+        "said": "Ec000044",
+        "status": "revoked"
+      },
+      "c000045": {
+        "said": "Ec000045",
+        "status": "revoked"
+      },
+      "c000046": {
+        "said": "Ec000046",
+        "status": "revoked"
+      },
+      "c000047": {
+        "said": "Ec000047",
+        "status": "revoked"
+      },
+      "c000048": {
+        "said": "Ec000048",
+        "status": "revoked"
+      },
+      "c000049": {
+        "said": "Ec000049",
+        "status": "revoked"
+      },
+      "c000050": {
+        "said": "Ec000050",
+        "status": "revoked"
+      },
+      "c000051": {
+        "said": "Ec000051",
+        "status": "revoked"
+      },
+      "c000052": {
+        "said": "Ec000052",
+        "status": "revoked"
+      },
+      "c000053": {
+        "said": "Ec000053",
+        "status": "revoked"
+      },
+      "c000054": {
+        "said": "Ec000054",
+        "status": "revoked"
+      },
+      "c000055": {
+        "said": "Ec000055",
+        "status": "revoked"
+      },
+      "c000056": {
+        "said": "Ec000056",
+        "status": "revoked"
+      },
+      "c000057": {
+        "said": "Ec000057",
+        "status": "revoked"
+      },
+      "c000058": {
+        "said": "Ec000058",
+        "status": "revoked"
+      },
+      "c000059": {
+        "said": "Ec000059",
+        "status": "revoked"
+      },
+      "c000060": {
+        "said": "Ec000060",
+        "status": "revoked"
+      },
+      "c000061": {
+        "said": "Ec000061",
+        "status": "revoked"
+      },
+      "c000062": {
+        "said": "Ec000062",
+        "status": "revoked"
+      },
+      "c000063": {
+        "said": "Ec000063",
+        "status": "revoked"
+      },
+      "c000064": {
+        "said": "Ec000064",
+        "status": "revoked"
+      },
+      "c000065": {
+        "said": "Ec000065",
+        "status": "revoked"
+      },
+      "c000066": {
+        "said": "Ec000066",
+        "status": "revoked"
+      },
+      "c000067": {
+        "said": "Ec000067",
+        "status": "revoked"
+      },
+      "c000068": {
+        "said": "Ec000068",
+        "status": "revoked"
+      },
+      "c000069": {
+        "said": "Ec000069",
+        "status": "revoked"
+      },
+      "c000070": {
+        "said": "Ec000070",
+        "status": "revoked"
+      },
+      "c000071": {
+        "said": "Ec000071",
+        "status": "revoked"
+      },
+      "c000072": {
+        "said": "Ec000072",
+        "status": "revoked"
+      },
+      "c000073": {
+        "said": "Ec000073",
+        "status": "revoked"
+      },
+      "c000074": {
+        "said": "Ec000074",
+        "status": "revoked"
+      },
+      "c000075": {
+        "said": "Ec000075",
+        "status": "revoked"
+      },
+      "c000076": {
+        "said": "Ec000076",
+        "status": "revoked"
+      },
+      "c000077": {
+        "said": "Ec000077",
+        "status": "revoked"
+      },
+      "c000078": {
+        "said": "Ec000078",
+        "status": "revoked"
+      },
+      "c000079": {
+        "said": "Ec000079",
+        "status": "revoked"
+      },
+      "c000080": {
+        "said": "Ec000080",
+        "status": "revoked"
+      },
+      "c000081": {
+        "said": "Ec000081",
+        "status": "revoked"
+      },
+      "c000082": {
+        "said": "Ec000082",
+        "status": "revoked"
+      },
+      "c000083": {
+        "said": "Ec000083",
+        "status": "revoked"
+      },
+      "c000084": {
+        "said": "Ec000084",
+        "status": "revoked"
+      },
+      "c000085": {
+        "said": "Ec000085",
+        "status": "revoked"
+      },
+      "c000086": {
+        "said": "Ec000086",
+        "status": "revoked"
+      },
+      "c000087": {
+        "said": "Ec000087",
+        "status": "revoked"
+      },
+      "c000088": {
+        "said": "Ec000088",
+        "status": "revoked"
+      },
+      "c000089": {
+        "said": "Ec000089",
+        "status": "revoked"
+      },
+      "c000090": {
+        "said": "Ec000090",
+        "status": "revoked"
+      },
+      "c000091": {
+        "said": "Ec000091",
+        "status": "revoked"
+      },
+      "c000092": {
+        "said": "Ec000092",
+        "status": "revoked"
+      },
+      "c000093": {
+        "said": "Ec000093",
+        "status": "revoked"
+      },
+      "c000094": {
+        "said": "Ec000094",
+        "status": "revoked"
+      },
+      "c000095": {
+        "said": "Ec000095",
+        "status": "revoked"
+      },
+      "c000096": {
+        "said": "Ec000096",
+        "status": "revoked"
+      },
+      "c000097": {
+        "said": "Ec000097",
+        "status": "revoked"
+      },
+      "c000098": {
+        "said": "Ec000098",
+        "status": "revoked"
+      },
+      "c000099": {
+        "said": "Ec000099",
+        "status": "revoked"
+      },
+      "c000100": {
+        "said": "Ec000100",
+        "status": "revoked"
+      },
+      "c000101": {
+        "said": "Ec000101",
+        "status": "revoked"
+      },
+      "c000102": {
+        "said": "Ec000102",
+        "status": "revoked"
+      },
+      "c000103": {
+        "said": "Ec000103",
+        "status": "revoked"
+      },
+      "c000104": {
+        "said": "Ec000104",
+        "status": "revoked"
+      }
+    }
+  },
+  "run": {
+    "duration_s": 7.0,
+    "host_load": {
+      "before": [
+        8.42,
+        10.26,
+        9.84
+      ],
+      "end": [
+        8.81,
+        10.28,
+        9.85
+      ],
+      "window": [
+        8.42,
+        10.26,
+        9.84
+      ]
+    },
+    "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+    "lag_limit_ms": 5.0,
+    "measure": [
+      "requested",
+      "constructed"
+    ],
+    "rate": 15.0,
+    "repetition": 2,
+    "scenario": "calibration-intervals",
+    "stages": [
+      "issue",
+      "deliver",
+      "present",
+      "verify",
+      "revoke"
+    ],
+    "warmup_s": 0.0
+  },
+  "scenario": "# The calibration stack (test plan, Part B #1; this.i 6he49n0k). Every delay is injected with a\n# seeded log-normal and logged as truth; construction is capped at service_rate per second.\nscenario_schema = 1\nname = \"calibration-intervals\"\ndescription = \"Every transition's injected delay, recovered through the full lifecycle.\"\nstages = [\"issue\", \"deliver\", \"present\", \"verify\", \"revoke\"]\n\n[recognition]\npoll_ms = 25.0\nstable_polls = 3\n\n[load]\nrates = [15.0]\nduration_s = 7.0\nwarmup_s = 0.0\ndrain_s = 15.0\nrepetitions = 3\nmeasure = [\"requested\", \"constructed\"]\n\n[roles.witness_pool]\nadapter = \"synthetic.witness_pool\"\n[roles.witness_pool.knobs]\nknob_schema = 1\n\n[roles.state_distribution]\nadapter = \"synthetic.state_distribution\"\n[roles.state_distribution.knobs]\nknob_schema = 1\nseed = 11\ndelays = \"\"\nclock_skew_ms = 0.0\n\n[roles.issuer]\nadapter = \"synthetic.issuer\"\n[roles.issuer.knobs]\nknob_schema = 1\nseed = 12\nclock_skew_ms = 7300.0\nservice_rate = 100.0\nstall_after = \"n/a\"\nstall_ms = \"n/a\"\ndelays = \"\"\"\nconstructed>registry_updated=60/0.3, registry_updated>anchored=80/0.3,\nanchored>witnessed=100/0.3, witnessed>published=60/0.3,\nrevocation_requested>revocation_anchored=80/0.3,\nrevocation_anchored>revocation_witnessed=100/0.3,\nrevocation_witnessed>revocation_published=60/0.3\"\"\"\n\n[roles.holder]\nadapter = \"synthetic.holder\"\n[roles.holder.knobs]\nknob_schema = 1\nseed = 13\nclock_skew_ms = 0.0\ndelays = \"delivered>stored=60/0.3, stored>proof_generated=80/0.3\"\n\n[roles.verifier]\nadapter = \"synthetic.verifier\"\n[roles.verifier.knobs]\nknob_schema = 1\nseed = 14\nclock_skew_ms = 0.0\ndelays = \"proof_generated>verified=60/0.3, sync_full_started>sync_full_done=100/0.2\"\n",
+  "scenario_sha256": "a11f4edbcda49444d55c11a99f728b0bd6f2158808ccbc3f6b0ddcbaeaf4d9f6"
+}

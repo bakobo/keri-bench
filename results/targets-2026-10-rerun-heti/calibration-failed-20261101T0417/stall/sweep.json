@@ -1,0 +1,32 @@
+{
+  "scenario": "calibration-stall",
+  "measure": [
+    "requested",
+    "constructed"
+  ],
+  "steps": [
+    {
+      "offered": 20.0,
+      "runs": 3,
+      "achieved": {
+        "n": 3,
+        "min": 19.997307309413387,
+        "max": 19.997981413881643,
+        "mean": 19.997680524425306,
+        "stdev": 0.00034282276473924605
+      },
+      "p99_ns": {
+        "n": 3,
+        "min": 501743615,
+        "max": 503578623,
+        "mean": 502617428.3333333,
+        "stdev": 920619.4724626094
+      }
+    }
+  ],
+  "saturation": null,
+  "refused": [],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 3
+}

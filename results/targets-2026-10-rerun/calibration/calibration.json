@@ -1,0 +1,656 @@
+{
+  "harness_commit": "58df2a9d64dc29e0876c764baa7a490e3278a7d6",
+  "intervals": {
+    "ok": true,
+    "runs": {
+      "runs/rerun/calibration/intervals/rate-15/rep-1": {
+        "anchored->witnessed": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1000,
+          "p50": {
+            "truth_ns": 111099469,
+            "measured_ns": 111280127,
+            "error_ns": 180658,
+            "tolerance_ns": 5554973
+          },
+          "p99": {
+            "truth_ns": 201766886,
+            "measured_ns": 201981951,
+            "error_ns": 215065,
+            "tolerance_ns": 10088344
+          },
+          "ok": true
+        },
+        "constructed->registry_updated": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1000,
+          "p50": {
+            "truth_ns": 55565396,
+            "measured_ns": 55705599,
+            "error_ns": 140203,
+            "tolerance_ns": 2778270
+          },
+          "p99": {
+            "truth_ns": 110007788,
+            "measured_ns": 110166015,
+            "error_ns": 158227,
+            "tolerance_ns": 5500389
+          },
+          "ok": true
+        },
+        "delivered->stored": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1,
+          "p50": {
+            "truth_ns": 61928576,
+            "measured_ns": 63504383,
+            "error_ns": 1575807,
+            "tolerance_ns": 3096429
+          },
+          "p99": {
+            "truth_ns": 101722465,
+            "measured_ns": 102629375,
+            "error_ns": 906910,
+            "tolerance_ns": 5086123
+          },
+          "ok": true
+        },
+        "proof_generated->verified": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1,
+          "p50": {
+            "truth_ns": 63661217,
+            "measured_ns": 65011711,
+            "error_ns": 1350494,
+            "tolerance_ns": 3183061
+          },
+          "p99": {
+            "truth_ns": 126969504,
+            "measured_ns": 128253951,
+            "error_ns": 1284447,
+            "tolerance_ns": 6348475
+          },
+          "ok": true
+        },
+        "registry_updated->anchored": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1000,
+          "p50": {
+            "truth_ns": 82954608,
+            "measured_ns": 83099647,
+            "error_ns": 145039,
+            "tolerance_ns": 4147730
+          },
+          "p99": {
+            "truth_ns": 143498306,
+            "measured_ns": 143654911,
+            "error_ns": 156605,
+            "tolerance_ns": 7174915
+          },
+          "ok": true
+        },
+        "revocation_anchored->revocation_witnessed": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1000,
+          "p50": {
+            "truth_ns": 116177176,
+            "measured_ns": 116260863,
+            "error_ns": 83687,
+            "tolerance_ns": 5808859
+          },
+          "p99": {
+            "truth_ns": 180311914,
+            "measured_ns": 180486143,
+            "error_ns": 174229,
+            "tolerance_ns": 9015596
+          },
+          "ok": true
+        },
+        "revocation_requested->revocation_anchored": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 769873,
+          "p50": {
+            "truth_ns": 79848148,
+            "measured_ns": 80871423,
+            "error_ns": 1023275,
+            "tolerance_ns": 3992407
+          },
+          "p99": {
+            "truth_ns": 154644689,
+            "measured_ns": 155582463,
+            "error_ns": 937774,
+            "tolerance_ns": 7732234
+          },
+          "ok": true
+        },
+        "revocation_witnessed->revocation_published": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 769873,
+          "p50": {
+            "truth_ns": 61852943,
+            "measured_ns": 62390271,
+            "error_ns": 537328,
+            "tolerance_ns": 3092647
+          },
+          "p99": {
+            "truth_ns": 108339334,
+            "measured_ns": 108593151,
+            "error_ns": 253817,
+            "tolerance_ns": 5416967
+          },
+          "ok": true
+        },
+        "stored->proof_generated": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1,
+          "p50": {
+            "truth_ns": 84203204,
+            "measured_ns": 85458943,
+            "error_ns": 1255739,
+            "tolerance_ns": 4210160
+          },
+          "p99": {
+            "truth_ns": 147200841,
+            "measured_ns": 148766719,
+            "error_ns": 1565878,
+            "tolerance_ns": 7360042
+          },
+          "ok": true
+        },
+        "witnessed->published": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 769873,
+          "p50": {
+            "truth_ns": 59606425,
+            "measured_ns": 60063743,
+            "error_ns": 457318,
+            "tolerance_ns": 2980321
+          },
+          "p99": {
+            "truth_ns": 144386121,
+            "measured_ns": 144834559,
+            "error_ns": 448438,
+            "tolerance_ns": 7219306
+          },
+          "ok": true
+        }
+      },
+      "runs/rerun/calibration/intervals/rate-15/rep-2": {
+        "anchored->witnessed": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1000,
+          "p50": {
+            "truth_ns": 110140735,
+            "measured_ns": 110297087,
+            "error_ns": 156352,
+            "tolerance_ns": 5507037
+          },
+          "p99": {
+            "truth_ns": 200718361,
+            "measured_ns": 200802303,
+            "error_ns": 83942,
+            "tolerance_ns": 10035918
+          },
+          "ok": true
+        },
+        "constructed->registry_updated": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1000,
+          "p50": {
+            "truth_ns": 57758971,
+            "measured_ns": 57966591,
+            "error_ns": 207620,
+            "tolerance_ns": 2887949
+          },
+          "p99": {
+            "truth_ns": 103584406,
+            "measured_ns": 103677951,
+            "error_ns": 93545,
+            "tolerance_ns": 5179220
+          },
+          "ok": true
+        },
+        "delivered->stored": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1,
+          "p50": {
+            "truth_ns": 63109342,
+            "measured_ns": 64421887,
+            "error_ns": 1312545,
+            "tolerance_ns": 3155467
+          },
+          "p99": {
+            "truth_ns": 110483723,
+            "measured_ns": 112525311,
+            "error_ns": 2041588,
+            "tolerance_ns": 5524186
+          },
+          "ok": true
+        },
+        "proof_generated->verified": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1,
+          "p50": {
+            "truth_ns": 63055869,
+            "measured_ns": 64389119,
+            "error_ns": 1333250,
+            "tolerance_ns": 3152793
+          },
+          "p99": {
+            "truth_ns": 126629148,
+            "measured_ns": 128057343,
+            "error_ns": 1428195,
+            "tolerance_ns": 6331457
+          },
+          "ok": true
+        },
+        "registry_updated->anchored": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1000,
+          "p50": {
+            "truth_ns": 81180901,
+            "measured_ns": 81330175,
+            "error_ns": 149274,
+            "tolerance_ns": 4059045
+          },
+          "p99": {
+            "truth_ns": 167584953,
+            "measured_ns": 167772159,
+            "error_ns": 187206,
+            "tolerance_ns": 8379248
+          },
+          "ok": true
+        },
+        "revocation_anchored->revocation_witnessed": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1000,
+          "p50": {
+            "truth_ns": 101691666,
+            "measured_ns": 101842943,
+            "error_ns": 151277,
+            "tolerance_ns": 5084583
+          },
+          "p99": {
+            "truth_ns": 194206768,
+            "measured_ns": 194379775,
+            "error_ns": 173007,
+            "tolerance_ns": 9710338
+          },
+          "ok": true
+        },
+        "revocation_requested->revocation_anchored": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 715429,
+          "p50": {
+            "truth_ns": 79456316,
+            "measured_ns": 80871423,
+            "error_ns": 1415107,
+            "tolerance_ns": 3972816
+          },
+          "p99": {
+            "truth_ns": 144081340,
+            "measured_ns": 146014207,
+            "error_ns": 1932867,
+            "tolerance_ns": 7204067
+          },
+          "ok": true
+        },
+        "revocation_witnessed->revocation_published": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 715429,
+          "p50": {
+            "truth_ns": 60961901,
+            "measured_ns": 60817407,
+            "error_ns": -144494,
+            "tolerance_ns": 3048095
+          },
+          "p99": {
+            "truth_ns": 105555335,
+            "measured_ns": 105906175,
+            "error_ns": 350840,
+            "tolerance_ns": 5277767
+          },
+          "ok": true
+        },
+        "stored->proof_generated": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1,
+          "p50": {
+            "truth_ns": 83376628,
+            "measured_ns": 84738047,
+            "error_ns": 1361419,
+            "tolerance_ns": 4168831
+          },
+          "p99": {
+            "truth_ns": 142651452,
+            "measured_ns": 143654911,
+            "error_ns": 1003459,
+            "tolerance_ns": 7132573
+          },
+          "ok": true
+        },
+        "witnessed->published": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 715429,
+          "p50": {
+            "truth_ns": 60490618,
+            "measured_ns": 60817407,
+            "error_ns": 326789,
+            "tolerance_ns": 3024531
+          },
+          "p99": {
+            "truth_ns": 111856922,
+            "measured_ns": 112328703,
+            "error_ns": 471781,
+            "tolerance_ns": 5592846
+          },
+          "ok": true
+        }
+      },
+      "runs/rerun/calibration/intervals/rate-15/rep-3": {
+        "anchored->witnessed": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1000,
+          "p50": {
+            "truth_ns": 108934457,
+            "measured_ns": 109051903,
+            "error_ns": 117446,
+            "tolerance_ns": 5446723
+          },
+          "p99": {
+            "truth_ns": 188389695,
+            "measured_ns": 188612607,
+            "error_ns": 222912,
+            "tolerance_ns": 9419485
+          },
+          "ok": true
+        },
+        "constructed->registry_updated": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1000,
+          "p50": {
+            "truth_ns": 56178910,
+            "measured_ns": 56295423,
+            "error_ns": 116513,
+            "tolerance_ns": 2808946
+          },
+          "p99": {
+            "truth_ns": 101640166,
+            "measured_ns": 101777407,
+            "error_ns": 137241,
+            "tolerance_ns": 5082008
+          },
+          "ok": true
+        },
+        "delivered->stored": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1,
+          "p50": {
+            "truth_ns": 63162168,
+            "measured_ns": 64880639,
+            "error_ns": 1718471,
+            "tolerance_ns": 3158108
+          },
+          "p99": {
+            "truth_ns": 104726400,
+            "measured_ns": 106037247,
+            "error_ns": 1310847,
+            "tolerance_ns": 5236320
+          },
+          "ok": true
+        },
+        "proof_generated->verified": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1,
+          "p50": {
+            "truth_ns": 63693289,
+            "measured_ns": 65011711,
+            "error_ns": 1318422,
+            "tolerance_ns": 3184664
+          },
+          "p99": {
+            "truth_ns": 125889052,
+            "measured_ns": 127205375,
+            "error_ns": 1316323,
+            "tolerance_ns": 6294453
+          },
+          "ok": true
+        },
+        "registry_updated->anchored": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1000,
+          "p50": {
+            "truth_ns": 80763312,
+            "measured_ns": 80871423,
+            "error_ns": 108111,
+            "tolerance_ns": 4038166
+          },
+          "p99": {
+            "truth_ns": 146584865,
+            "measured_ns": 146800639,
+            "error_ns": 215774,
+            "tolerance_ns": 7329243
+          },
+          "ok": true
+        },
+        "revocation_anchored->revocation_witnessed": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1000,
+          "p50": {
+            "truth_ns": 100338511,
+            "measured_ns": 100401151,
+            "error_ns": 62640,
+            "tolerance_ns": 5016926
+          },
+          "p99": {
+            "truth_ns": 202036090,
+            "measured_ns": 202113023,
+            "error_ns": 76933,
+            "tolerance_ns": 10101804
+          },
+          "ok": true
+        },
+        "revocation_requested->revocation_anchored": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 813257,
+          "p50": {
+            "truth_ns": 81226403,
+            "measured_ns": 82968575,
+            "error_ns": 1742172,
+            "tolerance_ns": 4061320
+          },
+          "p99": {
+            "truth_ns": 148284202,
+            "measured_ns": 149684223,
+            "error_ns": 1400021,
+            "tolerance_ns": 7414210
+          },
+          "ok": true
+        },
+        "revocation_witnessed->revocation_published": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 813257,
+          "p50": {
+            "truth_ns": 67045891,
+            "measured_ns": 66715647,
+            "error_ns": -330244,
+            "tolerance_ns": 3352295
+          },
+          "p99": {
+            "truth_ns": 145626627,
+            "measured_ns": 145620991,
+            "error_ns": -5636,
+            "tolerance_ns": 7281331
+          },
+          "ok": true
+        },
+        "stored->proof_generated": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 1,
+          "p50": {
+            "truth_ns": 83062105,
+            "measured_ns": 84606975,
+            "error_ns": 1544870,
+            "tolerance_ns": 4153105
+          },
+          "p99": {
+            "truth_ns": 147189263,
+            "measured_ns": 148766719,
+            "error_ns": 1577456,
+            "tolerance_ns": 7359463
+          },
+          "ok": true
+        },
+        "witnessed->published": {
+          "measured": true,
+          "count": 105,
+          "measured_count": 105,
+          "resolution_ns": 813257,
+          "p50": {
+            "truth_ns": 61606041,
+            "measured_ns": 61014015,
+            "error_ns": -592026,
+            "tolerance_ns": 3080302
+          },
+          "p99": {
+            "truth_ns": 108426872,
+            "measured_ns": 108986367,
+            "error_ns": 559495,
+            "tolerance_ns": 5421344
+          },
+          "ok": true
+        }
+      }
+    },
+    "refused": [],
+    "budget": {
+      "anchored->witnessed": {
+        "p50_error_ns": 180658,
+        "p99_error_ns": 222912
+      },
+      "constructed->registry_updated": {
+        "p50_error_ns": 207620,
+        "p99_error_ns": 158227
+      },
+      "delivered->stored": {
+        "p50_error_ns": 1718471,
+        "p99_error_ns": 2041588
+      },
+      "proof_generated->verified": {
+        "p50_error_ns": 1350494,
+        "p99_error_ns": 1428195
+      },
+      "registry_updated->anchored": {
+        "p50_error_ns": 149274,
+        "p99_error_ns": 215774
+      },
+      "revocation_anchored->revocation_witnessed": {
+        "p50_error_ns": 151277,
+        "p99_error_ns": 174229
+      },
+      "revocation_requested->revocation_anchored": {
+        "p50_error_ns": 1742172,
+        "p99_error_ns": 1932867
+      },
+      "revocation_witnessed->revocation_published": {
+        "p50_error_ns": 537328,
+        "p99_error_ns": 350840
+      },
+      "stored->proof_generated": {
+        "p50_error_ns": 1544870,
+        "p99_error_ns": 1577456
+      },
+      "witnessed->published": {
+        "p50_error_ns": -592026,
+        "p99_error_ns": 559495
+      }
+    }
+  },
+  "saturation": {
+    "ok": true,
+    "cap": 50.0,
+    "achieved_at_saturation": 50.19809555780247,
+    "offered": 70.0,
+    "relative_error": 0.003961911156049353
+  },
+  "stall": {
+    "ok": true,
+    "stall_ms": 500.0,
+    "runs": {
+      "runs/rerun/calibration/stall/rate-20/rep-1": {
+        "max_ns": 501845696,
+        "p50_ns": 1426431,
+        "ok": true
+      },
+      "runs/rerun/calibration/stall/rate-20/rep-2": {
+        "max_ns": 503340832,
+        "p50_ns": 1368063,
+        "ok": true
+      },
+      "runs/rerun/calibration/stall/rate-20/rep-3": {
+        "max_ns": 502691472,
+        "p50_ns": 1510399,
+        "ok": true
+      }
+    }
+  },
+  "ok": true
+}

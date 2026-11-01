@@ -1,0 +1,96 @@
+{
+  "scenario": "calibration-saturation",
+  "measure": [
+    "requested",
+    "constructed"
+  ],
+  "steps": [
+    {
+      "offered": 30.0,
+      "runs": 0,
+      "achieved": null,
+      "p99_ns": null
+    },
+    {
+      "offered": 50.0,
+      "runs": 1,
+      "achieved": {
+        "n": 1,
+        "min": 49.99390753842924,
+        "max": 49.99390753842924,
+        "mean": 49.99390753842924,
+        "stdev": null
+      },
+      "p99_ns": {
+        "n": 1,
+        "min": 12337151,
+        "max": 12337151,
+        "mean": 12337151.0,
+        "stdev": null
+      }
+    },
+    {
+      "offered": 70.0,
+      "runs": 1,
+      "achieved": {
+        "n": 1,
+        "min": 50.19998068775189,
+        "max": 50.19998068775189,
+        "mean": 50.19998068775189,
+        "stdev": null
+      },
+      "p99_ns": {
+        "n": 1,
+        "min": 1586495487,
+        "max": 1586495487,
+        "mean": 1586495487.0,
+        "stdev": null
+      }
+    }
+  ],
+  "saturation": {
+    "offered": 70.0,
+    "reason": "throughput",
+    "achieved": 50.19998068775189
+  },
+  "refused": [
+    {
+      "rate": 30.0,
+      "repetition": 1,
+      "reason": "The driver's p99 send lag was 50757631 ns, above the 5000000 ns limit, so the driver, not the system, set the pace."
+    },
+    {
+      "rate": 30.0,
+      "repetition": 2,
+      "reason": "The driver's p99 send lag was 92471295 ns, above the 5000000 ns limit, so the driver, not the system, set the pace."
+    },
+    {
+      "rate": 30.0,
+      "repetition": 3,
+      "reason": "The driver's p99 send lag was 19283967 ns, above the 5000000 ns limit, so the driver, not the system, set the pace."
+    },
+    {
+      "rate": 50.0,
+      "repetition": 1,
+      "reason": "The driver's p99 send lag was 12042239 ns, above the 5000000 ns limit, so the driver, not the system, set the pace."
+    },
+    {
+      "rate": 50.0,
+      "repetition": 2,
+      "reason": "The driver's p99 send lag was 6701055 ns, above the 5000000 ns limit, so the driver, not the system, set the pace."
+    },
+    {
+      "rate": 70.0,
+      "repetition": 1,
+      "reason": "The driver's p99 send lag was 11239423 ns, above the 5000000 ns limit, so the driver, not the system, set the pace."
+    },
+    {
+      "rate": 70.0,
+      "repetition": 2,
+      "reason": "The driver's p99 send lag was 5459967 ns, above the 5000000 ns limit, so the driver, not the system, set the pace."
+    }
+  ],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 3
+}
