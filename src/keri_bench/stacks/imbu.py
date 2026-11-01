@@ -216,6 +216,13 @@ def retry_after(answer: Answer) -> int | None:
 
 PROBLEM_TYPE = "application/problem+json"
 """The media type imbu sends every refusal in (imbu problem.MEDIA_TYPE)."""
+PROBLEM_LIMIT = 64 * 1024
+"""The most bytes of a refusal read as a problem document. imbu's are a few hundred bytes, and
+parsing costs many times a body's size, so a larger one is not read at all."""
+
+
+def _no_constant(name: str):
+    raise ValueError(f"{name} is not JSON")
 
 
 def _unique(pairs: list) -> dict:
@@ -228,13 +235,18 @@ def _unique(pairs: list) -> dict:
 
 def problem_code(answer: Answer) -> str | None:
     """The code of a refusal's problem document, or None when the answer is not one: not
-    ``application/problem+json``, not one JSON object with distinct names, or not readable."""
+    ``application/problem+json``, over :data:`PROBLEM_LIMIT`, not one strict UTF-8 JSON object
+    with distinct names, or not readable."""
     kind = next((value for name, value in answer.headers.items()
                  if name.lower() == "content-type"), "")
-    if kind.split(";", 1)[0].strip().lower() != PROBLEM_TYPE:
+    if kind.split(";", 1)[0].strip().lower() != PROBLEM_TYPE or \
+            len(answer.body) > PROBLEM_LIMIT:
         return None
     try:
-        body = json.loads(answer.body, object_pairs_hook=_unique)
+        # Strict: UTF-8 as RFC 8259 requires, and no NaN or Infinity (UnicodeDecodeError is a
+        # ValueError).
+        body = json.loads(answer.body.decode("utf-8"), object_pairs_hook=_unique,
+                          parse_constant=_no_constant)
     except (ValueError, RecursionError):
         return None
     return body.get("code") if isinstance(body, dict) else None
