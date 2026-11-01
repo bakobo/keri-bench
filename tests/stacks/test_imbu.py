@@ -491,6 +491,23 @@ async def test_a_503_without_a_readable_retry_after_is_refused(pauses, extra):
     assert issuer.homes[0].saturated == 0
 
 
+@pytest.mark.parametrize("body", [{"code": "e.state.conflict.f"}, {}, "not json"])
+async def test_a_503_that_is_not_saturation_is_refused_not_retried(pauses, body):
+    issuer, fake = scripted([(503, body, {"Retry-After": "1"}), (202, DONE, SIGNED)])
+    with pytest.raises(BenchError) as refused:
+        await issuer.issue("c1", {"aid": "Eholder"})
+    assert refused.value.code == "e.party.imbu.refused.f"
+    assert len(fake.sent) == 1 and pauses == [] and issuer.homes[0].saturated == 0
+
+
+async def test_a_zero_retry_after_is_waited_as_one_second(pauses):
+    issuer, _ = scripted([(503, {"code": "e.env.saturated.r"}, {"Retry-After": "0"}),
+                          (429, {}, {"Retry-After": "0"}), (202, DONE, SIGNED),
+                          (200, DONE, SIGNED)], knobs={"operation_timeout_s": 10.0})
+    await issuer.issue("c1", {"aid": "Eholder"})
+    assert pauses == [1, 1]
+
+
 @pytest.mark.parametrize("status", [500, 502, 504])
 async def test_another_5xx_is_not_retried_even_with_a_retry_after(pauses, status):
     issuer, fake = scripted([(status, {}, {"Retry-After": "1"})])
@@ -530,7 +547,9 @@ async def test_a_refusal_without_a_readable_retry_after_is_refused(pauses, extra
 
 
 @pytest.mark.parametrize("value, seconds", [("1", 1), ("0", 0), ("120", 120), (" 2", None),
-                                            ("-1", None), ("١", None)])
+                                            ("-1", None), ("١", None), ("999999", 999999),
+                                            ("1000000", None),
+                                            pytest.param("9" * 4301, None, id="4301-digits")])
 def test_retry_after_is_whole_ascii_seconds(value, seconds):
     assert imbu.retry_after(Answer(429, b"", {"Retry-After": value})) == seconds
 
