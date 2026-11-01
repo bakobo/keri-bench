@@ -518,8 +518,14 @@ SATURATION = b'{"code": "e.env.saturated.r"}'
     (b'{"code": "e.state.conflict.f", "code": "e.env.saturated.r"}', PROBLEM, None),
     # Nesting past the parser's depth is unreadable, not a crash (p2.3).
     (b'{"a":' * 100_000 + b"1" + b"}" * 100_000, PROBLEM, None),
+    # Strict JSON only: no NaN or Infinity, and UTF-8 as RFC 8259 requires (p3.2).
+    (b'{"code": "e.env.saturated.r", "n": NaN}', PROBLEM, None),
+    ('{"code": "e.env.saturated.r"}'.encode("utf-16"), PROBLEM, None),
+    # A refusal is a few hundred bytes; past the bound it is not read at all (p3.3).
+    (b'{"code": "e.env.saturated.r", "pad": "' + b"x" * imbu.PROBLEM_LIMIT + b'"}', PROBLEM,
+     None),
 ], ids=["html", "string", "problem", "parameters", "text/html", "lookalike", "no-type",
-        "two-codes", "deep"])
+        "two-codes", "deep", "nan", "utf-16", "oversized"])
 def test_problem_code_reads_only_a_problem_documents_one_code(body, headers, code):
     assert imbu.problem_code(Answer(503, body, headers)) == code
 
