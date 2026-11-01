@@ -454,7 +454,8 @@ async def test_a_refusal_whose_wait_outlasts_the_operation_is_a_timeout(pauses):
     assert pauses == []
 
 
-SATURATED = (503, {"code": "e.env.saturated.r"}, {"Retry-After": "4"})
+PROBLEM = {"Content-Type": "application/problem+json"}
+SATURATED = (503, {"code": "e.env.saturated.r"}, {**PROBLEM, "Retry-After": "4"})
 
 
 async def test_a_saturated_home_is_asked_again_after_its_retry_after_with_the_same_key(pauses):
@@ -474,7 +475,7 @@ async def test_a_saturated_home_is_asked_again_after_its_retry_after_with_the_sa
 
 
 async def test_a_saturated_home_whose_wait_outlasts_the_operation_is_a_timeout(pauses):
-    issuer, _ = scripted([(503, {"code": "e.env.saturated.r"}, {"Retry-After": "5"})])
+    issuer, _ = scripted([(503, {"code": "e.env.saturated.r"}, {**PROBLEM, "Retry-After": "5"})])
     with pytest.raises(BenchError) as late:
         await issuer.issue("c1", {"aid": "Eholder"})
     assert late.value.code == "e.env.imbu.operation.r"
@@ -484,7 +485,7 @@ async def test_a_saturated_home_whose_wait_outlasts_the_operation_is_a_timeout(p
 
 @pytest.mark.parametrize("extra", [{}, {"Retry-After": "soon"}])
 async def test_a_503_without_a_readable_retry_after_is_refused(pauses, extra):
-    issuer, _ = scripted([(503, {"code": "e.env.saturated.r"}, extra)])
+    issuer, _ = scripted([(503, {"code": "e.env.saturated.r"}, {**PROBLEM, **extra})])
     with pytest.raises(BenchError) as refused:
         await issuer.issue("c1", {"aid": "Eholder"})
     assert refused.value.code == "e.party.imbu.refused.f"
@@ -493,21 +494,48 @@ async def test_a_503_without_a_readable_retry_after_is_refused(pauses, extra):
 
 @pytest.mark.parametrize("body", [{"code": "e.state.conflict.f"}, {}, "not json"])
 async def test_a_503_that_is_not_saturation_is_refused_not_retried(pauses, body):
-    issuer, fake = scripted([(503, body, {"Retry-After": "1"}), (202, DONE, SIGNED)])
+    issuer, fake = scripted([(503, body, {**PROBLEM, "Retry-After": "1"}), (202, DONE, SIGNED)])
     with pytest.raises(BenchError) as refused:
         await issuer.issue("c1", {"aid": "Eholder"})
     assert refused.value.code == "e.party.imbu.refused.f"
     assert len(fake.sent) == 1 and pauses == [] and issuer.homes[0].saturated == 0
 
 
-@pytest.mark.parametrize("body, code", [(b"<html>busy</html>", None), (b'"text"', None),
-                                        (b'{"code": "e.env.saturated.r"}', "e.env.saturated.r")])
-def test_problem_code_reads_only_a_problem_documents_code(body, code):
-    assert imbu.problem_code(Answer(503, body, {})) == code
+SATURATION = b'{"code": "e.env.saturated.r"}'
+
+
+@pytest.mark.parametrize("body, headers, code", [
+    (b"<html>busy</html>", PROBLEM, None),
+    (b'"text"', PROBLEM, None),
+    (SATURATION, PROBLEM, "e.env.saturated.r"),
+    (SATURATION, {"content-type": "Application/Problem+JSON; charset=utf-8"}, "e.env.saturated.r"),
+    # imbu sends its refusals as application/problem+json (imbu problem.MEDIA_TYPE); a body of
+    # any other type is not a problem document, whatever it says (land review p2.1).
+    (SATURATION, {"Content-Type": "text/html"}, None),
+    (SATURATION, {"Content-Type": "application/problem+jsonx"}, None),
+    (SATURATION, {}, None),
+    # A document naming its code twice is ambiguous, so it names none (p2.2).
+    (b'{"code": "e.state.conflict.f", "code": "e.env.saturated.r"}', PROBLEM, None),
+    # Nesting past the parser's depth is unreadable, not a crash (p2.3).
+    (b'{"a":' * 100_000 + b"1" + b"}" * 100_000, PROBLEM, None),
+], ids=["html", "string", "problem", "parameters", "text/html", "lookalike", "no-type",
+        "two-codes", "deep"])
+def test_problem_code_reads_only_a_problem_documents_one_code(body, headers, code):
+    assert imbu.problem_code(Answer(503, body, headers)) == code
+
+
+async def test_a_saturation_code_in_another_media_type_is_refused_not_retried(pauses):
+    issuer, fake = scripted([(503, {"code": "e.env.saturated.r"},
+                              {"Content-Type": "text/html", "Retry-After": "1"}),
+                             (202, DONE, SIGNED)])
+    with pytest.raises(BenchError) as refused:
+        await issuer.issue("c1", {"aid": "Eholder"})
+    assert refused.value.code == "e.party.imbu.refused.f"
+    assert len(fake.sent) == 1 and pauses == []
 
 
 async def test_a_zero_retry_after_is_waited_as_one_second(pauses):
-    issuer, _ = scripted([(503, {"code": "e.env.saturated.r"}, {"Retry-After": "0"}),
+    issuer, _ = scripted([(503, {"code": "e.env.saturated.r"}, {**PROBLEM, "Retry-After": "0"}),
                           (429, {}, {"Retry-After": "0"}), (202, DONE, SIGNED),
                           (200, DONE, SIGNED)], knobs={"operation_timeout_s": 10.0})
     await issuer.issue("c1", {"aid": "Eholder"})
