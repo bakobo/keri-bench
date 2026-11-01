@@ -474,7 +474,7 @@ async def test_a_saturated_home_is_asked_again_after_its_retry_after_with_the_sa
 
 
 async def test_a_saturated_home_whose_wait_outlasts_the_operation_is_a_timeout(pauses):
-    issuer, _ = scripted([(503, {}, {"Retry-After": "5"})])
+    issuer, _ = scripted([(503, {"code": "e.env.saturated.r"}, {"Retry-After": "5"})])
     with pytest.raises(BenchError) as late:
         await issuer.issue("c1", {"aid": "Eholder"})
     assert late.value.code == "e.env.imbu.operation.r"
@@ -484,7 +484,7 @@ async def test_a_saturated_home_whose_wait_outlasts_the_operation_is_a_timeout(p
 
 @pytest.mark.parametrize("extra", [{}, {"Retry-After": "soon"}])
 async def test_a_503_without_a_readable_retry_after_is_refused(pauses, extra):
-    issuer, _ = scripted([(503, {}, extra)])
+    issuer, _ = scripted([(503, {"code": "e.env.saturated.r"}, extra)])
     with pytest.raises(BenchError) as refused:
         await issuer.issue("c1", {"aid": "Eholder"})
     assert refused.value.code == "e.party.imbu.refused.f"
@@ -498,6 +498,12 @@ async def test_a_503_that_is_not_saturation_is_refused_not_retried(pauses, body)
         await issuer.issue("c1", {"aid": "Eholder"})
     assert refused.value.code == "e.party.imbu.refused.f"
     assert len(fake.sent) == 1 and pauses == [] and issuer.homes[0].saturated == 0
+
+
+@pytest.mark.parametrize("body, code", [(b"<html>busy</html>", None), (b'"text"', None),
+                                        (b'{"code": "e.env.saturated.r"}', "e.env.saturated.r")])
+def test_problem_code_reads_only_a_problem_documents_code(body, code):
+    assert imbu.problem_code(Answer(503, body, {})) == code
 
 
 async def test_a_zero_retry_after_is_waited_as_one_second(pauses):

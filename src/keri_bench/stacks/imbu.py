@@ -88,6 +88,12 @@ BURST_LIMIT = 2**32
 """The largest answer burst imbu accepts (imbu control/budget.py MAX_ANSWER_BURST)."""
 RETRIED = {429: "refused", 503: "saturated"}
 """The refusals asked again after their Retry-After, and the Home count each is tallied in."""
+SATURATED = "e.env.saturated.r"
+"""The only 503 asked again: a home whose backlog is full (imbu 44309be). Any other 503 is a
+fault, and retrying it would hide the fault behind a timeout (this.i 7kmhh4wr)."""
+RETRY_DIGITS = 6
+"""The longest Retry-After read, in digits: under twelve days, and short enough that int() never
+meets Python's limit on converting long strings."""
 ANSWERS = "imbu-answers.json"
 sleep = asyncio.sleep
 """How the adapter waits out a Retry-After; a name of its own so a test need not wait."""
@@ -203,8 +209,18 @@ def retry_after(answer: Answer) -> int | None:
     """A refusal's Retry-After as whole seconds, or None when it is missing or unreadable."""
     for name, value in answer.headers.items():
         if name.lower() == "retry-after":
-            return int(value) if value.isascii() and value.isdigit() else None
+            readable = value.isascii() and value.isdigit() and len(value) <= RETRY_DIGITS
+            return int(value) if readable else None
     return None
+
+
+def problem_code(answer: Answer) -> str | None:
+    """The code of a refusal's problem document, or None when its body carries none."""
+    try:
+        body = answer.json()
+    except ValueError:
+        return None
+    return body.get("code") if isinstance(body, dict) else None
 
 
 def operation_document(answer: Answer) -> dict | None:
@@ -375,10 +391,13 @@ class ImbuIssuer(IssuerAdapter):
             if any(name.lower() == "signature" for name in answer.headers):
                 home.signed += 1
             tally = RETRIED.get(answer.status)
+            if answer.status == 503 and problem_code(answer) != SATURATED:
+                tally = None
             pause = retry_after(answer) if tally else None
             if pause is None:
                 return answer
             setattr(home, tally, getattr(home, tally) + 1)
+            pause = max(pause, 1)  # imbu never says zero; one that does is asked once a second
             if self.ctx.now() + pause * 1_000_000_000 > deadline:
                 raise BenchError(E_TIMEOUT, f"imbu refused {method} {path} until {pause} s "
                                  f"from now, past the operation's deadline.")
