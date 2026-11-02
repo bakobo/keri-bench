@@ -1,0 +1,38 @@
+{
+  "scenario": "calibration-intervals",
+  "measure": [
+    "requested",
+    "constructed"
+  ],
+  "steps": [
+    {
+      "offered": 15.0,
+      "runs": 2,
+      "achieved": {
+        "n": 2,
+        "min": 14.998008305597327,
+        "max": 14.999413829397678,
+        "mean": 14.998711067497503,
+        "stdev": 0.0009938554103471023
+      },
+      "p99_ns": {
+        "n": 2,
+        "min": 3719167,
+        "max": 15458303,
+        "mean": 9588735.0,
+        "stdev": 8300822.670871123
+      }
+    }
+  ],
+  "saturation": null,
+  "refused": [
+    {
+      "rate": 15.0,
+      "repetition": 3,
+      "reason": "The driver's p99 send lag was 62750719 ns, above the 5000000 ns limit, so the driver, not the system, set the pace."
+    }
+  ],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 3
+}

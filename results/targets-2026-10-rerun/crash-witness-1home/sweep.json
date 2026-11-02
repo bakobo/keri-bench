@@ -1,0 +1,32 @@
+{
+  "scenario": "crash-witness-1home",
+  "measure": [
+    "requested",
+    "verified"
+  ],
+  "steps": [
+    {
+      "offered": 0.6,
+      "runs": 3,
+      "achieved": {
+        "n": 3,
+        "min": 0.5657100908284939,
+        "max": 0.5657108845085143,
+        "mean": 0.5657104351045766,
+        "stdev": 4.071497182684189e-07
+      },
+      "p99_ns": {
+        "n": 3,
+        "min": 4125097983,
+        "max": 4626317311,
+        "mean": 4453651796.333333,
+        "stdev": 284659577.2779897
+      }
+    }
+  ],
+  "saturation": null,
+  "refused": [],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 6
+}

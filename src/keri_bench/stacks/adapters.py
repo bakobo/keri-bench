@@ -30,8 +30,8 @@ from ..procs import free_port
 from ..vocabulary import Role
 
 VERSION = "2"
-HETI = "841fcbd3c6952be729666015ecaa0e28155004cf"
-IMBU = "670a3d874a367aeb3c8cea132b5d0ae98646a3a1"
+HETI = "980ee85084abfd310c515f01df4c3869fc78894a"
+IMBU = "2c3b07271f22e490dfac74ced5948fbcf1d0f311"
 WITNESS = "ed1dcfc563ebff6545738f820d7410043dcbfbce"
 """The bakobo/witness commit the Registrar runs from: main with the Registrar that takes a
 publication without the issuer KEL (witness @23vjzsf0), which imbu 670a3d8 sends (this.i

@@ -1,0 +1,1249 @@
+{
+  "calibration": {
+    "budget": {
+      "anchored->witnessed": {
+        "p50_error_ns": 180658,
+        "p99_error_ns": 222912
+      },
+      "constructed->registry_updated": {
+        "p50_error_ns": 207620,
+        "p99_error_ns": 158227
+      },
+      "delivered->stored": {
+        "p50_error_ns": 1718471,
+        "p99_error_ns": 2041588
+      },
+      "proof_generated->verified": {
+        "p50_error_ns": 1350494,
+        "p99_error_ns": 1428195
+      },
+      "registry_updated->anchored": {
+        "p50_error_ns": 149274,
+        "p99_error_ns": 215774
+      },
+      "revocation_anchored->revocation_witnessed": {
+        "p50_error_ns": 151277,
+        "p99_error_ns": 174229
+      },
+      "revocation_requested->revocation_anchored": {
+        "p50_error_ns": 1742172,
+        "p99_error_ns": 1932867
+      },
+      "revocation_witnessed->revocation_published": {
+        "p50_error_ns": 537328,
+        "p99_error_ns": 350840
+      },
+      "stored->proof_generated": {
+        "p50_error_ns": 1544870,
+        "p99_error_ns": 1577456
+      },
+      "witnessed->published": {
+        "p50_error_ns": -592026,
+        "p99_error_ns": 559495
+      }
+    },
+    "harness_commit": "58df2a9d64dc29e0876c764baa7a490e3278a7d6",
+    "ok": true,
+    "path": "runs/rerun/calibration/calibration.json",
+    "saturation_relative_error": 0.003961911156049353
+  },
+  "census": "not measured",
+  "driver": {
+    "backlog": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "lag_limit_ns": 25000000,
+    "ok": true,
+    "p99_lag_ns": 218623,
+    "reason": null
+  },
+  "failures": {
+    "by_code": {
+      "e.party.stack.refused.f": 1
+    },
+    "by_stage": {
+      "deliver": 1
+    },
+    "count": 1,
+    "fault_failed": null
+  },
+  "faults": [
+    {
+      "after": {
+        "count": 23,
+        "max": 3581375252,
+        "measured": true,
+        "missing": 0,
+        "not_measured": {
+          "count": 0,
+          "reasons": []
+        },
+        "p50": 2407530495,
+        "p90": 3258974207,
+        "p99": 3581935615,
+        "p99.9": 3581935615,
+        "resolution_ns": 1
+      },
+      "before": {
+        "count": 12,
+        "max": 3720283702,
+        "measured": true,
+        "missing": 0,
+        "not_measured": {
+          "count": 0,
+          "reasons": []
+        },
+        "p50": 1895825407,
+        "p90": 2847932415,
+        "p99": 3720347647,
+        "p99.9": 3720347647,
+        "resolution_ns": 1
+      },
+      "during": {
+        "count": 0,
+        "measured": false,
+        "missing": 1,
+        "not_measured": {
+          "count": 0,
+          "reasons": []
+        },
+        "resolution_ns": null
+      },
+      "ended_ns": 935022185681038,
+      "kind": "crash",
+      "started_ns": 935021169763125,
+      "target": "holder",
+      "time_to_first_success_ns": 3142139255,
+      "time_to_ready_ns": 1003637676
+    }
+  ],
+  "generator_commit": "58df2a9d64dc29e0876c764baa7a490e3278a7d6",
+  "harness_commit": "58df2a9d64dc29e0876c764baa7a490e3278a7d6",
+  "incomplete": {
+    "count": 1,
+    "credentials": [
+      "c000012"
+    ],
+    "latency": {
+      "censored": 1,
+      "count": 36,
+      "max": {
+        "lower_bound": true,
+        "value": 38333517174
+      },
+      "p50": {
+        "lower_bound": false,
+        "value": 2302672895
+      },
+      "p90": {
+        "lower_bound": false,
+        "value": 3493855231
+      },
+      "p99": {
+        "lower_bound": true,
+        "value": 38352715775
+      },
+      "p99.9": {
+        "lower_bound": true,
+        "value": 38352715775
+      }
+    }
+  },
+  "intervals": {
+    "accepted->anchored": {
+      "count": 36,
+      "end": "anchored",
+      "max": 326870000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 242876415,
+      "p90": 284950527,
+      "p99": 326893567,
+      "p99.9": 326893567,
+      "pairs": [],
+      "resolution_ns": 1000,
+      "start": "accepted"
+    },
+    "anchored->witnessed": {
+      "count": 36,
+      "end": "witnessed",
+      "max": 121816000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 91553791,
+      "p90": 102432767,
+      "p99": 121831423,
+      "p99.9": 121831423,
+      "pairs": [
+        "anchor_vs_witness"
+      ],
+      "resolution_ns": 1000,
+      "start": "anchored"
+    },
+    "delivered->stored": {
+      "count": 35,
+      "end": "stored",
+      "max": 799327677,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 619708415,
+      "p90": 714604543,
+      "p99": 799539199,
+      "p99.9": 799539199,
+      "pairs": [
+        "delivery_vs_storage"
+      ],
+      "resolution_ns": 1,
+      "start": "delivered"
+    },
+    "grant_sent->delivered": {
+      "count": 35,
+      "end": "delivered",
+      "max": 3678803,
+      "measured": true,
+      "missing": 1,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 1447935,
+      "p90": 2441215,
+      "p99": 3680255,
+      "p99.9": 3680255,
+      "pairs": [
+        "delivery_vs_storage"
+      ],
+      "resolution_ns": 1,
+      "start": "grant_sent"
+    },
+    "proof_generated->verified": {
+      "count": 35,
+      "end": "verified",
+      "max": 2294679809,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 854589439,
+      "p90": 1814036479,
+      "p99": 2296381439,
+      "p99.9": 2296381439,
+      "pairs": [
+        "proof_vs_verification"
+      ],
+      "resolution_ns": 1,
+      "start": "proof_generated"
+    },
+    "published->grant_sent": {
+      "count": 36,
+      "end": "grant_sent",
+      "max": 180138324,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 8904703,
+      "p90": 32587775,
+      "p99": 180223999,
+      "p99.9": 180223999,
+      "pairs": [],
+      "resolution_ns": 1156,
+      "start": "published"
+    },
+    "published->sync_increment_applied": {
+      "count": 0,
+      "end": "sync_increment_applied",
+      "measured": false,
+      "missing": 36,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "sync_full_vs_incremental"
+      ],
+      "resolution_ns": null,
+      "start": "published"
+    },
+    "registry_updated->anchored": {
+      "count": 0,
+      "end": "anchored",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "anchor_vs_witness"
+      ],
+      "resolution_ns": null,
+      "start": "registry_updated"
+    },
+    "requested->accepted": {
+      "count": 36,
+      "end": "accepted",
+      "max": 5941840,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 3987455,
+      "p90": 4980735,
+      "p99": 5943295,
+      "p99.9": 5943295,
+      "pairs": [],
+      "resolution_ns": 1156,
+      "start": "requested"
+    },
+    "requested->anchored": {
+      "count": 36,
+      "end": "anchored",
+      "max": 331799744,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 246808575,
+      "p90": 288882687,
+      "p99": 331874303,
+      "p99.9": 331874303,
+      "pairs": [],
+      "resolution_ns": 1156,
+      "start": "requested"
+    },
+    "requested->delivered": {
+      "count": 35,
+      "end": "delivered",
+      "max": 712629183,
+      "measured": true,
+      "missing": 1,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 591396863,
+      "p90": 649592831,
+      "p99": 713031679,
+      "p99.9": 713031679,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->grant_sent": {
+      "count": 36,
+      "end": "grant_sent",
+      "max": 710291818,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 589299711,
+      "p90": 654835711,
+      "p99": 710410239,
+      "p99.9": 710410239,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->proof_generated": {
+      "count": 35,
+      "end": "proof_generated",
+      "max": 1595611995,
+      "measured": true,
+      "missing": 1,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 1435500543,
+      "p90": 1543503871,
+      "p99": 1595932671,
+      "p99.9": 1595932671,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->published": {
+      "count": 36,
+      "end": "published",
+      "max": 693521392,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 577765375,
+      "p90": 638058495,
+      "p99": 693633023,
+      "p99.9": 693633023,
+      "pairs": [],
+      "resolution_ns": 1156,
+      "start": "requested"
+    },
+    "requested->stored": {
+      "count": 35,
+      "end": "stored",
+      "max": 1389572451,
+      "measured": true,
+      "missing": 1,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 1222639615,
+      "p90": 1318060031,
+      "p99": 1390411775,
+      "p99.9": 1390411775,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->verified": {
+      "count": 35,
+      "end": "verified",
+      "max": 3720283702,
+      "measured": true,
+      "missing": 1,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 2302672895,
+      "p90": 3258974207,
+      "p99": 3720347647,
+      "p99.9": 3720347647,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->witnessed": {
+      "count": 36,
+      "end": "witnessed",
+      "max": 424339856,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 338427903,
+      "p90": 377487359,
+      "p99": 424411135,
+      "p99.9": 424411135,
+      "pairs": [],
+      "resolution_ns": 1156,
+      "start": "requested"
+    },
+    "revocation_published->revocation_recognised": {
+      "count": 0,
+      "end": "revocation_recognised",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "revocation_vs_recognition"
+      ],
+      "resolution_ns": null,
+      "start": "revocation_published"
+    },
+    "revocation_requested->revocation_published": {
+      "count": 0,
+      "end": "revocation_published",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "revocation_vs_recognition"
+      ],
+      "resolution_ns": null,
+      "start": "revocation_requested"
+    },
+    "stored->proof_generated": {
+      "count": 35,
+      "end": "proof_generated",
+      "max": 244280044,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 208273407,
+      "p90": 230686719,
+      "p99": 244318207,
+      "p99.9": 244318207,
+      "pairs": [
+        "proof_vs_verification"
+      ],
+      "resolution_ns": 1,
+      "start": "stored"
+    },
+    "sync_full_started->sync_full_done": {
+      "count": 0,
+      "end": "sync_full_done",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "sync_full_vs_incremental"
+      ],
+      "resolution_ns": null,
+      "start": "sync_full_started"
+    },
+    "witnessed->published": {
+      "count": 36,
+      "end": "published",
+      "max": 299013000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 240910335,
+      "p90": 280494079,
+      "p99": 299106303,
+      "p99.9": 299106303,
+      "pairs": [],
+      "resolution_ns": 1000,
+      "start": "witnessed"
+    }
+  },
+  "measure": "requested->verified",
+  "measurement_cost": {
+    "harness_cpu_s": 59.044112999999996,
+    "links": {
+      "holder.api": {
+        "exchanges": 142,
+        "p50_ns": 171314,
+        "p99_ns": 489425,
+        "samples": 200
+      },
+      "issuer.control.0": {
+        "exchanges": 13,
+        "p50_ns": 190742,
+        "p99_ns": 372097,
+        "samples": 200
+      },
+      "issuer.control.1": {
+        "exchanges": 13,
+        "p50_ns": 187697,
+        "p99_ns": 359901,
+        "samples": 200
+      },
+      "issuer.control.2": {
+        "exchanges": 13,
+        "p50_ns": 177112,
+        "p99_ns": 338277,
+        "samples": 200
+      },
+      "state_distribution.observer": {
+        "exchanges": 129,
+        "p50_ns": 172991,
+        "p99_ns": 246530,
+        "samples": 200
+      },
+      "state_distribution.registrar": {
+        "exchanges": 38,
+        "p50_ns": 182977,
+        "p99_ns": 329503,
+        "samples": 200
+      },
+      "verifier.api": {
+        "exchanges": 94,
+        "p50_ns": 174939,
+        "p99_ns": 380200,
+        "samples": 200
+      },
+      "witness_pool.w0": {
+        "exchanges": 506,
+        "p50_ns": 188894,
+        "p99_ns": 405983,
+        "samples": 200
+      },
+      "witness_pool.w1": {
+        "exchanges": 505,
+        "p50_ns": 180095,
+        "p99_ns": 388383,
+        "samples": 200
+      },
+      "witness_pool.w2": {
+        "exchanges": 103,
+        "p50_ns": 190275,
+        "p99_ns": 438769,
+        "samples": 200
+      }
+    }
+  },
+  "observability": {
+    "milestones": {
+      "accepted": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 36,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "anchored": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 36,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "constructed": "unobserved",
+      "delivered": {
+        "adapter": "heti.holder",
+        "clock": "harness",
+        "events": 35,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "holder"
+      },
+      "grant_sent": {
+        "adapter": "harness.relay",
+        "clock": "harness",
+        "events": 36,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "harness.relay"
+      },
+      "proof_generated": {
+        "adapter": "heti.holder",
+        "clock": "harness",
+        "events": 35,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "holder"
+      },
+      "published": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 36,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "registry_updated": "unobserved",
+      "requested": {
+        "adapter": "harness.driver",
+        "clock": "harness",
+        "events": 36,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "harness.driver"
+      },
+      "revocation_anchored": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 0,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "revocation_published": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 0,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "revocation_recognised": "unobserved",
+      "revocation_requested": {
+        "adapter": "imbu.issuer",
+        "clock": "harness",
+        "events": 0,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "issuer"
+      },
+      "revocation_witnessed": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 0,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "stored": {
+        "adapter": "heti.holder",
+        "clock": "harness",
+        "events": 35,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "holder"
+      },
+      "sync_full_done": {
+        "adapter": "heti.verifier",
+        "clock": "harness",
+        "events": 0,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "verifier"
+      },
+      "sync_full_started": {
+        "adapter": "heti.verifier",
+        "clock": "harness",
+        "events": 0,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "verifier"
+      },
+      "sync_increment_applied": "unobserved",
+      "verified": {
+        "adapter": "heti.verifier",
+        "clock": "harness",
+        "events": 35,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "verifier"
+      },
+      "witnessed": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 36,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      }
+    },
+    "pairs": {
+      "anchor_vs_witness": {
+        "gap": "No adapter in this run observes registry_updated.",
+        "measurable": false
+      },
+      "construction_vs_registry": {
+        "gap": "No adapter in this run observes constructed. No adapter in this run observes registry_updated.",
+        "measurable": false
+      },
+      "delivery_vs_storage": {
+        "gap": null,
+        "measurable": true
+      },
+      "normal_vs_faulted": {
+        "gap": null,
+        "measurable": true
+      },
+      "proof_vs_verification": {
+        "gap": null,
+        "measurable": true
+      },
+      "revocation_vs_recognition": {
+        "gap": "No adapter in this run observes revocation_recognised.",
+        "measurable": false
+      },
+      "sync_full_vs_incremental": {
+        "gap": "No adapter in this run observes sync_increment_applied.",
+        "measurable": false
+      }
+    }
+  },
+  "reconciliation": {
+    "credentials": {
+      "c000000": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EC5fGnRY9-NjqqVJAyOWRpzpj_PTflbb5GODIh93_SN6"
+        ],
+        "two_saids": false
+      },
+      "c000001": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EI0TON7yVg2zCMlzo3fYjHOpzZ_9mF9HQHywRHBQH653"
+        ],
+        "two_saids": false
+      },
+      "c000002": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EDbMrRdWsjFbr5lmoULMuAsSJUWTO7RrcN5GicacJlCv"
+        ],
+        "two_saids": false
+      },
+      "c000003": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EMGmtuF6daK5ahosokGTqCWlxO1GeKvDLcISdhjkiv8W"
+        ],
+        "two_saids": false
+      },
+      "c000004": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EBrFjEs0B0rYsvlt-5wrn7IRARAdbtuaMwSGVsYi_16B"
+        ],
+        "two_saids": false
+      },
+      "c000005": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EJhZbK-pP3kq09Nauje7QX-spy1KP49CsyJgu0HasBcK"
+        ],
+        "two_saids": false
+      },
+      "c000006": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "ELsRKKTbZ23WVLatvUpk79uZvKFZpexinpc9lTt2s9W9"
+        ],
+        "two_saids": false
+      },
+      "c000007": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EMLJ4Hkh1LF71bxGqT6_ZTbySqkrRrj0vBAVBYRb-ngz"
+        ],
+        "two_saids": false
+      },
+      "c000008": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EFl1ZbZZjWkRhqHd98Ng-_vr8o0w_eiHGZzoMotTzJRL"
+        ],
+        "two_saids": false
+      },
+      "c000009": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EAj6Rh9-HrRA0cao4457MvWaBhydul8gdCDZqllMCNkz"
+        ],
+        "two_saids": false
+      },
+      "c000010": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EI0ixTZvEAnTxVaR9fs6kOLHKCe_1gq0WGstjtQmccYy"
+        ],
+        "two_saids": false
+      },
+      "c000011": {
+        "double_anchored": false,
+        "fate": "resumed",
+        "saids": [
+          "EDBebnSpy4ShSw56mmh3eSUaVfcZYz7qftZRNOVVy4yq"
+        ],
+        "two_saids": false
+      },
+      "c000012": {
+        "double_anchored": false,
+        "fate": "lost",
+        "saids": [
+          "ELErLGF1DNXZwuDYlFxhyJxt6oUx5c8TmEKru73f7Lkb"
+        ],
+        "two_saids": false
+      },
+      "c000013": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EOu0kekoCPfav3bLiB051Os_tdPYIEGzCKzjIFDnc9C3"
+        ],
+        "two_saids": false
+      },
+      "c000014": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EGXYwSgdKQ8yWBczsG9mOiyklQ2uMM9MYcjEb5gJGY4q"
+        ],
+        "two_saids": false
+      },
+      "c000015": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EGznXcXfnraTL7oFPAYveuTewpcTNbnTxsEQc47TX4jO"
+        ],
+        "two_saids": false
+      },
+      "c000016": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "ECG9nJQ6J_7-sM3HFxSV9pP-0aUxfTAXxl_bayqY-xMH"
+        ],
+        "two_saids": false
+      },
+      "c000017": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EFK4fJK8cGQQV6E7GlavJknCwOAviAE0Vvsaf5kR6uC-"
+        ],
+        "two_saids": false
+      },
+      "c000018": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EESOlrXmHM5HOEbj_rfi_PHU5iwwi2gX88YT-WtfZlhr"
+        ],
+        "two_saids": false
+      },
+      "c000019": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "ELyqTbkXHg5HDX5YAAk5R_kK5_uJWVRguO-JtMnkZvhu"
+        ],
+        "two_saids": false
+      },
+      "c000020": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "ED3Iq5rgmxoPV-ZskkVHDDFxwATO0SG-WHItLBSh56rg"
+        ],
+        "two_saids": false
+      },
+      "c000021": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "ECX00nmLBq2mCMIaCQiR_FkSWxgzl07RaFDzStZ1oCir"
+        ],
+        "two_saids": false
+      },
+      "c000022": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EGKaSgz8eqGbILRTzJHtJEmAYjdtelD0x3R8xG0T5QWO"
+        ],
+        "two_saids": false
+      },
+      "c000023": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EC0GOYgJa_iblnKpV4dUtKX42r0nTmLdtMJpp85IHUS2"
+        ],
+        "two_saids": false
+      },
+      "c000024": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EJZkrKoMa8_eyC3yDmeYfA-SwD4Q-43cgYTGdk3qe5aw"
+        ],
+        "two_saids": false
+      },
+      "c000025": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EKpJLV36VxrsbAC4WgUq2AqfeOkuzoObXDWhLLQ9F0ef"
+        ],
+        "two_saids": false
+      },
+      "c000026": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "ECkaPC5E6gBFJAlYpnf6sIULzEhyNkpPiWOnkpvRtzut"
+        ],
+        "two_saids": false
+      },
+      "c000027": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EA6odAQ2cmawRVkLALZ5Krxo0D1Azm6djDCo1I-d3rYI"
+        ],
+        "two_saids": false
+      },
+      "c000028": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EBrwcT-godLecynfVspnXvi1xvygUZIE4VVtzG0sSeoX"
+        ],
+        "two_saids": false
+      },
+      "c000029": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EFrNBvEG21TDuDZYtnj6SSYjLYw-fW62TXl3lvrhXZwC"
+        ],
+        "two_saids": false
+      },
+      "c000030": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EKQxz2J7Q4vVsPud9Hikoe2tM0mhEhPGTm790dAN1QBn"
+        ],
+        "two_saids": false
+      },
+      "c000031": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EJHC4Fz_anOfmrxTKwF5cPnyA86ZfB_F3S_cxaPgWBEg"
+        ],
+        "two_saids": false
+      },
+      "c000032": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "ENG5N7WwCrHjY90wi6evTWIVO0JDTcYnzAeNtlg1B9KI"
+        ],
+        "two_saids": false
+      },
+      "c000033": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "ENOsFU42f0N6nE23HEordiW9OPVU2cpu4M33Srx0GkuF"
+        ],
+        "two_saids": false
+      },
+      "c000034": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "ELO9bt5Gcl_FiM5FOJ1kSLq3ILZO7cIqWb5Uzyr-X9pC"
+        ],
+        "two_saids": false
+      },
+      "c000035": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "EJg-ovn8ODTUMyoqH4Pp_GP6KPvK26DnKN4XK2IEqC1z"
+        ],
+        "two_saids": false
+      }
+    },
+    "summary": {
+      "done": 34,
+      "double_anchored": 0,
+      "lost": 1,
+      "resumed": 1,
+      "total": 36,
+      "two_saids": 0
+    }
+  },
+  "refused": false,
+  "refused_reason": null,
+  "report_schema": 1,
+  "run": {
+    "duration_s": 60.0,
+    "host_load": {
+      "before": [
+        2.52,
+        2.57,
+        2.37
+      ],
+      "end": [
+        2.64,
+        2.53,
+        2.38
+      ],
+      "window": [
+        2.38,
+        2.54,
+        2.36
+      ]
+    },
+    "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+    "lag_limit_ms": 25.0,
+    "measure": [
+      "requested",
+      "verified"
+    ],
+    "rate": 0.6,
+    "repetition": 1,
+    "scenario": "crash-holder-3homes",
+    "stages": [
+      "issue",
+      "deliver",
+      "present",
+      "verify"
+    ],
+    "warmup_s": 0.0
+  },
+  "scenario_sha256": "707246b5fb5f015eb920753af936a94983d3d33b86b060cf39c72f215a589872",
+  "throughput": {
+    "milestones": {
+      "accepted": {
+        "count": 35,
+        "per_s": 0.5999964385034263,
+        "unconvertible": 0
+      },
+      "anchored": {
+        "count": 35,
+        "per_s": 0.5999964385034263,
+        "unconvertible": 0
+      },
+      "delivered": {
+        "count": 34,
+        "per_s": 0.5828536831176141,
+        "unconvertible": 0
+      },
+      "grant_sent": {
+        "count": 35,
+        "per_s": 0.5999964385034263,
+        "unconvertible": 0
+      },
+      "proof_generated": {
+        "count": 34,
+        "per_s": 0.5828536831176141,
+        "unconvertible": 0
+      },
+      "published": {
+        "count": 35,
+        "per_s": 0.5999964385034263,
+        "unconvertible": 0
+      },
+      "requested": {
+        "count": 36,
+        "per_s": 0.6171391938892384,
+        "unconvertible": 0
+      },
+      "stored": {
+        "count": 34,
+        "per_s": 0.5828536831176141,
+        "unconvertible": 0
+      },
+      "verified": {
+        "count": 33,
+        "per_s": 0.5657109277318019,
+        "unconvertible": 0
+      },
+      "witnessed": {
+        "count": 35,
+        "per_s": 0.5999964385034263,
+        "unconvertible": 0
+      }
+    },
+    "offered_per_s": 0.6,
+    "pairs": {
+      "construction_vs_registry": {
+        "constructed": null,
+        "registry_updated": null
+      }
+    },
+    "window_ns": 58333679592
+  },
+  "timeline_schema": 1,
+  "vocabulary_version": 1,
+  "warnings": [
+    "1 lifecycle stage(s) failed: {'deliver': 1}, with codes {'e.party.stack.refused.f': 1}."
+  ],
+  "window": {
+    "credentials": 36,
+    "end_ns": 935059503329219,
+    "measured_from_ns": 935001169649627,
+    "start_ns": 935001169649627,
+    "warmup_ns": 0
+  }
+}

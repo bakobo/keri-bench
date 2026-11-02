@@ -1,4 +1,4 @@
-"""The imbu issuer adapter, against imbu's asynchronous operations (imbu 670a3d8, plan item
+"""The imbu issuer adapter, against imbu's asynchronous operations (imbu 2c3b072, plan item
 imbu-async, decision Q-EVAG).
 
 A mutating request answers 202 with ``Location: /v1/imbu/operations/{id}`` and the operation in
@@ -23,7 +23,11 @@ What imbu's operation carries, as this adapter reads it:
   operation instead of one per poll; the ``wait_s`` knob sends it, and ``poll_ms`` polls instead;
 - each controller has a budget of signed answers (imbu @6u3jm9e4), set by the ``answer_rate``
   and ``answer_burst`` knobs; past it imbu answers 429 unsigned with ``Retry-After``, and the
-  adapter asks again after that many seconds with the same request and key (this.i 5k8z0pxe).
+  adapter asks again after that many seconds with the same request and key (this.i 5k8z0pxe);
+- a home holding as much anchoring work as it finishes in its horizon answers 503
+  ``e.env.saturated.r`` with ``Retry-After`` (imbu 44309be, @66fmushs), and the adapter asks
+  again the same way (this.i 7kmhh4wr). Each home's answer counts are written to
+  ``imbu-answers.json`` in the run directory when the adapter stops.
 
 Each issuance through ``/v1/imbu/issuances`` gets a registry of its own (imbu @2tdzyh85, Daniel's
 Q-ZSCW), as SEDI's pool does, so every credential verifies independently against the Observer.
@@ -59,7 +63,7 @@ from ..procs import free_port
 from ..vocabulary import Role
 from .adapters import IMBU, PYTHON, STARTUP, passcode
 
-VERSION = "4"
+VERSION = "5"
 WALL = 1_000
 """imbu stamps milestones in RFC 3339 with microseconds (imbu operations.now), so a microsecond
 is the resolution claimed for them."""
@@ -82,6 +86,15 @@ WAIT_LIMIT = 25
 """The longest imbu holds a waiting answer, in seconds (imbu control/routes.py WAIT_LIMIT)."""
 BURST_LIMIT = 2**32
 """The largest answer burst imbu accepts (imbu control/budget.py MAX_ANSWER_BURST)."""
+RETRIED = {429: "refused", 503: "saturated"}
+"""The refusals asked again after their Retry-After, and the Home count each is tallied in."""
+SATURATED = "e.env.saturated.r"
+"""The only 503 asked again: a home whose backlog is full (imbu 44309be). Any other 503 is a
+fault, and retrying it would hide the fault behind a timeout (this.i 7kmhh4wr)."""
+RETRY_DIGITS = 6
+"""The longest Retry-After read, in digits: under twelve days, and short enough that int() never
+meets Python's limit on converting long strings."""
+ANSWERS = "imbu-answers.json"
 sleep = asyncio.sleep
 """How the adapter waits out a Retry-After; a name of its own so a test need not wait."""
 
@@ -144,6 +157,8 @@ class Home:
     """Answers imbu signed with the principal's key: one signature each (this.i 2p26rn9h)."""
     refused: int = 0
     """Answers imbu refused unsigned because the controller's budget was spent (5k8z0pxe)."""
+    saturated: int = 0
+    """Answers imbu refused with 503 because the home's backlog was full (7kmhh4wr)."""
     issuances: int = 0
 
 
@@ -194,8 +209,55 @@ def retry_after(answer: Answer) -> int | None:
     """A refusal's Retry-After as whole seconds, or None when it is missing or unreadable."""
     for name, value in answer.headers.items():
         if name.lower() == "retry-after":
-            return int(value) if value.isascii() and value.isdigit() else None
+            readable = value.isascii() and value.isdigit() and len(value) <= RETRY_DIGITS
+            return int(value) if readable else None
     return None
+
+
+PROBLEM_TYPE = "application/problem+json"
+"""The media type imbu sends every refusal in (imbu problem.MEDIA_TYPE)."""
+PROBLEM_LIMIT = 64 * 1024
+"""The most bytes of a refusal read as a problem document. imbu's are a few hundred bytes, and
+parsing costs many times a body's size, so a larger one is not read at all."""
+
+
+def _no_constant(name: str):
+    raise ValueError(f"{name} is not JSON")
+
+
+def _finite(text: str) -> float:
+    """A JSON number as a float, refused when it overflows to infinity, as 1e309 does."""
+    value = float(text)
+    if not math.isfinite(value):
+        raise ValueError(f"{text} is not a finite number")
+    return value
+
+
+def _unique(pairs: list) -> dict:
+    """A JSON object whose names are all distinct; a repeated name makes it ambiguous."""
+    names = [name for name, _ in pairs]
+    if len(set(names)) != len(names):
+        raise ValueError("a repeated name")
+    return dict(pairs)
+
+
+def problem_code(answer: Answer) -> str | None:
+    """The code of a refusal's problem document, or None when the answer is not one: not
+    ``application/problem+json``, over :data:`PROBLEM_LIMIT`, not one strict UTF-8 JSON object
+    with distinct names, or not readable."""
+    kind = next((value for name, value in answer.headers.items()
+                 if name.lower() == "content-type"), "")
+    if kind.split(";", 1)[0].strip().lower() != PROBLEM_TYPE or \
+            len(answer.body) > PROBLEM_LIMIT:
+        return None
+    try:
+        # Strict: UTF-8 as RFC 8259 requires, and no NaN, Infinity or number that overflows to
+        # it (UnicodeDecodeError is a ValueError).
+        body = json.loads(answer.body.decode("utf-8"), object_pairs_hook=_unique,
+                          parse_constant=_no_constant, parse_float=_finite)
+    except (ValueError, RecursionError):
+        return None
+    return body.get("code") if isinstance(body, dict) else None
 
 
 def operation_document(answer: Answer) -> dict | None:
@@ -365,10 +427,14 @@ class ImbuIssuer(IssuerAdapter):
             answer = await client.http.request(method, url, body=body, headers=headers)
             if any(name.lower() == "signature" for name in answer.headers):
                 home.signed += 1
-            pause = retry_after(answer) if answer.status == 429 else None
+            tally = RETRIED.get(answer.status)
+            if answer.status == 503 and problem_code(answer) != SATURATED:
+                tally = None
+            pause = retry_after(answer) if tally else None
             if pause is None:
                 return answer
-            home.refused += 1
+            setattr(home, tally, getattr(home, tally) + 1)
+            pause = max(pause, 1)  # imbu never says zero; one that does is asked once a second
             if self.ctx.now() + pause * 1_000_000_000 > deadline:
                 raise BenchError(E_TIMEOUT, f"imbu refused {method} {path} until {pause} s "
                                  f"from now, past the operation's deadline.")
@@ -501,3 +567,9 @@ class ImbuIssuer(IssuerAdapter):
         for home in self.homes:
             for client in home.clients:
                 await client.http.close()
+        if self.ctx.run_dir is not None:
+            record = {"homes": [{"home": home.index, "signed": home.signed,
+                                 "refused_budget": home.refused,
+                                 "refused_saturated": home.saturated,
+                                 "issuances": home.issuances} for home in self.homes]}
+            (Path(self.ctx.run_dir) / ANSWERS).write_text(json.dumps(record, indent=1) + "\n")

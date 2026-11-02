@@ -1,0 +1,2007 @@
+{
+  "calibration": "not calibrated",
+  "census": "not measured",
+  "driver": {
+    "backlog": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "lag_limit_ns": 5000000,
+    "ok": true,
+    "p99_lag_ns": 1897471,
+    "reason": null
+  },
+  "failures": {
+    "by_code": {},
+    "by_stage": {},
+    "count": 0,
+    "fault_failed": null
+  },
+  "faults": [],
+  "generator_commit": "571ccdbc5e54990f047176df9758ace0ac1a713d",
+  "harness_commit": "571ccdbc5e54990f047176df9758ace0ac1a713d",
+  "incomplete": {
+    "count": 0,
+    "credentials": [],
+    "latency": {
+      "censored": 0,
+      "count": 105,
+      "max": {
+        "lower_bound": false,
+        "value": 20288688
+      },
+      "p50": {
+        "lower_bound": false,
+        "value": 1932287
+      },
+      "p90": {
+        "lower_bound": false,
+        "value": 4833279
+      },
+      "p99": {
+        "lower_bound": false,
+        "value": 15458303
+      },
+      "p99.9": {
+        "lower_bound": false,
+        "value": 20299775
+      }
+    }
+  },
+  "intervals": {
+    "accepted->constructed": {
+      "count": 91,
+      "end": "constructed",
+      "max": 966128,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 14,
+        "reasons": [
+          "constructed is stamped 1013987 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 1147153 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 1355100 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 1471555 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 1519104 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 1566174 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 1872427 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 1948031 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 2084990 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 2200208 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 2232075 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 2549122 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 4057660 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+          "constructed is stamped 4131504 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent."
+        ]
+      },
+      "p50": 0,
+      "p90": 0,
+      "p99": 966143,
+      "p99.9": 966143,
+      "pairs": [],
+      "resolution_ns": 966128,
+      "start": "accepted"
+    },
+    "anchored->witnessed": {
+      "count": 105,
+      "end": "witnessed",
+      "max": 260419000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 99483647,
+      "p90": 147980287,
+      "p99": 179830783,
+      "p99.9": 260440063,
+      "pairs": [
+        "anchor_vs_witness"
+      ],
+      "resolution_ns": 1000,
+      "start": "anchored"
+    },
+    "constructed->registry_updated": {
+      "count": 105,
+      "end": "registry_updated",
+      "max": 121714000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 61997055,
+      "p90": 95223807,
+      "p99": 117506047,
+      "p99.9": 121765887,
+      "pairs": [],
+      "resolution_ns": 1000,
+      "start": "constructed"
+    },
+    "delivered->stored": {
+      "count": 105,
+      "end": "stored",
+      "max": 114437837,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 65896447,
+      "p90": 92274687,
+      "p99": 108199935,
+      "p99.9": 114491391,
+      "pairs": [
+        "delivery_vs_storage"
+      ],
+      "resolution_ns": 1,
+      "start": "delivered"
+    },
+    "grant_sent->delivered": {
+      "count": 105,
+      "end": "delivered",
+      "max": 19166459,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 1968127,
+      "p90": 6311935,
+      "p99": 13271039,
+      "p99.9": 19169279,
+      "pairs": [
+        "delivery_vs_storage"
+      ],
+      "resolution_ns": 1,
+      "start": "grant_sent"
+    },
+    "proof_generated->verified": {
+      "count": 105,
+      "end": "verified",
+      "max": 290311714,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 68943871,
+      "p90": 115736575,
+      "p99": 239992831,
+      "p99.9": 290455551,
+      "pairs": [
+        "proof_vs_verification"
+      ],
+      "resolution_ns": 1,
+      "start": "proof_generated"
+    },
+    "published->grant_sent": {
+      "count": 0,
+      "end": "grant_sent",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 105,
+        "reasons": [
+          "grant_sent is stamped 100141828 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 100313695 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 102096155 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 103406119 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 104679424 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 105106767 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 119764429 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 123118077 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 123647274 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 28764385 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 32823040 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 35656445 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 37804274 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 37815794 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 38676786 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 40133582 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 41392622 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 42472145 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 44411655 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 44597505 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 44835274 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 45959258 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 45964906 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 46534718 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 47821709 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 47977569 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 48384620 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 48940064 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 49116151 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 49515430 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 49523073 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 50850401 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 51346069 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 51485230 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 51529834 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 52837249 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 53969644 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 54312842 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 54522084 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 54647935 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 54830212 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 55419036 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 55821734 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 56015007 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 56309177 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 56834325 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 57113200 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 57539309 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 57599167 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 57615060 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 57805745 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 58308420 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 58358153 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 58491988 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 58503804 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 58686312 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 58810670 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 59707081 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 60075448 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 60283920 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 61292432 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 62992532 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 63113397 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 63245568 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 63750926 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 64221805 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 64681186 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 64930094 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 68134179 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 68907184 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 68982522 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 69336983 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 70039620 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 70867126 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 71027441 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 71431004 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 71604277 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 72104419 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 72506802 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 73192210 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 73380666 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 73384063 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 73659398 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 73996004 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 74054765 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 75140459 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 75612362 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 75829374 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 76531796 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 76958956 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 77738135 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 78028310 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 80009553 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 81499697 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 83433343 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 83567038 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 83649243 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 87472226 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 87893694 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 89847507 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 90478538 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 91469075 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 96268952 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 97178482 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+          "grant_sent is stamped 97389395 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent."
+        ]
+      },
+      "pairs": [],
+      "resolution_ns": null,
+      "start": "published"
+    },
+    "published->sync_increment_applied": {
+      "count": 0,
+      "end": "sync_increment_applied",
+      "measured": false,
+      "missing": 105,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "sync_full_vs_incremental"
+      ],
+      "resolution_ns": null,
+      "start": "published"
+    },
+    "registry_updated->anchored": {
+      "count": 105,
+      "end": "anchored",
+      "max": 190868000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 80412671,
+      "p90": 127270911,
+      "p99": 159121407,
+      "p99.9": 190971903,
+      "pairs": [
+        "anchor_vs_witness"
+      ],
+      "resolution_ns": 1000,
+      "start": "registry_updated"
+    },
+    "requested->accepted": {
+      "count": 105,
+      "end": "accepted",
+      "max": 20959982,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 1917951,
+      "p90": 5734399,
+      "p99": 17678335,
+      "p99.9": 20971519,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->anchored": {
+      "count": 105,
+      "end": "anchored",
+      "max": 240565872,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 152698879,
+      "p90": 207749119,
+      "p99": 236716031,
+      "p99.9": 240648191,
+      "pairs": [],
+      "resolution_ns": 966128,
+      "start": "requested"
+    },
+    "requested->constructed": {
+      "count": 105,
+      "end": "constructed",
+      "max": 20288688,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 1932287,
+      "p90": 4833279,
+      "p99": 15458303,
+      "p99.9": 20299775,
+      "pairs": [],
+      "resolution_ns": 966128,
+      "start": "requested"
+    },
+    "requested->delivered": {
+      "count": 105,
+      "end": "delivered",
+      "max": 394549771,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 265551871,
+      "p90": 337117183,
+      "p99": 376438783,
+      "p99.9": 394788863,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->grant_sent": {
+      "count": 105,
+      "end": "grant_sent",
+      "max": 389853541,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 263061503,
+      "p90": 332660735,
+      "p99": 369360895,
+      "p99.9": 390070271,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->proof_generated": {
+      "count": 105,
+      "end": "proof_generated",
+      "max": 596488366,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 426508287,
+      "p90": 496762879,
+      "p99": 563085311,
+      "p99.9": 596639743,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->published": {
+      "count": 105,
+      "end": "published",
+      "max": 463772102,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 328728575,
+      "p90": 396361727,
+      "p99": 458227711,
+      "p99.9": 463994879,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->registry_updated": {
+      "count": 105,
+      "end": "registry_updated",
+      "max": 125596640,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 64749567,
+      "p90": 99549183,
+      "p99": 118882303,
+      "p99.9": 125632511,
+      "pairs": [],
+      "resolution_ns": 966128,
+      "start": "requested"
+    },
+    "requested->revocation_anchored": {
+      "count": 105,
+      "end": "revocation_anchored",
+      "max": 844395872,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 588775423,
+      "p90": 666894335,
+      "p99": 813694975,
+      "p99.9": 844627967,
+      "pairs": [],
+      "resolution_ns": 966128,
+      "start": "requested"
+    },
+    "requested->revocation_published": {
+      "count": 105,
+      "end": "revocation_published",
+      "max": 991070285,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 751304703,
+      "p90": 882900991,
+      "p99": 972029951,
+      "p99.9": 991428607,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->revocation_recognised": {
+      "count": 105,
+      "end": "revocation_recognised",
+      "max": 1000000000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 775421951,
+      "p90": 900202495,
+      "p99": 1000341503,
+      "p99.9": 1000341503,
+      "pairs": [],
+      "resolution_ns": 25000000,
+      "start": "requested"
+    },
+    "requested->revocation_requested": {
+      "count": 105,
+      "end": "revocation_requested",
+      "max": 736688178,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 501481471,
+      "p90": 600309759,
+      "p99": 731906047,
+      "p99.9": 737148927,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->revocation_witnessed": {
+      "count": 105,
+      "end": "revocation_witnessed",
+      "max": 957432848,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 694157311,
+      "p90": 796393471,
+      "p99": 919076863,
+      "p99.9": 957874175,
+      "pairs": [],
+      "resolution_ns": 966128,
+      "start": "requested"
+    },
+    "requested->stored": {
+      "count": 105,
+      "end": "stored",
+      "max": 508987608,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 331350015,
+      "p90": 394002431,
+      "p99": 442499071,
+      "p99.9": 509083647,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->verified": {
+      "count": 105,
+      "end": "verified",
+      "max": 736607618,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 501219327,
+      "p90": 600309759,
+      "p99": 731381759,
+      "p99.9": 736624639,
+      "pairs": [],
+      "resolution_ns": 1,
+      "start": "requested"
+    },
+    "requested->witnessed": {
+      "count": 105,
+      "end": "witnessed",
+      "max": 388383456,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 261881855,
+      "p90": 332398591,
+      "p99": 368312319,
+      "p99.9": 388497407,
+      "pairs": [],
+      "resolution_ns": 966128,
+      "start": "requested"
+    },
+    "revocation_anchored->revocation_witnessed": {
+      "count": 105,
+      "end": "revocation_witnessed",
+      "max": 209251000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 105250815,
+      "p90": 147324927,
+      "p99": 194379775,
+      "p99.9": 209321983,
+      "pairs": [],
+      "resolution_ns": 1000,
+      "start": "revocation_anchored"
+    },
+    "revocation_published->revocation_recognised": {
+      "count": 99,
+      "end": "revocation_recognised",
+      "max": 50000000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 6,
+        "reasons": [
+          "revocation_recognised is stamped 28050443 ns before revocation_published, more than the 25000000 ns resolution, so the clock evidence is inconsistent.",
+          "revocation_recognised is stamped 36797855 ns before revocation_published, more than the 25000000 ns resolution, so the clock evidence is inconsistent.",
+          "revocation_recognised is stamped 44797946 ns before revocation_published, more than the 25000000 ns resolution, so the clock evidence is inconsistent.",
+          "revocation_recognised is stamped 64845511 ns before revocation_published, more than the 25000000 ns resolution, so the clock evidence is inconsistent.",
+          "revocation_recognised is stamped 66085047 ns before revocation_published, more than the 25000000 ns resolution, so the clock evidence is inconsistent.",
+          "revocation_recognised is stamped 85561050 ns before revocation_published, more than the 25000000 ns resolution, so the clock evidence is inconsistent."
+        ]
+      },
+      "p50": 25001983,
+      "p90": 25001983,
+      "p99": 50003967,
+      "p99.9": 50003967,
+      "pairs": [
+        "revocation_vs_recognition"
+      ],
+      "resolution_ns": 25000000,
+      "start": "revocation_published"
+    },
+    "revocation_requested->revocation_anchored": {
+      "count": 105,
+      "end": "revocation_anchored",
+      "max": 152648224,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 82182143,
+      "p90": 114032639,
+      "p99": 144048127,
+      "p99.9": 152698879,
+      "pairs": [],
+      "resolution_ns": 966128,
+      "start": "revocation_requested"
+    },
+    "revocation_requested->revocation_published": {
+      "count": 105,
+      "end": "revocation_published",
+      "max": 386183956,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 255590399,
+      "p90": 319553535,
+      "p99": 363593727,
+      "p99.9": 386400255,
+      "pairs": [
+        "revocation_vs_recognition"
+      ],
+      "resolution_ns": 1,
+      "start": "revocation_requested"
+    },
+    "revocation_witnessed->revocation_published": {
+      "count": 105,
+      "end": "revocation_published",
+      "max": 120766000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 64749567,
+      "p90": 97583103,
+      "p99": 119865343,
+      "p99.9": 120782847,
+      "pairs": [],
+      "resolution_ns": 966128,
+      "start": "revocation_witnessed"
+    },
+    "stored->proof_generated": {
+      "count": 105,
+      "end": "proof_generated",
+      "max": 153162743,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 87359487,
+      "p90": 126746623,
+      "p99": 149291007,
+      "p99.9": 153223167,
+      "pairs": [
+        "proof_vs_verification"
+      ],
+      "resolution_ns": 1,
+      "start": "stored"
+    },
+    "sync_full_started->sync_full_done": {
+      "count": 0,
+      "end": "sync_full_done",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "sync_full_vs_incremental"
+      ],
+      "resolution_ns": null,
+      "start": "sync_full_started"
+    },
+    "witnessed->published": {
+      "count": 105,
+      "end": "published",
+      "max": 130427280,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 64749567,
+      "p90": 98566143,
+      "p99": 124649471,
+      "p99.9": 130482175,
+      "pairs": [],
+      "resolution_ns": 966128,
+      "start": "witnessed"
+    }
+  },
+  "measure": "requested->constructed",
+  "measurement_cost": {
+    "harness_cpu_s": 6.700595,
+    "links": {
+      "holder.api": {
+        "exchanges": 315,
+        "p50_ns": 180545,
+        "p99_ns": 375011,
+        "samples": 200
+      },
+      "issuer.api": {
+        "exchanges": 555,
+        "p50_ns": 248570,
+        "p99_ns": 881574,
+        "samples": 200
+      },
+      "state_distribution.api": {
+        "exchanges": 1192,
+        "p50_ns": 171895,
+        "p99_ns": 714025,
+        "samples": 200
+      },
+      "verifier.api": {
+        "exchanges": 1087,
+        "p50_ns": 213241,
+        "p99_ns": 1095551,
+        "samples": 200
+      }
+    }
+  },
+  "observability": {
+    "milestones": {
+      "accepted": {
+        "adapter": "synthetic.issuer",
+        "clock": "harness",
+        "events": 105,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "issuer"
+      },
+      "anchored": {
+        "adapter": "synthetic.issuer",
+        "clock": "stack:synthetic-issuer",
+        "events": 105,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "constructed": {
+        "adapter": "synthetic.issuer",
+        "clock": "stack:synthetic-issuer",
+        "events": 105,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "delivered": {
+        "adapter": "synthetic.holder",
+        "clock": "harness",
+        "events": 105,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "holder"
+      },
+      "grant_sent": {
+        "adapter": "harness.relay",
+        "clock": "harness",
+        "events": 105,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "harness.relay"
+      },
+      "proof_generated": {
+        "adapter": "synthetic.holder",
+        "clock": "harness",
+        "events": 105,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "holder"
+      },
+      "published": {
+        "adapter": "synthetic.state_distribution",
+        "clock": "harness",
+        "events": 105,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "state_distribution"
+      },
+      "registry_updated": {
+        "adapter": "synthetic.issuer",
+        "clock": "stack:synthetic-issuer",
+        "events": 105,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "requested": {
+        "adapter": "harness.driver",
+        "clock": "harness",
+        "events": 105,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "harness.driver"
+      },
+      "revocation_anchored": {
+        "adapter": "synthetic.issuer",
+        "clock": "stack:synthetic-issuer",
+        "events": 105,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "revocation_published": {
+        "adapter": "synthetic.state_distribution",
+        "clock": "harness",
+        "events": 105,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "state_distribution"
+      },
+      "revocation_recognised": {
+        "adapter": "harness.monitor",
+        "clock": "harness",
+        "events": 105,
+        "method": "polled",
+        "resolution_ns": 25000000,
+        "role": "harness.monitor"
+      },
+      "revocation_requested": {
+        "adapter": "synthetic.issuer",
+        "clock": "harness",
+        "events": 105,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "issuer"
+      },
+      "revocation_witnessed": {
+        "adapter": "synthetic.issuer",
+        "clock": "stack:synthetic-issuer",
+        "events": 105,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "stored": {
+        "adapter": "synthetic.holder",
+        "clock": "harness",
+        "events": 105,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "holder"
+      },
+      "sync_full_done": {
+        "adapter": "synthetic.verifier",
+        "clock": "harness",
+        "events": 0,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "verifier"
+      },
+      "sync_full_started": {
+        "adapter": "synthetic.verifier",
+        "clock": "harness",
+        "events": 0,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "verifier"
+      },
+      "sync_increment_applied": "unobserved",
+      "verified": {
+        "adapter": "synthetic.verifier",
+        "clock": "harness",
+        "events": 105,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "verifier"
+      },
+      "witnessed": {
+        "adapter": "synthetic.issuer",
+        "clock": "stack:synthetic-issuer",
+        "events": 105,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      }
+    },
+    "pairs": {
+      "anchor_vs_witness": {
+        "gap": null,
+        "measurable": true
+      },
+      "construction_vs_registry": {
+        "gap": null,
+        "measurable": true
+      },
+      "delivery_vs_storage": {
+        "gap": null,
+        "measurable": true
+      },
+      "normal_vs_faulted": {
+        "gap": "No fault was scheduled in this run, so there is no faulted performance to set beside normal performance.",
+        "measurable": false
+      },
+      "proof_vs_verification": {
+        "gap": null,
+        "measurable": true
+      },
+      "revocation_vs_recognition": {
+        "gap": null,
+        "measurable": true
+      },
+      "sync_full_vs_incremental": {
+        "gap": "No adapter in this run observes sync_increment_applied.",
+        "measurable": false
+      }
+    }
+  },
+  "reconciliation": {
+    "credentials": {
+      "c000000": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000000"
+        ],
+        "two_saids": false
+      },
+      "c000001": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000001"
+        ],
+        "two_saids": false
+      },
+      "c000002": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000002"
+        ],
+        "two_saids": false
+      },
+      "c000003": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000003"
+        ],
+        "two_saids": false
+      },
+      "c000004": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000004"
+        ],
+        "two_saids": false
+      },
+      "c000005": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000005"
+        ],
+        "two_saids": false
+      },
+      "c000006": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000006"
+        ],
+        "two_saids": false
+      },
+      "c000007": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000007"
+        ],
+        "two_saids": false
+      },
+      "c000008": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000008"
+        ],
+        "two_saids": false
+      },
+      "c000009": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000009"
+        ],
+        "two_saids": false
+      },
+      "c000010": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000010"
+        ],
+        "two_saids": false
+      },
+      "c000011": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000011"
+        ],
+        "two_saids": false
+      },
+      "c000012": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000012"
+        ],
+        "two_saids": false
+      },
+      "c000013": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000013"
+        ],
+        "two_saids": false
+      },
+      "c000014": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000014"
+        ],
+        "two_saids": false
+      },
+      "c000015": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000015"
+        ],
+        "two_saids": false
+      },
+      "c000016": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000016"
+        ],
+        "two_saids": false
+      },
+      "c000017": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000017"
+        ],
+        "two_saids": false
+      },
+      "c000018": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000018"
+        ],
+        "two_saids": false
+      },
+      "c000019": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000019"
+        ],
+        "two_saids": false
+      },
+      "c000020": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000020"
+        ],
+        "two_saids": false
+      },
+      "c000021": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000021"
+        ],
+        "two_saids": false
+      },
+      "c000022": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000022"
+        ],
+        "two_saids": false
+      },
+      "c000023": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000023"
+        ],
+        "two_saids": false
+      },
+      "c000024": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000024"
+        ],
+        "two_saids": false
+      },
+      "c000025": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000025"
+        ],
+        "two_saids": false
+      },
+      "c000026": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000026"
+        ],
+        "two_saids": false
+      },
+      "c000027": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000027"
+        ],
+        "two_saids": false
+      },
+      "c000028": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000028"
+        ],
+        "two_saids": false
+      },
+      "c000029": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000029"
+        ],
+        "two_saids": false
+      },
+      "c000030": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000030"
+        ],
+        "two_saids": false
+      },
+      "c000031": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000031"
+        ],
+        "two_saids": false
+      },
+      "c000032": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000032"
+        ],
+        "two_saids": false
+      },
+      "c000033": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000033"
+        ],
+        "two_saids": false
+      },
+      "c000034": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000034"
+        ],
+        "two_saids": false
+      },
+      "c000035": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000035"
+        ],
+        "two_saids": false
+      },
+      "c000036": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000036"
+        ],
+        "two_saids": false
+      },
+      "c000037": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000037"
+        ],
+        "two_saids": false
+      },
+      "c000038": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000038"
+        ],
+        "two_saids": false
+      },
+      "c000039": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000039"
+        ],
+        "two_saids": false
+      },
+      "c000040": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000040"
+        ],
+        "two_saids": false
+      },
+      "c000041": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000041"
+        ],
+        "two_saids": false
+      },
+      "c000042": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000042"
+        ],
+        "two_saids": false
+      },
+      "c000043": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000043"
+        ],
+        "two_saids": false
+      },
+      "c000044": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000044"
+        ],
+        "two_saids": false
+      },
+      "c000045": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000045"
+        ],
+        "two_saids": false
+      },
+      "c000046": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000046"
+        ],
+        "two_saids": false
+      },
+      "c000047": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000047"
+        ],
+        "two_saids": false
+      },
+      "c000048": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000048"
+        ],
+        "two_saids": false
+      },
+      "c000049": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000049"
+        ],
+        "two_saids": false
+      },
+      "c000050": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000050"
+        ],
+        "two_saids": false
+      },
+      "c000051": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000051"
+        ],
+        "two_saids": false
+      },
+      "c000052": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000052"
+        ],
+        "two_saids": false
+      },
+      "c000053": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000053"
+        ],
+        "two_saids": false
+      },
+      "c000054": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000054"
+        ],
+        "two_saids": false
+      },
+      "c000055": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000055"
+        ],
+        "two_saids": false
+      },
+      "c000056": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000056"
+        ],
+        "two_saids": false
+      },
+      "c000057": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000057"
+        ],
+        "two_saids": false
+      },
+      "c000058": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000058"
+        ],
+        "two_saids": false
+      },
+      "c000059": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000059"
+        ],
+        "two_saids": false
+      },
+      "c000060": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000060"
+        ],
+        "two_saids": false
+      },
+      "c000061": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000061"
+        ],
+        "two_saids": false
+      },
+      "c000062": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000062"
+        ],
+        "two_saids": false
+      },
+      "c000063": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000063"
+        ],
+        "two_saids": false
+      },
+      "c000064": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000064"
+        ],
+        "two_saids": false
+      },
+      "c000065": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000065"
+        ],
+        "two_saids": false
+      },
+      "c000066": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000066"
+        ],
+        "two_saids": false
+      },
+      "c000067": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000067"
+        ],
+        "two_saids": false
+      },
+      "c000068": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000068"
+        ],
+        "two_saids": false
+      },
+      "c000069": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000069"
+        ],
+        "two_saids": false
+      },
+      "c000070": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000070"
+        ],
+        "two_saids": false
+      },
+      "c000071": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000071"
+        ],
+        "two_saids": false
+      },
+      "c000072": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000072"
+        ],
+        "two_saids": false
+      },
+      "c000073": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000073"
+        ],
+        "two_saids": false
+      },
+      "c000074": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000074"
+        ],
+        "two_saids": false
+      },
+      "c000075": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000075"
+        ],
+        "two_saids": false
+      },
+      "c000076": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000076"
+        ],
+        "two_saids": false
+      },
+      "c000077": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000077"
+        ],
+        "two_saids": false
+      },
+      "c000078": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000078"
+        ],
+        "two_saids": false
+      },
+      "c000079": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000079"
+        ],
+        "two_saids": false
+      },
+      "c000080": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000080"
+        ],
+        "two_saids": false
+      },
+      "c000081": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000081"
+        ],
+        "two_saids": false
+      },
+      "c000082": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000082"
+        ],
+        "two_saids": false
+      },
+      "c000083": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000083"
+        ],
+        "two_saids": false
+      },
+      "c000084": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000084"
+        ],
+        "two_saids": false
+      },
+      "c000085": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000085"
+        ],
+        "two_saids": false
+      },
+      "c000086": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000086"
+        ],
+        "two_saids": false
+      },
+      "c000087": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000087"
+        ],
+        "two_saids": false
+      },
+      "c000088": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000088"
+        ],
+        "two_saids": false
+      },
+      "c000089": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000089"
+        ],
+        "two_saids": false
+      },
+      "c000090": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000090"
+        ],
+        "two_saids": false
+      },
+      "c000091": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000091"
+        ],
+        "two_saids": false
+      },
+      "c000092": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000092"
+        ],
+        "two_saids": false
+      },
+      "c000093": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000093"
+        ],
+        "two_saids": false
+      },
+      "c000094": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000094"
+        ],
+        "two_saids": false
+      },
+      "c000095": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000095"
+        ],
+        "two_saids": false
+      },
+      "c000096": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000096"
+        ],
+        "two_saids": false
+      },
+      "c000097": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000097"
+        ],
+        "two_saids": false
+      },
+      "c000098": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000098"
+        ],
+        "two_saids": false
+      },
+      "c000099": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000099"
+        ],
+        "two_saids": false
+      },
+      "c000100": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000100"
+        ],
+        "two_saids": false
+      },
+      "c000101": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000101"
+        ],
+        "two_saids": false
+      },
+      "c000102": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000102"
+        ],
+        "two_saids": false
+      },
+      "c000103": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000103"
+        ],
+        "two_saids": false
+      },
+      "c000104": {
+        "double_anchored": false,
+        "fate": "done",
+        "saids": [
+          "Ec000104"
+        ],
+        "two_saids": false
+      }
+    },
+    "summary": {
+      "done": 105,
+      "double_anchored": 0,
+      "lost": 0,
+      "resumed": 0,
+      "total": 105,
+      "two_saids": 0
+    }
+  },
+  "refused": false,
+  "refused_reason": null,
+  "report_schema": 1,
+  "run": {
+    "duration_s": 7.0,
+    "host_load": {
+      "before": [
+        8.42,
+        10.26,
+        9.84
+      ],
+      "end": [
+        8.81,
+        10.28,
+        9.85
+      ],
+      "window": [
+        8.42,
+        10.26,
+        9.84
+      ]
+    },
+    "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+    "lag_limit_ms": 5.0,
+    "measure": [
+      "requested",
+      "constructed"
+    ],
+    "rate": 15.0,
+    "repetition": 2,
+    "scenario": "calibration-intervals",
+    "stages": [
+      "issue",
+      "deliver",
+      "present",
+      "verify",
+      "revoke"
+    ],
+    "warmup_s": 0.0
+  },
+  "scenario_sha256": "a11f4edbcda49444d55c11a99f728b0bd6f2158808ccbc3f6b0ddcbaeaf4d9f6",
+  "throughput": {
+    "milestones": {
+      "accepted": {
+        "count": 104,
+        "per_s": 14.998008305597327,
+        "unconvertible": 0
+      },
+      "anchored": {
+        "count": 102,
+        "per_s": 14.709585068951226,
+        "unconvertible": 0
+      },
+      "constructed": {
+        "count": 104,
+        "per_s": 14.998008305597327,
+        "unconvertible": 0
+      },
+      "delivered": {
+        "count": 101,
+        "per_s": 14.565373450628174,
+        "unconvertible": 0
+      },
+      "grant_sent": {
+        "count": 101,
+        "per_s": 14.565373450628174,
+        "unconvertible": 0
+      },
+      "proof_generated": {
+        "count": 98,
+        "per_s": 14.13273859565902,
+        "unconvertible": 0
+      },
+      "published": {
+        "count": 99,
+        "per_s": 14.276950213982072,
+        "unconvertible": 0
+      },
+      "registry_updated": {
+        "count": 104,
+        "per_s": 14.998008305597327,
+        "unconvertible": 0
+      },
+      "requested": {
+        "count": 105,
+        "per_s": 15.14221992392038,
+        "unconvertible": 0
+      },
+      "revocation_anchored": {
+        "count": 96,
+        "per_s": 13.844315359012919,
+        "unconvertible": 0
+      },
+      "revocation_published": {
+        "count": 93,
+        "per_s": 13.411680504043764,
+        "unconvertible": 0
+      },
+      "revocation_recognised": {
+        "count": 93,
+        "per_s": 13.411680504043764,
+        "unconvertible": 0
+      },
+      "revocation_requested": {
+        "count": 96,
+        "per_s": 13.844315359012919,
+        "unconvertible": 0
+      },
+      "revocation_witnessed": {
+        "count": 93,
+        "per_s": 13.411680504043764,
+        "unconvertible": 0
+      },
+      "stored": {
+        "count": 99,
+        "per_s": 14.276950213982072,
+        "unconvertible": 0
+      },
+      "verified": {
+        "count": 96,
+        "per_s": 13.844315359012919,
+        "unconvertible": 0
+      },
+      "witnessed": {
+        "count": 101,
+        "per_s": 14.565373450628174,
+        "unconvertible": 0
+      }
+    },
+    "offered_per_s": 15.0,
+    "pairs": {
+      "construction_vs_registry": {
+        "constructed": 14.998008305597327,
+        "registry_updated": 14.998008305597327
+      }
+    },
+    "window_ns": 6934254061
+  },
+  "timeline_schema": 1,
+  "vocabulary_version": 1,
+  "warnings": [
+    "The interval revocation_published->revocation_recognised was not measured for 6 credential(s) because of its clock evidence. revocation_recognised is stamped 28050443 ns before revocation_published, more than the 25000000 ns resolution, so the clock evidence is inconsistent. revocation_recognised is stamped 36797855 ns before revocation_published, more than the 25000000 ns resolution, so the clock evidence is inconsistent. revocation_recognised is stamped 44797946 ns before revocation_published, more than the 25000000 ns resolution, so the clock evidence is inconsistent. revocation_recognised is stamped 64845511 ns before revocation_published, more than the 25000000 ns resolution, so the clock evidence is inconsistent. revocation_recognised is stamped 66085047 ns before revocation_published, more than the 25000000 ns resolution, so the clock evidence is inconsistent. revocation_recognised is stamped 85561050 ns before revocation_published, more than the 25000000 ns resolution, so the clock evidence is inconsistent.",
+    "The interval accepted->constructed was not measured for 14 credential(s) because of its clock evidence. constructed is stamped 1013987 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 1147153 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 1355100 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 1471555 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 1519104 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 1566174 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 1872427 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 1948031 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 2084990 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 2200208 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 2232075 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 2549122 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 4057660 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent. constructed is stamped 4131504 ns before accepted, more than the 966128 ns resolution, so the clock evidence is inconsistent.",
+    "The interval published->grant_sent was not measured for 105 credential(s) because of its clock evidence. grant_sent is stamped 100141828 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 100313695 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 102096155 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 103406119 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 104679424 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 105106767 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 119764429 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 123118077 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 123647274 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 28764385 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 32823040 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 35656445 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 37804274 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 37815794 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 38676786 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 40133582 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 41392622 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 42472145 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 44411655 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 44597505 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 44835274 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 45959258 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 45964906 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 46534718 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 47821709 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 47977569 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 48384620 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 48940064 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 49116151 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 49515430 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 49523073 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 50850401 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 51346069 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 51485230 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 51529834 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 52837249 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 53969644 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 54312842 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 54522084 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 54647935 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 54830212 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 55419036 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 55821734 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 56015007 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 56309177 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 56834325 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 57113200 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 57539309 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 57599167 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 57615060 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 57805745 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 58308420 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 58358153 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 58491988 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 58503804 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 58686312 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 58810670 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 59707081 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 60075448 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 60283920 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 61292432 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 62992532 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 63113397 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 63245568 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 63750926 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 64221805 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 64681186 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 64930094 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 68134179 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 68907184 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 68982522 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 69336983 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 70039620 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 70867126 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 71027441 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 71431004 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 71604277 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 72104419 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 72506802 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 73192210 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 73380666 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 73384063 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 73659398 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 73996004 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 74054765 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 75140459 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 75612362 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 75829374 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 76531796 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 76958956 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 77738135 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 78028310 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 80009553 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 81499697 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 83433343 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 83567038 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 83649243 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 87472226 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 87893694 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 89847507 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 90478538 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 91469075 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 96268952 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 97178482 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent. grant_sent is stamped 97389395 ns before published, more than the 1 ns resolution, so the clock evidence is inconsistent.",
+    "The run carries no calibration, so its numbers have no measured error budget (test plan, Part B #1). Run keri-bench calibrate and pass --calibration."
+  ],
+  "window": {
+    "credentials": 105,
+    "end_ns": 999269609424251,
+    "measured_from_ns": 999262675170190,
+    "start_ns": 999262675170190,
+    "warmup_ns": 0
+  }
+}

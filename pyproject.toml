@@ -15,13 +15,16 @@ dependencies = [
 [project.optional-dependencies]
 # The real stack's adapters (imbu issuer; heti witness pool, Observer, holder and verifier). Kept
 # out of the core so the harness, the synthetic stack and CI's calibration need no private repo.
-# Pinned to commits: imbu utah/next 670a3d8 (2026-10-25: Prefer: wait, the answer budget and the
-# publication without the issuer KEL, this.i 5k8z0pxe), and the heti that imbu pins. The Registrar
+# Pinned to commits: imbu utah/next 2c3b072 (2026-10-31: imbu-kel-growth's bounded backlog,
+# which answers 503 with Retry-After past it, on top of 670a3d8's Prefer: wait, answer budget and
+# publication without the issuer KEL; this.i 5frsx7pu, 7kmhh4wr), and heti 980ee85, which
+# descends from the 1ae3590 imbu pins and adds heti-consumer-kel's incremental replay of an
+# issuer's KEL (overridden below; this.i 53kz99e2). The Registrar
 # (bakobo/witness) runs in its own uvx environment, as the summit harness runs it, because it pins
 # a different keripy.
 stacks = [
-    "imbu @ git+ssh://git@github.com/bakobo/imbu@670a3d874a367aeb3c8cea132b5d0ae98646a3a1",
-    "heti @ git+ssh://git@github.com/bakobo/heti@841fcbd3c6952be729666015ecaa0e28155004cf",
+    "imbu @ git+ssh://git@github.com/bakobo/imbu@2c3b07271f22e490dfac74ced5948fbcf1d0f311",
+    "heti @ git+ssh://git@github.com/bakobo/heti@980ee85084abfd310c515f01df4c3869fc78894a",
 ]
 
 [project.scripts]
@@ -32,6 +35,11 @@ keri-bench = "keri_bench.cli:main"
 # imbu's pyproject does, stops uv reading its sources and leaves heti's keripy the only one. They
 # must match overture's [project] dependencies at the commit imbu pins.
 [tool.uv]
+# Target 3's rerun runs heti 980ee85 (heti-consumer-kel) under imbu 2c3b072, which pins heti
+# 1ae3590; 980ee85 descends from it. This override is the only difference (this.i 53kz99e2).
+override-dependencies = [
+    "heti @ git+ssh://git@github.com/bakobo/heti@980ee85084abfd310c515f01df4c3869fc78894a",
+]
 dependency-metadata = [
     { name = "overture", version = "0.1.0.dev0", requires-dist = ["keri", "jsonschema>=4.26", "falcon>=4.3"] },
 ]

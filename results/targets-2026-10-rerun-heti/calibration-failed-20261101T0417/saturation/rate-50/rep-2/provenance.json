@@ -1,0 +1,262 @@
+{
+  "adapters": {
+    "harness.driver": {
+      "adapter": "harness.driver",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {
+        "requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "issuer",
+      "tested_against": {},
+      "version": "1"
+    },
+    "issuer": {
+      "adapter": "synthetic.issuer",
+      "knobs": {
+        "knobs": {
+          "clock_skew_ms": {
+            "allow_na": false,
+            "description": "How far the role's stack clock is from wall time.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "delays": {
+            "allow_na": false,
+            "description": "Injected delays, 'start>end=median_ms/sigma' separated by commas.",
+            "type": "str",
+            "unit": ""
+          },
+          "seed": {
+            "allow_na": false,
+            "description": "Seed for every injected delay.",
+            "type": "int",
+            "unit": ""
+          },
+          "service_rate": {
+            "allow_na": false,
+            "description": "Constructions per second: the cap.",
+            "type": "float",
+            "unit": "1/s"
+          },
+          "stall_after": {
+            "allow_na": true,
+            "description": "Stall once after this many constructions.",
+            "type": "int",
+            "unit": ""
+          },
+          "stall_ms": {
+            "allow_na": true,
+            "description": "How long the stall lasts.",
+            "type": "float",
+            "unit": "ms"
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "accepted": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "anchored": {
+          "clock": "stack:synthetic-issuer",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "constructed": {
+          "clock": "stack:synthetic-issuer",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "registry_updated": {
+          "clock": "stack:synthetic-issuer",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_anchored": {
+          "clock": "stack:synthetic-issuer",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "revocation_witnessed": {
+          "clock": "stack:synthetic-issuer",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "witnessed": {
+          "clock": "stack:synthetic-issuer",
+          "method": "reported",
+          "resolution_ns": 1000
+        }
+      },
+      "role": "issuer",
+      "tested_against": {
+        "synthetic": "1"
+      },
+      "version": "1"
+    },
+    "state_distribution": {
+      "adapter": "synthetic.state_distribution",
+      "knobs": {
+        "knobs": {
+          "clock_skew_ms": {
+            "allow_na": false,
+            "description": "How far the role's stack clock is from wall time.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "delays": {
+            "allow_na": false,
+            "description": "Injected delays, 'start>end=median_ms/sigma' separated by commas.",
+            "type": "str",
+            "unit": ""
+          },
+          "seed": {
+            "allow_na": false,
+            "description": "Seed for every injected delay.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "published": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "revocation_published": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "state_distribution",
+      "tested_against": {
+        "synthetic": "1"
+      },
+      "version": "1"
+    },
+    "witness_pool": {
+      "adapter": "synthetic.witness_pool",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {},
+      "role": "witness_pool",
+      "tested_against": {
+        "synthetic": "1"
+      },
+      "version": "1"
+    }
+  },
+  "calibration": "not calibrated",
+  "clocks": {
+    "harness": "monotonic@d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "realtime": "realtime@kelun"
+  },
+  "components": {
+    "issuer": {
+      "synthetic": "1"
+    },
+    "state_distribution": {
+      "synthetic": "1"
+    },
+    "witness_pool": {}
+  },
+  "harness_commit": "571ccdbc5e54990f047176df9758ace0ac1a713d",
+  "host": {
+    "boot_id": "d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "cpu_count": 8,
+    "cpu_model": "Intel Core Processor (Haswell, no TSX)",
+    "hostname": "kelun",
+    "kernel": "7.0.0-38-generic",
+    "machine": "x86_64",
+    "memory_bytes": 24598093824,
+    "python": "3.14.6"
+  },
+  "knobs": {
+    "issuer": {
+      "clock_skew_ms": 7300.0,
+      "delays": "constructed>registry_updated=30/0.3, registry_updated>anchored=40/0.3,\nanchored>witnessed=50/0.3, witnessed>published=30/0.3,\nrevocation_requested>revocation_anchored=40/0.3,\nrevocation_anchored>revocation_witnessed=50/0.3,\nrevocation_witnessed>revocation_published=30/0.3",
+      "seed": 12,
+      "service_rate": 50.0,
+      "stall_after": "n/a",
+      "stall_ms": "n/a"
+    },
+    "state_distribution": {
+      "clock_skew_ms": 0.0,
+      "delays": "",
+      "seed": 11
+    },
+    "witness_pool": {}
+  },
+  "measurement_cost": {
+    "harness_cpu_s": 3.3057349999999994,
+    "links": {
+      "issuer.api": {
+        "exchanges": 430,
+        "p50_ns": 164903,
+        "p99_ns": 413171,
+        "samples": 200
+      },
+      "state_distribution.api": {
+        "exchanges": 200,
+        "p50_ns": 194464,
+        "p99_ns": 926400,
+        "samples": 200
+      }
+    }
+  },
+  "provenance_schema": 1,
+  "run": {
+    "duration_s": 4.0,
+    "host_load": {
+      "before": [
+        12.04,
+        10.96,
+        10.1
+      ],
+      "end": [
+        12.36,
+        11.05,
+        10.13
+      ],
+      "window": [
+        12.04,
+        10.96,
+        10.1
+      ]
+    },
+    "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+    "lag_limit_ms": 5.0,
+    "measure": [
+      "requested",
+      "constructed"
+    ],
+    "rate": 50.0,
+    "repetition": 2,
+    "scenario": "calibration-saturation",
+    "stages": [
+      "issue"
+    ],
+    "warmup_s": 0.5
+  },
+  "scenario": "# The calibration stack (test plan, Part B #1; this.i 6he49n0k). Every delay is injected with a\n# seeded log-normal and logged as truth; construction is capped at service_rate per second.\nscenario_schema = 1\nname = \"calibration-saturation\"\ndescription = \"Issuance stepped past a known construction cap of 50 per second.\"\nstages = [\"issue\"]\n\n[load]\nrates = [30.0, 50.0, 70.0]\nduration_s = 4.0\nwarmup_s = 0.5\ndrain_s = 15.0\nrepetitions = 3\nmeasure = [\"requested\", \"constructed\"]\n\n[roles.witness_pool]\nadapter = \"synthetic.witness_pool\"\n[roles.witness_pool.knobs]\nknob_schema = 1\n\n[roles.state_distribution]\nadapter = \"synthetic.state_distribution\"\n[roles.state_distribution.knobs]\nknob_schema = 1\nseed = 11\ndelays = \"\"\nclock_skew_ms = 0.0\n\n[roles.issuer]\nadapter = \"synthetic.issuer\"\n[roles.issuer.knobs]\nknob_schema = 1\nseed = 12\nclock_skew_ms = 7300.0\nservice_rate = 50.0\nstall_after = \"n/a\"\nstall_ms = \"n/a\"\ndelays = \"\"\"\nconstructed>registry_updated=30/0.3, registry_updated>anchored=40/0.3,\nanchored>witnessed=50/0.3, witnessed>published=30/0.3,\nrevocation_requested>revocation_anchored=40/0.3,\nrevocation_anchored>revocation_witnessed=50/0.3,\nrevocation_witnessed>revocation_published=30/0.3\"\"\"\n\n",
+  "scenario_sha256": "7cc01c67cb68e11fe659980a95611572e01d36760f1dcca7280b0a00a78fce90"
+}

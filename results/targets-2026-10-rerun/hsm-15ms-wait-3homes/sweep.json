@@ -1,0 +1,32 @@
+{
+  "scenario": "hsm-15ms-wait-3homes",
+  "measure": [
+    "requested",
+    "witnessed"
+  ],
+  "steps": [
+    {
+      "offered": 2.8,
+      "runs": 3,
+      "achieved": {
+        "n": 3,
+        "min": 2.7908709545692973,
+        "max": 2.8091120097096525,
+        "mean": 2.799991654743122,
+        "stdev": 0.00912052757507728
+      },
+      "p99_ns": {
+        "n": 3,
+        "min": 440139775,
+        "max": 456654847,
+        "mean": 448353620.3333333,
+        "stdev": 8257882.744042648
+      }
+    }
+  ],
+  "saturation": null,
+  "refused": [],
+  "epsilon": 0.02,
+  "k": 5.0,
+  "attempts": 6
+}
