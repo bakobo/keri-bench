@@ -17,15 +17,16 @@ dependencies = [
 # out of the core so the harness, the synthetic stack and CI's calibration need no private repo.
 # Pinned to commits: imbu utah/next 2c3b072 (2026-10-31: imbu-kel-growth's bounded backlog,
 # which answers 503 with Retry-After past it, on top of 670a3d8's Prefer: wait, answer budget and
-# publication without the issuer KEL; this.i 5frsx7pu, 7kmhh4wr), and heti 5623e2e, which
+# publication without the issuer KEL; this.i 5frsx7pu, 7kmhh4wr), and heti 1e6839bc, which
 # descends from the 1ae3590 imbu pins and adds heti-consumer-kel's incremental replay of an
-# issuer's KEL and heti-observer-gap's retried refused heads (overridden below; this.i 53kz99e2,
+# issuer's KEL, heti-observer-gap's retried refused heads and witness-kel-growth's
+# per-witness refresh (overridden below; this.i 53kz99e2,
 # 8wsdm5fz). The Registrar
 # (bakobo/witness) runs in its own uvx environment, as the summit harness runs it, because it pins
 # a different keripy.
 stacks = [
     "imbu @ git+ssh://git@github.com/bakobo/imbu@2c3b07271f22e490dfac74ced5948fbcf1d0f311",
-    "heti @ git+ssh://git@github.com/bakobo/heti@5623e2ef3caeddf465404a3ea6f89ee0ccdbe361",
+    "heti @ git+ssh://git@github.com/bakobo/heti@1e6839bc77028271b44551108cd154b2d08f2d27",
 ]
 
 [project.scripts]
@@ -37,10 +38,10 @@ keri-bench = "keri_bench.cli:main"
 # must match overture's [project] dependencies at the commit imbu pins.
 [tool.uv]
 # Target 3's reruns run a later heti under imbu 2c3b072, which pins heti 1ae3590: 980ee85
-# (heti-consumer-kel, this.i 53kz99e2), and now 5623e2e (heti-observer-gap, this.i 8wsdm5fz),
+# (heti-consumer-kel, this.i 53kz99e2), and now 1e6839bc (heti-observer-gap and witness-kel-growth, this.i 8wsdm5fz),
 # each descending from it. This override is the only difference.
 override-dependencies = [
-    "heti @ git+ssh://git@github.com/bakobo/heti@5623e2ef3caeddf465404a3ea6f89ee0ccdbe361",
+    "heti @ git+ssh://git@github.com/bakobo/heti@1e6839bc77028271b44551108cd154b2d08f2d27",
 ]
 dependency-metadata = [
     { name = "overture", version = "0.1.0.dev0", requires-dist = ["keri", "jsonschema>=4.26", "falcon>=4.3"] },
