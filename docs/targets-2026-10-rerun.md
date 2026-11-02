@@ -11,7 +11,7 @@ Two things changed in the instrument, each recorded before the run that used it.
 | 1. Peak hour, 2.8 a second | Fails at 1 home and at 3 | **Passes at 3 homes**: 10,002 witnessed, p50 0.36 s, p99 0.49 s, flat to the end. **Fails at 1 home**, which now holds 1.4 a second for the whole window instead of collapsing. |
 | 1. Office day, 0.35 a second | Fails at 1 home; passes at 3 for one day, falling behind on day 4 or 5 | **Passes at 1 home and at 3.** One home: 10,000 witnessed, p50 0.41 s, p99 1.87 s, where the first run collapsed at 4,036. Three homes: p50 0.36 s, p99 0.48 s. Neither slowed with stock. |
 | 2. Stock to a million | Storage linear; time per credential grew 0.76 ms a credential, crossing the office-day rate near 4,000 per KEL | Storage still linear, 12.9 KB a credential. **Time per credential no longer grows** to 10,165 in one KEL (p50 0.36 s at 10,000, against 7.9 s). A fill to 40,000 slowed fourfold past about 20,000, **outside imbu's stages**, and was stopped at 23,973. |
-| 3. Revocation within 30 minutes | Not established: 9 of 100 measured | **Fails, narrowly, on heti 980ee85.** 94 of 96 revocations were recognised within 30 minutes (307–1,228 s, p50 904 s). The other 2 were never recognised, because heti's Observer kept their registries gapped (keri-bench tick `~52qg`). On heti 1ae3590 it was not established again: 13 of 100 verified. |
+| 3. Revocation within 30 minutes | Not established: 9 of 100 measured | **Passes on imbu 027ca678 and heti 1e6839bc** (November, below): 100 of 100 recognised in 822–914 s, no registry gapped. Before that fix it failed narrowly on heti 980ee85, 94 of 96, the other 2 lost to an Observer gap (tick `~52qg`), and on heti 1ae3590 it was not established: 13 of 100 verified. |
 | 4. Crash recovery | Every role ready in 3.7 s or less | No target. Every role ready again in 3.2 s or less, next success within 3.4 s of that; only in-flight credentials lost. An issuer holding 10,000 is ready in 9.4 s, against 10.8 s. |
 | 5. HSM | 3 signatures a credential with Prefer: wait | 3.01, unchanged: 8.4 a second at the peak, against thousands a second. |
 
@@ -94,7 +94,7 @@ It was run twice. On heti 1ae3590 the sample failed as it had in the first run. 
 
 On heti 980ee85, revocation requested to published took p50 1.43 s and at most 4.80 s, imbu's part. The rest is the Registrar's window and the verifier's freshness. 64 of the 94 took over 900 s and 1 over 1,200 s. The worst, 1,228 s, leaves 572 s of margin.
 
-**The two misses are the Observer's.** c007878 and c008686 were verified, then revoked. imbu published both revocations, and the Registrar holds the revoked chain for each (806 bytes). heti's Observer still held each one's issued chain (516 bytes) at the end of the run, with its per-registry gap flag set. Of the 96 registries the verifier met, those two are the only ones gapped, and the 94 recognised all hold the revoked chain in both stores. heti's Observer sets a registry's gap when it refuses that registry's head in a batch or holds it queued for KEL judgment, and clears it only when a later batch delivers a verified head for the same registry (heti `observer/store.py`, `apply` and `mark_queued`). A revoked credential's registry never changes again, so its gap never closes, and a verifier asking about it reads "not current" for as long as the Observer runs. The Observer's log does not say which of the two causes gapped them. This is heti's to fix, as tick `~52qg`. heti-observer-gap found the cause and landed a fix as heti 5623e2e as this report was being landed: the Observer kept heads it had refused retryably, here for the stale issuer key state above, in an in-memory queue capped at 64, and silently dropped any that did not fit, so a revocation dropped that way left its registry gapped for good. Refused heads now persist in the Observer's store and are retried (heti `this.i` @3prxc795). This report was not rerun against it. Until it lands, any revocation whose head an Observer once refused or queued is never recognised, so target 3 fails at any volume where that happens, which this run shows it does by about 2,600 credentials per home.
+**The two misses are the Observer's.** c007878 and c008686 were verified, then revoked. imbu published both revocations, and the Registrar holds the revoked chain for each (806 bytes). heti's Observer still held each one's issued chain (516 bytes) at the end of the run, with its per-registry gap flag set. Of the 96 registries the verifier met, those two are the only ones gapped, and the 94 recognised all hold the revoked chain in both stores. heti's Observer sets a registry's gap when it refuses that registry's head in a batch or holds it queued for KEL judgment, and clears it only when a later batch delivers a verified head for the same registry (heti `observer/store.py`, `apply` and `mark_queued`). A revoked credential's registry never changes again, so its gap never closes, and a verifier asking about it reads "not current" for as long as the Observer runs. The Observer's log does not say which of the two causes gapped them. This is heti's to fix, as tick `~52qg`. heti-observer-gap found the cause and landed a fix as heti 5623e2e as this report was being landed: the Observer kept heads it had refused retryably, here for the stale issuer key state above, in an in-memory queue capped at 64, and silently dropped any that did not fit, so a revocation dropped that way left its registry gapped for good. Refused heads now persist in the Observer's store and are retried (heti `this.i` @3prxc795). Before that fix, any revocation whose head an Observer once refused or queued was never recognised, so target 3 failed at any volume where that happened, which this run shows it did by about 2,600 credentials per home. The rerun on the fix is the next section.
 
 The other four sampled credentials never reached revocation. Three deliveries, from credential 8,585 on, were refused `e.state.pending.observation.r`, with the issuer's key state 868 s old at the holder, so the holder's refresh still falls behind late in the day on 980ee85. One verification was refused `e.state.pending.registry.r` because the Observer did not yet hold the registry.
 
@@ -103,6 +103,33 @@ What this does not show:
 - **96 is a moderate sample**, so the 94 bound the distribution's body, not its tail. Two misses in 96 is a rate of about 2%, with wide error.
 - **Only the office day at three homes.** At the peak rate, on heti 1ae3590, the holder could not refresh issuer key state within its 60 s bound, so nothing verified. The peak rate was not rerun on heti 980ee85.
 - **Which deadline carried each recognition** is not separable here, since the Registrar's window and the verifier's freshness are both 900 s, as in the first run.
+
+### On the fixed stack, November 2026
+
+**Passes: every sampled revocation reached the verifier within 30 minutes, the slowest in 914 s, and no registry was left gapped.** bench-revocation reran office-day-3homes unchanged on 2 November, 03:10 to 11:28 UTC, on the stack utah/next then composed (`this.i` 8wsdm5fz, 5dychg9d, 0v5zd44x): imbu 027ca678, the heti 1e6839bc it pins, and the Registrar at bakobo/witness b12a25e (`results/revocation-2026-11`). heti 1e6839bc contains heti-observer-gap's fix (5623e2e) and adds witness-kel-growth: a refresh asks each witness only for the events it first saw since the last one, and the Observer judges against an issuer observation within recency, gathering only when it cannot (heti `this.i` @6nwugfvw).
+
+| | heti 980ee85, imbu 2c3b072 | heti 1e6839bc, imbu 027ca678 |
+|---|---|---|
+| sampled | 100 | 100 |
+| delivered / stored / verified | 100 / 96 / 96 | 100 / 100 / 100 |
+| revoked | 96 | 100 |
+| recognised | 94 | 100 |
+| requested → recognised | 307–1,228 s, p50 904, p90 916 | 822–914 s, p50 904, p90 911 |
+| margin at the worst, of 1,800 s | 572 s | 886 s |
+| revoked but never recognised | 2 | 0 |
+| registries gapped at the Observer at the end | 2 of 96 the verifier met; 9,876 of 10,001 held | 0; all 10,001 held |
+| stage failures | 4 | 0 |
+| issuance, requested → witnessed | p50 0.367 s, p99 2.12 s | p50 0.357 s, p99 0.465 s |
+
+Revocation requested to published took p50 1.46 s and at most 3.36 s, imbu's part. 83 of the 100 took over 900 s and none over 914 s. The Registrar's window and the verifier's freshness are both 900 s, so recognition lands just past one of them, and the second never had to be waited out. Verification itself, proof generated to verified, took p50 499 s and up to 965 s, because a fresh credential is not current at the verifier until the Registrar's window delivers its registry; that is the design, and inside the verifier's 1,200 s deadline. At the end, the Observer's store held every registry the Registrar did, 10,001, none gapped, and each of the 100 the verifier met carried the revoked chain in both stores. Tick `~52qg` is closed.
+
+What changed between the two columns is more than the Observer fix. heti moved from 980ee85 to 1e6839bc (heti-observer-gap and witness-kel-growth), imbu from 2c3b072 to 027ca678 (imbu-bulk-overlap, imbu-review-followups and Tier C's held SMAID, none on the plain issuance or revocation path this scenario drives), and the Registrar from witness ed1dcfc to b12a25e, which re-pins its own keripy. So the result is the deployed stack's, not the Observer fix's alone. That the two misses' cause is gone is shown by the store, not only by the count: no registry is gapped.
+
+What this does not show:
+
+- **100 is still a moderate sample.** No miss in 100 bounds a miss rate at about 3% with 95% confidence, not at zero.
+- **One run, at the office day, at three homes.** The peak rate was not rerun for revocation.
+- **Two runs on this stack were stopped and are not reported**: one on heti 5623e2e under imbu 2c3b072 at 2,426 credentials, when the PM moved the pin to 1e6839bc, and one on heti 1e6839bc under imbu 2c3b072 at 571, when the PM moved imbu and the Registrar too (`this.i` 5dychg9d, 0v5zd44x).
 
 ## Target 4: crash recovery
 
@@ -156,7 +183,7 @@ Between 58df2a9 and afa7dfa only `this.i` and a scenario file changed, and 571cc
 - **More than 23,973 credentials in one KEL**, or a measured window above 10,000. The 40,000 fill was stopped (target 2), and a million is not extrapolated.
 - **Why the fill slowed past 20,000, or why one witness grew to 8.4 GB.** Both are observed, and the witnesses are the likely place, but this host allows no profiler.
 - **The office day past its first day.** Each soak is one day. The claim that three homes hold past day 5 is read from the stock fill, not from a soak.
-- **Target 3 after heti-observer-gap.** The fix for the two misses, heti 5623e2e, landed as this report was being landed, so its before-and-after is a later run of office-day-3homes at that heti (tick `~52qg`).
+- **Targets 1, 2, 4 and 5 on the November stack.** Only target 3, and the 40,000 fill under target 2, were rerun on imbu 027ca678 and heti 1e6839bc.
 - **Three homes past 2.8 a second.** They carried the peak with p99 under half a second, but their ceiling was not probed.
 - **Repetitions for the long runs.** As before, the peak hour, office day and stock runs ran once each. The crash and HSM runs have three repetitions each.
 
