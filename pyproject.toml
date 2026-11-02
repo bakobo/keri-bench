@@ -15,15 +15,15 @@ dependencies = [
 [project.optional-dependencies]
 # The real stack's adapters (imbu issuer; heti witness pool, Observer, holder and verifier). Kept
 # out of the core so the harness, the synthetic stack and CI's calibration need no private repo.
-# Pinned to commits: imbu utah/next 027ca678 (2026-11-02), and the heti it pins, 1e6839bc, with
+# Pinned to commits: imbu utah/next 7ff15e6a (2026-11-02), and the heti it pins, 3a8b1ccb, with
 # heti-consumer-kel's incremental replay of an issuer's KEL, heti-observer-gap's retried refused
-# heads and witness-kel-growth's per-witness refresh (this.i 0v5zd44x). Targets 1, 2, 4 and 5 of
+# heads and witness-kel-growth's per-witness refresh (this.i 0v5zd44x, 5c8ks2lq). Targets 1, 2, 4 and 5 of
 # docs/targets-2026-10-rerun.md ran at imbu 2c3b072 and heti 1ae3590 (5frsx7pu). The Registrar
 # (bakobo/witness) runs in its own uvx environment, as the summit harness runs it, because it pins
 # a different keripy.
 stacks = [
-    "imbu @ git+ssh://git@github.com/bakobo/imbu@027ca6780fbd33a571b570555a93adc94419e9e9",
-    "heti @ git+ssh://git@github.com/bakobo/heti@1e6839bc77028271b44551108cd154b2d08f2d27",
+    "imbu @ git+ssh://git@github.com/bakobo/imbu@7ff15e6ada507c462a740633d5f16c92cc34470d",
+    "heti @ git+ssh://git@github.com/bakobo/heti@3a8b1ccb17e1c29b79aafb191cb16cde35e2727b",
 ]
 
 [project.scripts]
