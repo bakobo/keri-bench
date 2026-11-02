@@ -521,12 +521,13 @@ SATURATION = b'{"code": "e.env.saturated.r"}'
     # Strict JSON only: no NaN or Infinity, and UTF-8 as RFC 8259 requires (p3.2).
     (b'{"code": "e.env.saturated.r", "n": NaN}', PROBLEM, None),
     (b'{"code": "e.env.saturated.r", "n": 1e309}', PROBLEM, None),
+    (b'{"code": "e.env.saturated.r", "n": 1.5}', PROBLEM, "e.env.saturated.r"),
     ('{"code": "e.env.saturated.r"}'.encode("utf-16"), PROBLEM, None),
     # A refusal is a few hundred bytes; past the bound it is not read at all (p3.3).
     (b'{"code": "e.env.saturated.r", "pad": "' + b"x" * imbu.PROBLEM_LIMIT + b'"}', PROBLEM,
      None),
 ], ids=["html", "string", "problem", "parameters", "text/html", "lookalike", "no-type",
-        "two-codes", "deep", "nan", "overflow", "utf-16", "oversized"])
+        "two-codes", "deep", "nan", "overflow", "finite", "utf-16", "oversized"])
 def test_problem_code_reads_only_a_problem_documents_one_code(body, headers, code):
     assert imbu.problem_code(Answer(503, body, headers)) == code
 

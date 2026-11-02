@@ -225,6 +225,14 @@ def _no_constant(name: str):
     raise ValueError(f"{name} is not JSON")
 
 
+def _finite(text: str) -> float:
+    """A JSON number as a float, refused when it overflows to infinity, as 1e309 does."""
+    value = float(text)
+    if not math.isfinite(value):
+        raise ValueError(f"{text} is not a finite number")
+    return value
+
+
 def _unique(pairs: list) -> dict:
     """A JSON object whose names are all distinct; a repeated name makes it ambiguous."""
     names = [name for name, _ in pairs]
@@ -243,10 +251,10 @@ def problem_code(answer: Answer) -> str | None:
             len(answer.body) > PROBLEM_LIMIT:
         return None
     try:
-        # Strict: UTF-8 as RFC 8259 requires, and no NaN or Infinity (UnicodeDecodeError is a
-        # ValueError).
+        # Strict: UTF-8 as RFC 8259 requires, and no NaN, Infinity or number that overflows to
+        # it (UnicodeDecodeError is a ValueError).
         body = json.loads(answer.body.decode("utf-8"), object_pairs_hook=_unique,
-                          parse_constant=_no_constant)
+                          parse_constant=_no_constant, parse_float=_finite)
     except (ValueError, RecursionError):
         return None
     return body.get("code") if isinstance(body, dict) else None
