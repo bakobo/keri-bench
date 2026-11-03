@@ -30,12 +30,13 @@ from ..procs import free_port
 from ..vocabulary import Role
 
 VERSION = "2"
-HETI = "980ee85084abfd310c515f01df4c3869fc78894a"
-IMBU = "2c3b07271f22e490dfac74ced5948fbcf1d0f311"
-WITNESS = "ed1dcfc563ebff6545738f820d7410043dcbfbce"
+HETI = "3a8b1ccb17e1c29b79aafb191cb16cde35e2727b"
+IMBU = "7ff15e6ada507c462a740633d5f16c92cc34470d"
+WITNESS = "b12a25e293e46b8a0febe180ca19f38cdbeeec3e"
 """The bakobo/witness commit the Registrar runs from: main with the Registrar that takes a
-publication without the issuer KEL (witness @23vjzsf0), which imbu 670a3d8 sends (this.i
-5k8z0pxe). It pins another keripy than heti does, so it runs in its own uvx environment, as the
+publication without the issuer KEL (witness @23vjzsf0), which imbu sends since 670a3d8 (this.i
+5k8z0pxe), at b12a25e, whose keripy pin answers a KEL query from a first-seen ordinal (this.i
+0v5zd44x). It pins another keripy than heti does, so it runs in its own uvx environment, as the
 summit runs it."""
 
 REGISTRAR = ("uvx", "--from", f"witness @ git+https://github.com/bakobo/witness@{WITNESS}",

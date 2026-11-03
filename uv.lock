@@ -3,7 +3,6 @@ revision = 3
 requires-python = ">=3.14"
 
 [manifest]
-overrides = [{ name = "heti", git = "ssh://git@github.com/bakobo/heti?rev=980ee85084abfd310c515f01df4c3869fc78894a" }]
 
 [[manifest.dependency-metadata]]
 name = "overture"
@@ -537,7 +536,7 @@ wheels = [
 [[package]]
 name = "heti"
 version = "0.0.0"
-source = { git = "ssh://git@github.com/bakobo/heti?rev=980ee85084abfd310c515f01df4c3869fc78894a#980ee85084abfd310c515f01df4c3869fc78894a" }
+source = { git = "ssh://git@github.com/bakobo/heti?rev=3a8b1ccb17e1c29b79aafb191cb16cde35e2727b#3a8b1ccb17e1c29b79aafb191cb16cde35e2727b" }
 dependencies = [
     { name = "bakobo-errors" },
     { name = "fiki" },
@@ -624,7 +623,7 @@ wheels = [
 [[package]]
 name = "imbu"
 version = "0.0.1"
-source = { git = "ssh://git@github.com/bakobo/imbu?rev=2c3b07271f22e490dfac74ced5948fbcf1d0f311#2c3b07271f22e490dfac74ced5948fbcf1d0f311" }
+source = { git = "ssh://git@github.com/bakobo/imbu?rev=7ff15e6ada507c462a740633d5f16c92cc34470d#7ff15e6ada507c462a740633d5f16c92cc34470d" }
 dependencies = [
     { name = "falcon" },
     { name = "fiki" },
@@ -762,9 +761,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.10" },
-    { name = "heti", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/heti?rev=980ee85084abfd310c515f01df4c3869fc78894a" },
+    { name = "heti", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/heti?rev=3a8b1ccb17e1c29b79aafb191cb16cde35e2727b" },
     { name = "httpx", specifier = ">=0.27" },
-    { name = "imbu", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/imbu?rev=2c3b07271f22e490dfac74ced5948fbcf1d0f311" },
+    { name = "imbu", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/imbu?rev=7ff15e6ada507c462a740633d5f16c92cc34470d" },
     { name = "sniffio", specifier = ">=1.3" },
 ]
 provides-extras = ["stacks"]
