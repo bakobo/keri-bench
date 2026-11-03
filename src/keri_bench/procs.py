@@ -25,6 +25,7 @@ import socket
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -92,6 +93,7 @@ class Process:
     announced: dict
     log: Path
     drain: asyncio.Task | None = None
+    watch: asyncio.Task | None = None
 
     @property
     def pid(self) -> int:
@@ -189,8 +191,10 @@ class _Spec:
 class ProcessController:
     """The harness's role processes by name, with what it takes to restart each identically.
 
-    ``on_event(name, t, attrs)`` receives ``process_killed`` once a killed process is reaped and
-    ``process_ready`` once a start or restart passes readiness, with ``t`` from ``clock``.
+    ``on_event(name, t, attrs)`` receives ``process_killed`` once a killed process is reaped,
+    ``process_ready`` once a start or restart passes readiness, and ``process_exited`` when a
+    process exits that the controller did not kill, restart or stop, with ``t`` from ``clock``
+    (this.i 9zgpyjxt). Every such exit is also kept in ``unexpected_exits``.
     """
 
     def __init__(self, run_dir: Path, *, clock: Callable[[], int] = time.monotonic_ns,
@@ -199,6 +203,8 @@ class ProcessController:
         self.clock = clock
         self.on_event = on_event
         self._specs: dict[str, _Spec] = {}
+        self._intended: set[int] = set()
+        self.unexpected_exits: list[dict[str, Any]] = []
 
     def _emit(self, name: str, t: int, attrs: dict[str, Any]) -> None:
         if self.on_event is not None:
@@ -240,13 +246,28 @@ class ProcessController:
         t = self.clock()
         spec.process = process
         self._specs[name] = spec
+        process.watch = asyncio.create_task(self._watch(name, process))
         self._emit("process_ready", t, {"process": name, "restart": restart,
                                         "announced": process.announced, "ready_ns": t - began})
         return process
 
+    async def _watch(self, name: str, process: Process) -> None:
+        """Wait for the process to exit, and record the exit if the controller did not cause it.
+
+        A role that dies mid-run leaves the stack short of it; without this the run's numbers
+        would read as though it were whole (tick ~7gec)."""
+        code = await process.proc.wait()
+        if process.pid in self._intended:
+            return
+        attrs = {"process": name, "pid": process.pid, "code": code,
+                 "at": datetime.now(UTC).isoformat()}
+        self.unexpected_exits.append(attrs)
+        self._emit("process_exited", self.clock(), attrs)
+
     async def kill(self, name: str) -> None:
         """SIGKILL the named process's group, wait until it is reaped, and record it."""
         process = self.process(name)
+        self._intended.add(process.pid)
         await process.kill()
         self._emit("process_killed", self.clock(), {"process": name})
 
@@ -259,7 +280,9 @@ class ProcessController:
 
     async def stop_all(self, timeout: float = STOP_TIMEOUT) -> None:
         """Stop every process: SIGTERM, then SIGKILL for any still running after ``timeout``."""
+        self._intended.update(spec.process.pid for spec in self._specs.values())
         await asyncio.gather(*(spec.process.stop(timeout) for spec in self._specs.values()))
+        await asyncio.gather(*(spec.process.watch for spec in self._specs.values()))
 
 
 def free_port() -> int:

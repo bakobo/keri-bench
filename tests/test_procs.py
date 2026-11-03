@@ -6,6 +6,7 @@ import os
 import signal
 import socket
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -236,6 +237,62 @@ async def test_a_name_whose_process_died_can_be_started_afresh(controller):
     again = await controller.start("pool", FAKE, ("ok",), timeout=5)
     assert controller.recorder.events[-1][2]["restart"] is False
     assert alive(again.pid)
+
+
+# --- an exit the harness did not cause (this.i 9zgpyjxt, tick ~7gec) --------------------------
+
+async def exited(controller, within: float = 5.0):
+    for _ in range(int(within / 0.02)):
+        found = [e for e in controller.recorder.events if e[0] == "process_exited"]
+        if found:
+            return found
+        await asyncio.sleep(0.02)
+    return []
+
+
+async def test_a_role_that_exits_on_its_own_is_recorded_with_its_pid_code_and_time(controller):
+    proc = await controller.start("witness_pool.w0", FAKE,
+                                  ("ok", "--exit-after", "0.2", "--exit-code", "7"))
+    [(name, t, attrs)] = await exited(controller)
+    assert attrs["process"] == "witness_pool.w0" and attrs["pid"] == proc.pid
+    assert attrs["code"] == 7
+    assert t > controller.recorder.events[0][1]
+    at = datetime.fromisoformat(attrs["at"])
+    assert at.tzinfo is not None
+    assert abs((datetime.now(UTC) - at).total_seconds()) < 30
+    assert controller.unexpected_exits == [attrs]
+
+
+async def test_a_role_killed_from_outside_the_harness_is_recorded_with_the_signal(controller):
+    proc = await controller.start("issuer", FAKE, ("ok",))
+    os.killpg(proc.pid, signal.SIGKILL)
+    [(_, _, attrs)] = await exited(controller)
+    assert attrs["code"] == -signal.SIGKILL and attrs["process"] == "issuer"
+
+
+async def test_kills_restarts_and_stop_all_are_not_unexpected(controller):
+    await controller.start("holder", FAKE, ("ok",))
+    await controller.start("verifier", FAKE, ("ok",))
+    await controller.kill("holder")
+    await controller.restart("holder")
+    await controller.restart("verifier")
+    await controller.stop_all(timeout=0.5)
+    await asyncio.sleep(0.2)
+    assert "process_exited" not in [e[0] for e in controller.recorder.events]
+    assert controller.unexpected_exits == []
+
+
+async def test_a_role_that_died_can_be_restarted_and_its_next_stop_is_intended(controller):
+    first = await controller.start("observer", FAKE, ("ok", "--exit-after", "0.1"))
+    assert len(await exited(controller)) == 1
+    second = await controller.restart("observer")
+    assert second.pid != first.pid
+    await controller.stop_all(timeout=0.5)
+    await asyncio.sleep(0.2)
+    assert [e[2]["pid"] for e in controller.recorder.events if e[0] == "process_exited"] == [
+        first.pid]
+    assert [e[0] for e in controller.recorder.events] == [
+        "process_ready", "process_exited", "process_ready"]
 
 
 async def test_spawn_alone_stops_cleanly(tmp_path):

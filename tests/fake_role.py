@@ -1,12 +1,14 @@
 """A stand-in role process for tests/test_procs.py.
 
-Usage: ``fake_role.py MODE [--delay S] [--port P] [--bind-delay S] [--ignore-term]``
+Usage: ``fake_role.py MODE [--delay S] [--port P] [--bind-delay S] [--ignore-term]
+[--exit-after S --exit-code N]``
 
 MODE says what the one announcement line is: ``ok`` prints ``{"url": ..., "pid": ...}``,
 ``garbage`` prints a line that is not JSON, ``list`` prints a JSON array, ``silent`` prints
 nothing and sleeps, and ``exit`` prints nothing and exits. With ``--port`` the role serves a
 trivial HTTP endpoint on that port, binding ``--bind-delay`` seconds after it announces;
-without it the role just sleeps. Its pid is written to stderr first, so a test can find a role
+without it the role just sleeps. With ``--exit-after`` it
+exits with ``--exit-code`` that many seconds after announcing, as a role that dies would. Its pid is written to stderr first, so a test can find a role
 that never announced.
 """
 
@@ -39,6 +41,9 @@ def main() -> None:
     parser.add_argument("--chatter", type=int, default=0,
                         help="bytes to write to stdout after announcing, then a marker file")
     parser.add_argument("--marker")
+    parser.add_argument("--exit-after", type=float,
+                        help="seconds after announcing to exit on its own, with --exit-code")
+    parser.add_argument("--exit-code", type=int, default=0)
     opts = parser.parse_args()
     if opts.ignore_term:
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
@@ -56,6 +61,9 @@ def main() -> None:
         sys.stdout.flush()
         with open(opts.marker, "w") as done:
             done.write("done")
+    if opts.exit_after is not None:
+        time.sleep(opts.exit_after)
+        os._exit(opts.exit_code)
     if opts.port and opts.mode == "ok":
         time.sleep(opts.bind_delay)
         http.server.HTTPServer(("127.0.0.1", opts.port), Ok).serve_forever()

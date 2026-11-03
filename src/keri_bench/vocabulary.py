@@ -64,6 +64,9 @@ HARNESS_EVENTS: dict[str, str] = {
     "fault_ended": "A scheduled fault ended.",
     "process_killed": "The harness SIGKILLed a role's process.",
     "process_ready": "A role's process announced it was ready, at start or after a restart.",
+    "process_exited": "A role's process exited when the harness had not stopped it; attrs give "
+                      "its pid, exit code and wall time, and the run is degraded (this.i "
+                      "9zgpyjxt).",
     "run_started": "The measured window began.",
     "run_ended": "The measured window ended.",
     "stage_failed": "A credential's lifecycle stage failed; attrs name the stage and the error.",

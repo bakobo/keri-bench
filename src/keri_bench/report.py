@@ -411,6 +411,21 @@ def _failures(events) -> dict:
             "fault_failed": fault_failed}
 
 
+def _exits(events) -> list[dict]:
+    """Role processes that exited when the harness had not stopped them (this.i 9zgpyjxt). The
+    run is degraded, not refused: its numbers describe a stack that lost a role at a known
+    moment, and the reader is told which and when."""
+    return [{**(event.attrs or {}), "t": event.t} for event in events
+            if event.name == "process_exited"]
+
+
+def _exit_sentence(entry: dict) -> str:
+    return (f"The run is degraded. The {entry.get('process', '?')} process (pid "
+            f"{entry.get('pid', '?')}) exited with code {entry.get('code', '?')} at "
+            f"{entry.get('at', '?')} (harness t {entry['t']} ns), and the harness did not stop "
+            f"it, so everything measured after that moment ran on a stack without it.")
+
+
 def _preseed(run: _Run, declared: dict | None) -> tuple[dict | None, str | None]:
     """What the timeline says the preseed did, and why the run is refused if it did not fill
     the store the run declared before the window opened (this.i 9yx6cg92): more than one
@@ -732,6 +747,11 @@ def derive(timeline_path: Path, provenance_path: Path, *, generator_commit: str)
         out["warnings"].append(f"The run is refused. {census_failed}")
     if failures["fault_failed"]:
         out["warnings"].append(f"The run is refused. {failures['fault_failed']}")
+    exits = _exits(events)
+    if exits:
+        out["degraded"] = True
+        out["unexpected_exits"] = exits
+        out["warnings"] += [_exit_sentence(entry) for entry in exits]
     if failures["count"]:
         out["warnings"].append(f"{failures['count']} lifecycle stage(s) failed: "
                                f"{failures['by_stage']}, with codes {failures['by_code']}.")
@@ -843,6 +863,8 @@ def render_markdown(report: dict) -> str:
              f"warmup, and covers {window['credentials']} credential(s).", ""]
     if report["refused"]:
         lines += [f"This run is refused. {report['refused_reason']}", ""]
+    for entry in report.get("unexpected_exits", []):
+        lines += [_exit_sentence(entry).replace("The run is", "This run is", 1), ""]
     lines += ["## Driver check", ""]
     lines.append(("Driver check passed" if driver["ok"] else "Driver check failed")
                  + f": p99 send lag {_ns(driver['p99_lag_ns'])} against a limit of "

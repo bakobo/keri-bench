@@ -579,7 +579,8 @@ class Run:
                         for role, cls in self.plan.classes.items()}
         for declaration in self.plan.harness:
             declarations[declaration.adapter] = declaration.describe()
-        extra = {"measurement_cost": cost, "calibration": _calibration(self.calibration)}
+        extra = {"measurement_cost": cost, "calibration": _calibration(self.calibration),
+                 "unexpected_exits": list(self.procs.unexpected_exits)}
         shape = {}
         if scenario.soak is not None:
             shape["soak"] = {"bucket": scenario.soak.bucket,
