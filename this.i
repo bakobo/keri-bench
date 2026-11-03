@@ -54,6 +54,11 @@ Measure end-to-end KERI+ACDC issuance on any implementation, well enough to buy 
             scenario file. A disputed number can then be recomputed rather than argued. Rejected
             reporting only aggregates, because an aggregate cannot be audited. Tradeoff: large run
             directories.
+          children:
+            ? A role process that exits when the harness did not stop it is recorded in the timeline and the provenance, and the run is reported degraded = decision
+            : nid: 9zgpyjxt
+              why: >-
+                In imbu-prj's traced 40,000 fill on heti 3a8b1ccb (2026-11-03, ~/code/bakobo/heti/.ignored/witness-kel-growth-2-findings.md, finding 2), one witness exited at 05:07 and the fill fell from 1.66 to 0.19 a second, yet keri-bench wrote nothing: its timeline and report described a three-witness stack that by then had two, and the exit code was lost for good (keri-bench tick ~7gec). So the process controller waits on every process it launches, and when one exits without the harness having killed, restarted or stopped it, writes a process_exited event with the process's name, pid, exit code (negative for a signal, as asyncio gives it) and wall time, on the harness clock; the run copies every such exit into provenance.json as unexpected_exits; and the report, derived from the timeline, marks the run degraded with a warning naming each exit. Degraded, not refused: a refused run says its numbers describe nothing, while these numbers describe a stack that lost a role at a known moment, which is what the 3a8b1ccb run's outage measured by accident and is worth keeping, so the reader is told rather than the run discarded. Exits the harness causes, a crash fault's kill and restart and the teardown, are not unexpected and are not recorded as such. Rejected restarting the role automatically: a supervisor that heals would hide the very thing a measurement must show. Tradeoff: a process that dies while the harness is between deciding to stop it and signalling it is counted as intended; the window is microseconds and only at teardown.
         Soak reports drift against accumulated state, not only elapsed time = decision:
           nid: 4xtyfdd0
           why: >
