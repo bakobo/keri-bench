@@ -239,7 +239,7 @@ async def test_a_name_whose_process_died_can_be_started_afresh(controller):
     assert alive(again.pid)
 
 
-# --- an exit the harness did not cause (this.i 9zgpyjxt, tick ~7gec) --------------------------
+# --- an exit the harness did not cause (this.i 9zgpyjxt) ----------------------------------------
 
 async def exited(controller, within: float = 5.0):
     for _ in range(int(within / 0.02)):

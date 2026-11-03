@@ -255,7 +255,7 @@ class ProcessController:
         """Wait for the process to exit, and record the exit if the controller did not cause it.
 
         A role that dies mid-run leaves the stack short of it; without this the run's numbers
-        would read as though it were whole (tick ~7gec)."""
+        would read as though it were whole."""
         code = await process.proc.wait()
         if process.pid in self._intended:
             return

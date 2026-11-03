@@ -113,7 +113,7 @@ async def test_a_whole_lifecycle_run_writes_a_timeline_provenance_and_report(tmp
 
 
 async def test_a_role_that_dies_mid_run_is_in_the_timeline_provenance_and_report(tmp_path):
-    # this.i 9zgpyjxt (tick ~7gec): the run goes on, and says it ran on a stack missing a role.
+    # this.i 9zgpyjxt: the run goes on, and says it ran on a stack missing a role.
     import os
     import signal
 

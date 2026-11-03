@@ -215,7 +215,7 @@ class Run:
         for role in roles:
             self.peers[role].update(await self._proxy(role, await self.adapters[role].connect()))
 
-    async def _offsets(self) -> None:
+    async def _offsets(self) -> None:  # ~3q2p: a dead role's clock read aborts the run
         """Sample every foreign clock, keeping each domain's tightest bracket of several reads,
         as NTP does: a read delayed by a busy loop or a cold connection widens only itself."""
         samples = [min((clocks.sample_offset(self.realtime_clock, time.time_ns, mono=self.clock)
