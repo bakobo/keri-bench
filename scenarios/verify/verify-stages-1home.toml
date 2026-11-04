@@ -12,7 +12,7 @@ rates = [0.5]
 duration_s = 240.0
 warmup_s = 0.0
 drain_s = 120.0
-repetitions = 1
+repetitions = 3
 measure = ["requested", "verified"]
 
 [statistics]
