@@ -329,6 +329,8 @@ def main(argv=None) -> None:
     parser.add_argument("--processes", type=int, default=30,
                         help="mdoc-verify processes to time, one verification each")
     args = parser.parse_args(argv)
+    if args.iterations < 1 or args.processes < 1 or args.warmup < 0:
+        parser.error("--iterations and --processes must be at least 1, and --warmup at least 0")
     result = {"host": host(), "iterations": args.iterations, "warmup": args.warmup,
               "attributes": ATTRIBUTES, "disclosed": DISCLOSED,
               "versions": {name: version(name) for name in

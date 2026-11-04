@@ -48,6 +48,34 @@ def _row(values: list[int], calls: list[int] | None = None, total: int | None = 
     return row
 
 
+def _count(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _text(value, *, optional: bool) -> bool:
+    return isinstance(value, str) or (optional and value is None)
+
+
+def _well_formed(record) -> bool:
+    """The whole record the timed verifier writes, and nothing the summary would read
+    differently: every stage and call a non-negative integer, and an accepted attempt's time
+    inside both of heti's calls."""
+    if not (isinstance(record, dict) and record.get("outcome") in OUTCOMES
+            and _text(record.get("credential"), optional=False)
+            and _text(record.get("holder"), optional=True)
+            and "code" in record and _text(record["code"], optional=True)
+            and _count(record.get("total_ns")) and isinstance(record.get("overlapped"), bool)
+            and isinstance(record.get("phases"), dict)):
+        return False
+    phases = record["phases"]
+    if not (set(phases) <= set(PHASES) and all(_count(v) for v in phases.values())):
+        return False
+    if record["outcome"] == "accepted" and set(phases) != set(PHASES):
+        return False
+    return all(isinstance(record.get(key), dict) and set(record[key]) == set(STAGES)
+               and all(_count(v) for v in record[key].values()) for key in ("stages", "calls"))
+
+
 def _parsed(lines) -> list[dict]:
     records = []
     for number, line in enumerate(lines, 1):
@@ -55,13 +83,7 @@ def _parsed(lines) -> list[dict]:
             continue
         try:
             record = json.loads(line)
-            if not (isinstance(record, dict) and record.get("outcome") in OUTCOMES
-                    and isinstance(record.get("total_ns"), int)
-                    and isinstance(record.get("overlapped"), bool)
-                    and isinstance(record.get("phases"), dict)
-                    and all(isinstance(record.get(key), dict)
-                            and all(isinstance(record[key].get(s), int) for s in STAGES)
-                            for key in ("stages", "calls"))):
+            if not _well_formed(record):
                 raise ValueError
         except ValueError:
             raise BenchError(E_FORMAT, f"line {number} of the stage times is not one of the "

@@ -5,8 +5,8 @@ around heti's own stage functions, at the heti this repository pins, before it o
 lockbox. Every verification attempt is an :class:`Attempt`; a wrapped call charges its time to
 the attempt running in the same asyncio task, on the harness's monotonic clock. Only the
 outermost wrapped call is charged, so no nanosecond is counted twice and the stages never sum to
-more than the attempt's total while heti runs them one after another, as 3a8b1ccb does; what
-the stages leave over is parsing, schema fitting, SAID and
+more than the attempt's total; if two of an attempt's stages ever run at once, the attempt is
+marked overlapped and left out of the summary. What the stages leave over is parsing, schema fitting, SAID and
 disclosure checks, and the verifier's own bookkeeping.
 
 The stages, in the papers' terms (Fujie and Suzuki, arXiv:2611.03493):
@@ -27,6 +27,7 @@ The stages, in the papers' terms (Fujie and Suzuki, arXiv:2611.03493):
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import functools
 import inspect
@@ -46,9 +47,25 @@ the presenter, then verify_current_acdc, which verifies again on the Observer's 
 
 _now = time.monotonic_ns
 _current: ContextVar[Attempt | None] = ContextVar("keri_bench_stage_attempt", default=None)
-_open: ContextVar[bool] = ContextVar("keri_bench_stage_open", default=False)
-"""Whether this task is inside a charged span: per task, so a stage another task runs at the same
-time under the same attempt is charged as well, rather than being swallowed by this one."""
+class _Span:
+    """One charged span, and the task that opened it."""
+
+    def __init__(self) -> None:
+        self.task = _task()
+        self.closed = False
+
+
+def _task():
+    try:
+        return asyncio.current_task()
+    except RuntimeError:
+        return None  # no running loop: a synchronous caller, one task by construction
+
+
+_open: ContextVar[_Span | None] = ContextVar("keri_bench_stage_open", default=None)
+"""The charged span this task is inside, if any. Outermost wins only within the task that
+opened it: a child task inherits the variable, but its own stage is charged in its own span,
+and if that runs while the parent's is open the attempt is marked overlapped."""
 _running: set[Attempt] = set()
 
 
@@ -62,6 +79,8 @@ class Attempt:
         self.phases: dict[str, int] = {}
         self.overlapped = False
         self.total = 0
+        self.ended = False
+        self._live = 0
 
     def key_state(self, aid: str) -> str:
         return "key_state.holder" if aid == self.holder else "key_state.issuer"
@@ -82,6 +101,7 @@ class Attempt:
             yield self
         finally:
             self.total = _now() - began
+            self.ended = True
             _current.reset(token)
             _running.discard(self)
 
@@ -109,14 +129,26 @@ def span(stage: str):
         raise BenchError(E_STAGE, f"{stage!r} is not a verification stage; the stages are "
                          f"{list(STAGES)}.")
     attempt = _current.get()
-    if attempt is None or _open.get():
+    outer = _open.get()
+    if attempt is None or attempt.ended or (
+            outer is not None and not outer.closed and outer.task is _task()):
+        # No attempt; or one already ended and recorded, which a task outliving it must not
+        # change; or this task is already inside a charged span of its own.
         yield
         return
-    token = _open.set(True)
+    me = _Span()
+    token = _open.set(me)
+    attempt._live += 1
+    if attempt._live > 1:
+        # Two of this attempt's stages at once: each is charged its wall time, so their sum
+        # could pass the total. The attempt is marked overlapped and the summary leaves it out.
+        attempt.overlapped = True
     began = _now()
     try:
         yield
     finally:
+        me.closed = True
+        attempt._live -= 1
         attempt.stages[stage] += _now() - began
         attempt.calls[stage] += 1
         _open.reset(token)

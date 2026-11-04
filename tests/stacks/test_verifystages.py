@@ -96,6 +96,17 @@ def test_blank_lines_are_skipped():
     {"outcome": "accepted"},                                    # no times at all
     {**attempt("c1", **WARM), "outcome": "maybe"},              # not an outcome the verifier writes
     {**attempt("c1", **WARM), "calls": {"meet": 0}},            # a stage's calls missing
+    {k: v for k, v in attempt("c1", outcome="refused", **WARM).items() if k != "code"},
+    {**attempt("c1", **WARM), "credential": 7},
+    {**attempt("c1", **WARM), "holder": 7},
+    {**attempt("c1", **WARM), "total_ns": True},                # a boolean is not a time
+    {**attempt("c1", **WARM), "total_ns": -1},
+    {**attempt("c1", **WARM), "phases": {"admit": 1}},          # accepted, but one call untimed
+    {**attempt("c1", **WARM), "phases": {"admit": 1, "current": 1, "other": 1}},
+    {**attempt("c1", **WARM), "phases": {"admit": -1, "current": 1}},
+    {**attempt("c1", **WARM), "overlapped": 0},
+    {**attempt("c1", **WARM), "phases": []},
+    {**attempt("c1", **WARM), "stages": {**attempt("c1", **WARM)["stages"], "extra": 0}},
     [1, 2]])
 def test_a_record_missing_what_the_summary_reads_is_refused_by_line_number(broken):
     with pytest.raises(verifystages.BenchError) as bad:

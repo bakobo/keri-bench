@@ -216,3 +216,73 @@ async def test_two_stages_one_attempt_runs_at_once_are_both_charged(clock):
     with attempt.active():
         await asyncio.gather(stage("key_state.issuer", 0.01), stage("tel.fetch", 0))
     assert attempt.calls["key_state.issuer"] == attempt.calls["tel.fetch"] == 1
+    # Two stages at once are each charged their wall time, so the attempt is marked overlapped
+    # and the summary leaves it out rather than report stages summing past the total.
+    assert attempt.overlapped
+
+
+async def test_a_child_task_outliving_its_parents_span_is_still_charged(clock):
+    attempt = stages.Attempt("c1", holder="E")
+    started = asyncio.Event()
+
+    async def child():
+        await started.wait()
+        with stages.span("tel.fetch"):
+            clock.now += 3
+
+    with attempt.active():
+        with stages.span("key_state.issuer"):
+            task = asyncio.create_task(child())
+            clock.now += 1
+        started.set()
+        await task
+    assert attempt.calls["tel.fetch"] == 1 and attempt.stages["tel.fetch"] == 3
+    assert not attempt.overlapped
+
+
+def test_a_stage_one_attempt_runs_alone_leaves_it_not_overlapped(clock):
+    attempt = stages.Attempt("c1", holder="E")
+    with attempt.active():
+        with stages.span("tel.vet"):
+            pass
+        with stages.span("tel.vet"):
+            pass
+    assert not attempt.overlapped
+
+
+async def test_a_child_task_entering_a_stage_inside_its_parents_span_is_charged_and_overlaps(clock):
+    attempt = stages.Attempt("c1", holder="E")
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def child():
+        with stages.span("tel.fetch"):
+            entered.set()
+            await release.wait()
+            clock.now += 3
+
+    with attempt.active():
+        with stages.span("key_state.issuer"):
+            task = asyncio.create_task(child())
+            await entered.wait()
+            clock.now += 1
+        release.set()
+        await task
+    # Wall time: the child's span was open while the parent's advanced the clock too.
+    assert attempt.calls["tel.fetch"] == 1 and attempt.stages["tel.fetch"] == 4
+    assert attempt.overlapped
+
+
+async def test_a_task_outliving_its_attempt_does_not_change_it(clock):
+    attempt = stages.Attempt("c1", holder="E")
+    go = asyncio.Event()
+
+    async def late():
+        await go.wait()
+        with stages.span("tel.fetch"):
+            clock.now += 5
+
+    with attempt.active():
+        task = asyncio.create_task(late())
+    go.set()
+    await task
+    assert attempt.calls["tel.fetch"] == 0 and attempt.stages["tel.fetch"] == 0
