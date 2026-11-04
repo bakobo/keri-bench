@@ -1,0 +1,18 @@
+2026-11-04T22:45:16Z start load 4.26 5.59 4.66
+    PID  NI %CPU     ELAPSED COMMAND
+1039087   0 33.0       02:38 opencode
+1031929  19 25.8       05:11 java
+1029422  19 23.2       06:11 java
+ 995924   0  9.1       18:39 claude
+ 976038   0  7.3       27:33 codex
+ 743002   0  2.8    02:21:43 claude
+ 389079   0  1.8    05:50:28 claude
+2026-11-04T22:51:06Z end load 3.97 4.21 4.31
+    PID  NI %CPU     ELAPSED COMMAND
+1059686   0  100       00:00 ps
+1058973   0 93.6       00:10 jshell
+1059654  10 81.8       00:00 python3
+1039087   0 31.5       08:28 opencode
+ 995924   0  8.8       24:29 claude
+ 976038   0  7.2       33:23 codex
+1053206   0  5.6       02:33 jshell
