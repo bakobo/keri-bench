@@ -1,5 +1,5 @@
-# bench-stock: stock-preseeded-40k-1home with the Observer restarted in the window, so at 40,000
-# registries it must resynchronise from a full batch 1 (this.i 7wvv745c). Needs
+# bench-stock: stock-preseeded-40k-1home with the Observer restarted in the window, so at 22,000
+# registries, past 18,600, it must resynchronise from a full batch 1 (this.i 7wvv745c). Needs
 # `uv sync --extra stacks`. The preseed is 22,000, below the registry store's map wall (this.i
 # 7ltuxtd8); every other size is stock-preseeded-40k-1home's (this.i 5frsx7pu).
 scenario_schema = 1
