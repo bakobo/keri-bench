@@ -35,6 +35,10 @@ The test plan defines each milestone by the event that counts and leaves stack-s
 - **Store size.** During a soak the issuer reports every byte under every home, sampled every `[soak] sample_s`.
 - **The external signer.** With `signer = "external"` each home's principal is minted and signed for by heti's `ThrottledSigner` over a `SoftwareSigner`, at `signer_latency_ms` per operation and at most `signer_rate` starts a second, attached on every start (`this.i` 2p26rn9h). The issuer process serves the signer's record of every operation, and the adapter counts the answers imbu signed, one signature each, for the signer census. On imbu `8512c1d` a credential costs two signatures beyond those answers: the `ixn` that anchors its registry's inception and its issuance, and the grant.
 
+## The timed verifier (`heti.timed_verifier`)
+
+`heti.verifier` with heti's stage functions wrapped inside its process (`this.i` 3jeks5st, `src/keri_bench/stacks/stages.py`), and the same knobs and milestones. Every `/verify` attempt, accepted or refused, appends one line to `verifier-spool/stages.jsonl` in the run directory: the attempt's total, the time inside heti's `admit` and `verify_current_acdc`, and per stage the time and the number of calls, with whether another verification ran at the same time. Opening the lockbox, which meets the issuer, is a line of its own. `python -m keri_bench.stacks.verifystages <stages.jsonl> --out <dir>` summarises it. The wrapped names are heti 3a8b1ccb's private functions, so a repin may need the wrappers updated; the flag refuses with `e.feature.unsupported.stages.heti.f` rather than timing nothing.
+
 ## The bulk issuer (`imbu.bulk_issuer`)
 
 The SEDI proofed bulk ceremony (`this.i` 4f987y88). One request is one ceremony, and its events name the ceremony and carry `credentials`, the 2 (copies + 1) credentials it issued: the management Core and Residence pair and a pair per copy.

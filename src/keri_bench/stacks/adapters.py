@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import dataclasses
 import json
 import secrets
 import socket
@@ -326,3 +327,17 @@ class HetiVerifier(_Party, VerifierAdapter):
         self.ctx.emit("sync_full_started", credentials=["sync-cold"])
         _check(await self.client.post(f"{self.api()}/sync/cold"), "a cold sync", "sync-cold")
         self.ctx.emit("sync_full_done", credentials=["sync-cold"])
+
+
+class HetiTimedVerifier(HetiVerifier):
+    """The same verifier with heti's stage functions wrapped, writing each verification's stage
+    times to ``verifier-spool/stages.jsonl`` in the run directory (this.i 3jeks5st). Its own
+    name rather than a knob, so no other scenario's knob schema moves for it."""
+
+    declaration = dataclasses.replace(HetiVerifier.declaration, adapter="heti.timed_verifier")
+
+    async def connect(self):
+        observer = self.ctx.peers[Role.STATE_DISTRIBUTION]
+        return await self._spawn(("--observer-url", observer["observer"], "--observer-aid",
+                                  observer["observer_aid"], "--freshness",
+                                  f"{self.ctx.knobs['freshness_s']:g}", "--stages"))

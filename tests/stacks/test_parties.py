@@ -363,3 +363,52 @@ def test_half_an_answer_budget_is_a_usage_error(capsys, given):
         issuer.main(["--witness", "w", "--toad", "1", "--registrar-url", "r", "--controller",
                      "c", "--control-port", "1", *given])
     assert "--answer-rate and --answer-burst" in capsys.readouterr().err
+
+
+async def test_a_timed_verifier_writes_one_line_of_stage_times_per_attempt(tmp_path, monkeypatch):
+    """this.i 3jeks5st: each attempt, accepted or refused, is one JSON line in the spool, with
+    the time of heti's two calls and of each stage the wrappers charged."""
+    from keri_bench.stacks import stages
+    monkeypatch.setattr(verifier, "sender", lambda grant: "Eholder")
+    seen = []
+
+    class Timed(Box):
+        async def verify_current_acdc(self, **kw):
+            seen.append(stages._current.get().holder)
+            with stages.span("tel.vet"):
+                pass
+            return await super().verify_current_acdc(**kw)
+
+    ok = SimpleNamespace(state="issued", said="Es", registry="Er")
+    admitted = SimpleNamespace(acdc=b"acdc", blinders=None, verdict=ok)
+    judge = verifier.Verifier(Timed(ok), Facet(admitted), None, 30.0, tmp_path, timed=True)
+    request = json.dumps({"oobi": "o", "grant": base64.b64encode(b"g").decode()}).encode()
+    assert (await judge.handle("POST", "/verify/c1", request))[1]["valid"]
+    judge.box = Timed(Refused())
+    assert (await judge.handle("POST", "/verify/c2", request))[0] == 409
+    first, second = [json.loads(line) for line in
+                     (tmp_path / verifier.STAGES).read_text().splitlines()]
+    assert seen == ["Eholder", "Eholder"]
+    assert (first["credential"], first["outcome"], first["code"]) == ("c1", "accepted", None)
+    assert set(first["phases"]) == {"admit", "current"} and first["calls"]["tel.vet"] == 1
+    assert (second["credential"], second["outcome"]) == ("c2", "refused")
+    assert second["code"] == Refused.code
+    # An untimed verifier writes nothing.
+    quiet = verifier.Verifier(Box(ok), Facet(admitted), None, 30.0, tmp_path / "q")
+    (tmp_path / "q").mkdir()
+    await quiet.handle("POST", "/verify/c1", request)
+    assert not (tmp_path / "q" / verifier.STAGES).exists()
+
+
+def test_a_grant_names_its_sender_or_nothing():
+    assert verifier.sender(b"not a grant") is None
+
+
+async def test_a_timed_verifier_records_a_grant_it_cannot_read_as_refused(tmp_path):
+    ok = SimpleNamespace(state="issued", said="Es", registry="Er")
+    judge = verifier.Verifier(Box(ok), Facet(SimpleNamespace(acdc=b"a", blinders=None,
+                                                             verdict=ok)),
+                              None, 30.0, tmp_path, timed=True)
+    status, _ = await judge.handle("POST", "/verify/c1", b'{"oobi": "o", "grant": "!!"}')
+    record = json.loads((tmp_path / verifier.STAGES).read_text())
+    assert status == 409 and record["outcome"] == "refused"

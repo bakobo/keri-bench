@@ -201,3 +201,34 @@ async def test_a_crashed_bulk_home_reopens_and_the_ceremony_goes_on(tmp_path):
     published = [e for e in events if e.name == "published"]
     assert restarted and published
     assert max(e.t for e in published) > restarted[0].t
+
+
+async def test_the_timed_verifier_times_each_verification_by_stage(tmp_path):
+    """this.i 3jeks5st: every stage of a real verification is charged, and the summary reads."""
+    from keri_bench.stacks import verifystages
+    path = tmp_path / "scenario.toml"
+    path.write_text(scenario(stages='["issue", "deliver", "present", "verify"]', rate="0.5",
+                             duration="6.0", verifier="heti.timed_verifier"))
+    report = await runner.run_once(load_scenario(path), tmp_path / "out", rate=0.5,
+                                   repetition=1, harness_commit="test")
+    run_dir = tmp_path / "out" / "rate-0.5" / "rep-1"
+    _, events = read_timeline(run_dir / "timeline.jsonl")
+    assert [e.attrs for e in events if e.name == "stage_failed"] == []
+    records = [json.loads(line) for line in
+               (run_dir / "verifier-spool" / "stages.jsonl").read_text().splitlines()]
+    opened, *attempts = records
+    assert opened["credential"] == "lockbox-open" and opened["calls"]["meet"] >= 1
+    accepted = [r for r in attempts if r["outcome"] == "accepted"]
+    assert len(accepted) == report["reconciliation"]["summary"]["total"] >= 2
+    for record in accepted:
+        for stage in ("key_state.holder", "key_state.issuer", "signatures", "tel.fetch",
+                      "tel.vet", "receipt"):
+            assert record["stages"][stage] > 0 and record["calls"][stage] >= 1, stage
+        assert sum(record["stages"].values()) <= record["total_ns"]
+        assert set(record["phases"]) == {"admit", "current"}
+    # The holder is met at its first presentation, which may be refused and asked again.
+    assert attempts[0]["calls"]["meet"] == 1
+    assert all(r["calls"]["meet"] == 0 for r in attempts[1:])
+    summary = verifystages.summarise(
+        (run_dir / "verifier-spool" / "stages.jsonl").read_text().splitlines())
+    assert summary["attempts"]["warm"] >= 1

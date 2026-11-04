@@ -4,7 +4,8 @@
 def scenario(*, issuer="imbu.issuer", stages='["issue", "deliver", "present", '
              '"verify", "revoke", "sync"]', rate="1.0", duration="3.0", faults="", homes=1,
              clients=1, count=2, signer="lockbox", latency='"n/a"', signer_rate='"n/a"',
-             poll='50.0', wait='"n/a"', answer_rate="2.0", answer_burst=20):
+             poll='50.0', wait='"n/a"', answer_rate="2.0", answer_burst=20,
+             verifier="heti.verifier"):
     return f"""scenario_schema = 1
 name = "imbu-stack"
 stages = {stages}
@@ -58,7 +59,7 @@ knob_schema = 1
 toad = 2
 
 [roles.verifier]
-adapter = "heti.verifier"
+adapter = "{verifier}"
 [roles.verifier.knobs]
 knob_schema = 1
 toad = 2
