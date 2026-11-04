@@ -1,0 +1,64 @@
+# Verification by stage (this.i 3jeks5st): the lifecycle to verified at a rate low enough that
+# no two verifications overlap, with the timed verifier, which writes each verification's stage
+# times to verifier-spool/stages.jsonl. Run and collected by scripts/verify.sh; read in
+# docs/verify-2026-11.md. Needs `uv sync --extra stacks`.
+scenario_schema = 1
+name = "verify-stages-1home"
+description = "The lifecycle to verified at 0.5 a second, one home, each verification timed by stage."
+stages = ["issue", "deliver", "present", "verify"]
+
+[load]
+rates = [0.5]
+duration_s = 240.0
+warmup_s = 0.0
+drain_s = 120.0
+repetitions = 1
+measure = ["requested", "verified"]
+
+[statistics]
+lag_limit_ms = 25.0
+
+[roles.witness_pool]
+adapter = "heti.witness_pool"
+[roles.witness_pool.knobs]
+knob_schema = 1
+count = 3
+
+[roles.state_distribution]
+adapter = "registrar.state_distribution"
+[roles.state_distribution.knobs]
+knob_schema = 1
+window_s = 2.0
+delivery_timeout_s = 1.0
+resync_s = 6.0
+
+[roles.issuer]
+adapter = "imbu.issuer"
+[roles.issuer.knobs]
+knob_schema = 4
+toad = 2
+poll_ms = "n/a"
+wait_s = 25.0
+answer_rate = 2.0
+answer_burst = 20
+operation_timeout_s = 60.0
+homes = 1
+clients = 1
+signer = "lockbox"
+signer_latency_ms = "n/a"
+signer_rate = "n/a"
+
+[roles.holder]
+adapter = "heti.holder"
+[roles.holder.knobs]
+knob_schema = 1
+toad = 2
+
+[roles.verifier]
+adapter = "heti.timed_verifier"
+[roles.verifier.knobs]
+knob_schema = 1
+toad = 2
+freshness_s = 30.0
+retry_ms = 250.0
+deadline_s = 60.0
