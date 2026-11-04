@@ -144,6 +144,9 @@ def _wrapped(function, stage):
     return timed
 
 
+# Under heti's default plan this is a witness gather on every verification. A watcher or a
+# UseHeld plan is the next measurement (~4ul3); where the gather's time goes is unprofiled
+# (~57wk).
 def _observed(lockbox, aid, *args, **kwargs) -> str:
     attempt = _current.get()
     return attempt.key_state(aid) if attempt is not None else "key_state.issuer"
