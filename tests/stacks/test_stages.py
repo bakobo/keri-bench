@@ -113,7 +113,8 @@ def test_a_record_is_one_json_line_with_the_total_and_the_outcome(clock):
         with attempt.phase("current"):
             clock.now += 4
     record = attempt.record(outcome="accepted", code=None)
-    assert record == {"credential": "c1", "outcome": "accepted", "code": None,
+    assert record == {"credential": "c1", "holder": "Eholder", "outcome": "accepted",
+                      "code": None,
                       "total_ns": 9, "overlapped": False,
                       "phases": {"admit": 5, "current": 4},
                       "stages": {**dict.fromkeys(stages.STAGES, 0), "signatures": 3},
@@ -201,3 +202,17 @@ async def test_a_timed_source_charges_the_observer_read(clock):
     with attempt.active():
         assert await source.read("Er") == "Er"
     assert attempt.stages["tel.fetch"] == 8 and source.url == "http://observer"
+
+
+async def test_two_stages_one_attempt_runs_at_once_are_both_charged(clock):
+    """Outermost wins within a task; a sibling task under the same attempt is charged too."""
+    attempt = stages.Attempt("c1", holder="E")
+
+    async def stage(name, hold):
+        with stages.span(name):
+            clock.now += 1
+            await asyncio.sleep(hold)
+
+    with attempt.active():
+        await asyncio.gather(stage("key_state.issuer", 0.01), stage("tel.fetch", 0))
+    assert attempt.calls["key_state.issuer"] == attempt.calls["tel.fetch"] == 1

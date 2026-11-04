@@ -18,8 +18,13 @@
 #
 #   systemd-run --user --unit=keri-bench-verify -p LimitNOFILE=524288 \
 #       -E PATH="$PATH" -E HOME="$HOME" --working-directory="$PWD" \
-#       scripts/verify.sh runs/verify results/verify-2026-11 ../arf-interop \
+#       scripts/verify.sh runs/verify results/verify-2026-11 ../arf-interop/.worktrees/bench \
 #       ../mdoc-interop/build/install/mdoc-verify
+#
+# The arf-interop path is a checkout of the branch to time, as scripts/derivatives/README.md
+# sets one up; uv syncs that checkout's environment, so give it one you do not mind synced. The
+# KERI results are collected before the derivatives run, and a failure there leaves them in
+# place and says so.
 set -euo pipefail
 
 work=${1:?usage: scripts/verify.sh <work-dir> <results-dir> [<arf-interop> [<mdoc-verify>]]}
@@ -32,7 +37,7 @@ mkdir -p "$work" "$results"
 
 busiest() {
     echo "$(date -u +%FT%TZ) $1 load $(cut -d' ' -f1-3 /proc/loadavg)"
-    ps -eo pid,ni,pcpu,etime,comm --sort=-pcpu | head -8
+    ps -eo pid,ni,pcpu,etime,comm --sort=-pcpu | head -8 || true
 }
 busiest start > "$work/host.log"
 (while true; do echo "$(date -u +%FT%TZ) $(cut -d' ' -f1-3 /proc/loadavg)"; sleep 60; done) \
@@ -52,13 +57,6 @@ uv run --project "$repo" python -m keri_bench.stacks.verifystages \
     "$run/verifier-spool/stages.jsonl" --out "$run"
 cp "$run/verifier-spool/stages.jsonl" "$run/stages.jsonl"
 
-if [ -n "$arf" ]; then
-    uv run --project "$arf" python -I "$repo/scripts/derivatives/bench.py" \
-        --out "$work/derivatives.json" ${mdoc:+--mdoc-install "$mdoc"}
-    cp "$work/derivatives.json" "$results/"
-fi
-busiest end >> "$work/host.log"
-
 mkdir -p "$results/calibration"
 cp "$work/calibration/calibration.json" "$results/calibration/"
 cp "$work/loadavg.log" "$work/host.log" "$results/"
@@ -69,5 +67,19 @@ cp "$work/loadavg.log" "$work/host.log" "$results/"
     mkdir -p "$results/$(dirname "$file")"
     cp "$work/$file" "$results/$file"
 done
+
+status=0
+if [ -n "$arf" ]; then
+    if uv run --project "$arf" python -I "$repo/scripts/derivatives/bench.py" \
+            --out "$work/derivatives.json" ${mdoc:+--mdoc-install "$mdoc"}; then
+        cp "$work/derivatives.json" "$results/"
+    else
+        echo "the derivative harness failed; the KERI results are collected without it" >&2
+        status=1
+    fi
+fi
+busiest end >> "$work/host.log"
+cp "$work/host.log" "$results/"
 (cd "$results" && find . -type f ! -name SHA256SUMS -print0 | sort -z \
     | xargs -0 sha256sum > SHA256SUMS)
+exit $status

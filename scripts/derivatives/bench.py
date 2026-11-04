@@ -13,9 +13,10 @@ fetched, which is the papers' scope: the format's own checks with the network ou
 - sd-jwt-vc: the same credential presented without a key-binding JWT.
 - w3c-vc-rdfc-20 and w3c-vc-rdfc-5: VCDM 2.0 with eddsa-rdfc-2022, canonicalized through
   arf-interop's own pinned-context loader (w3c._canonical), so the document and the proof options
-  are each canonicalized and hashed, then the Ed25519 signature checked. arf-interop mints these
-  and does not verify them, so this is the verification a Data Integrity verifier would have to
-  do. eddsa-rdfc-2022 cannot derive a subset, so the 5-attribute row is the holder's re-signed
+  are each canonicalized and hashed, then the Ed25519 signature checked, after the proof's type,
+  cryptosuite and purpose, the validity window and an allowlisted verification method. arf-interop
+  mints these and does not verify them, so this is the core of what a Data Integrity verifier
+  would have to do; it resolves no DID document and checks no status. eddsa-rdfc-2022 cannot derive a subset, so the 5-attribute row is the holder's re-signed
   subset, as in the papers, whose signature is then the holder's and not the issuer's.
 - mdoc: mdoc-interop's mdoc-verify CLI on a DeviceResponse of one document disclosing 5 of 20
   elements under an IACA and a document signer minted here, without device authentication. Timed
@@ -45,6 +46,7 @@ ATTRIBUTES = 20
 DISCLOSED = 5
 AUDIENCE, NONCE = "https://verifier.bench", "n-" + secrets.token_urlsafe(12)
 NOW = datetime.datetime(2026, 11, 4, 12, 0, 0, tzinfo=datetime.UTC)
+NOW_XSD = NOW.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def timed(call, iterations: int, warmup: int) -> dict:
@@ -189,7 +191,14 @@ def w3c(iterations, warmup) -> dict:
             document = json.loads(wire)
             proof = document.pop("proof")
             value = proof.pop("proofValue")
-            public = keys[proof["verificationMethod"]]  # before any canonicalization
+            # The cheap checks first, before any canonicalization (the papers' mitigation): the
+            # suite, the purpose, the validity window and an allowlisted verification method.
+            if not (proof.get("type") == "DataIntegrityProof"
+                    and proof.get("cryptosuite") == "eddsa-rdfc-2022"
+                    and proof.get("proofPurpose") == "assertionMethod"
+                    and document["validFrom"] <= NOW_XSD < document["validUntil"]):
+                raise ValueError("the proof or the validity window is not acceptable")
+            public = keys[proof["verificationMethod"]]
             options = {"@context": document["@context"], **proof}
             data = (hashlib.sha256(minted._canonical(options)).digest()
                     + hashlib.sha256(minted._canonical(document)).digest())
@@ -276,6 +285,8 @@ def mdoc(install: Path, processes: int, iterations: int, warmup: int) -> dict:
                              f"{first.stdout}{first.stderr}")
         record = json.loads(first.stdout)
         samples = []
+        for _ in range(3):  # warm the page cache beyond the first run
+            subprocess.run([str(cli), *args], check=True, capture_output=True)
         for _ in range(processes):
             start = time.monotonic_ns()
             subprocess.run([str(cli), *args], check=True, capture_output=True)

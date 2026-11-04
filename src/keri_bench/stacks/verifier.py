@@ -125,7 +125,8 @@ class Verifier:
         with attempt.active():
             status, answer = await self.verify(request, attempt)
         stages.write(self.spool / STAGES, attempt.record(
-            outcome="accepted" if status == 200 else "refused", code=answer.get("code")))
+            outcome="accepted" if answer.get("valid") is True else "refused",
+            code=answer.get("code")))
         return status, answer
 
     async def verify(self, request: dict, attempt: stages.Attempt | None = None):

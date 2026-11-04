@@ -274,12 +274,14 @@ class HetiVerifier(_Party, VerifierAdapter):
     async def start(self):
         return {}
 
+    extra: tuple[str, ...] = ()
+
     async def connect(self):
         """The Observer starts in the state-distribution role's connect, which runs first."""
         observer = self.ctx.peers[Role.STATE_DISTRIBUTION]
         return await self._spawn(("--observer-url", observer["observer"], "--observer-aid",
                                   observer["observer_aid"], "--freshness",
-                                  f"{self.ctx.knobs['freshness_s']:g}"))
+                                  f"{self.ctx.knobs['freshness_s']:g}", *self.extra))
 
     async def verify(self, credential: str, presentation) -> bool:
         """Verify, retrying refusals until the deadline: a presentation can reach the verifier
@@ -335,9 +337,4 @@ class HetiTimedVerifier(HetiVerifier):
     name rather than a knob, so no other scenario's knob schema moves for it."""
 
     declaration = dataclasses.replace(HetiVerifier.declaration, adapter="heti.timed_verifier")
-
-    async def connect(self):
-        observer = self.ctx.peers[Role.STATE_DISTRIBUTION]
-        return await self._spawn(("--observer-url", observer["observer"], "--observer-aid",
-                                  observer["observer_aid"], "--freshness",
-                                  f"{self.ctx.knobs['freshness_s']:g}", "--stages"))
+    extra = ("--stages",)

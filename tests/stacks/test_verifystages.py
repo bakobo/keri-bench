@@ -90,3 +90,20 @@ def test_the_module_writes_json_and_markdown(tmp_path):
 def test_blank_lines_are_skipped():
     summary = verifystages.summarise(lines(attempt("c1", **WARM)) + ["", "  "])
     assert summary["attempts"]["warm"] == 1
+
+
+@pytest.mark.parametrize("broken", [
+    {"outcome": "accepted"},                                    # no times at all
+    {**attempt("c1", **WARM), "outcome": "maybe"},              # not an outcome the verifier writes
+    {**attempt("c1", **WARM), "calls": {"meet": 0}},            # a stage's calls missing
+    [1, 2]])
+def test_a_record_missing_what_the_summary_reads_is_refused_by_line_number(broken):
+    with pytest.raises(verifystages.BenchError) as bad:
+        verifystages.summarise([json.dumps(broken)])
+    assert bad.value.code == verifystages.E_FORMAT and "line 1" in bad.value.message
+
+
+def test_a_meeting_names_the_holder_it_met():
+    summary = verifystages.summarise(lines({**attempt("c0", meet=MS, **WARM), "holder": "Eh"},
+                                           attempt("c1", **WARM)))
+    assert summary["meetings"] == {"c0 (Eh)": pytest.approx(1)}

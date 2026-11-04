@@ -7,7 +7,8 @@ else charged to it. Per stage it reports p50 and p99 through the one named perce
 definition, the mean and the calls per attempt; then the rollups the papers name (Fujie and
 Suzuki, arXiv:2611.03493): issuer key state, status, holder binding, and what is left, beside
 the IPEX admit receipt, which is not a check. The first meetings, opening the lockbox and the
-first presentation from each holder, are reported apart, as one-off costs.
+first presentation from each holder, are reported apart, as one-off costs, keyed by the
+attempt's credential and its holder's AID.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ ROLLUPS = {
     "admit receipt": ("receipt",),
 }
 LEFT = "everything else"
+OUTCOMES = ("accepted", "refused", "opened")
 
 
 def _row(values: list[int], calls: list[int] | None = None, total: int | None = None) -> dict:
@@ -53,8 +55,15 @@ def _parsed(lines) -> list[dict]:
             continue
         try:
             record = json.loads(line)
-            record["stages"], record["total_ns"]
-        except (ValueError, TypeError, KeyError):
+            if not (isinstance(record, dict) and record.get("outcome") in OUTCOMES
+                    and isinstance(record.get("total_ns"), int)
+                    and isinstance(record.get("overlapped"), bool)
+                    and isinstance(record.get("phases"), dict)
+                    and all(isinstance(record.get(key), dict)
+                            and all(isinstance(record[key].get(s), int) for s in STAGES)
+                            for key in ("stages", "calls"))):
+                raise ValueError
+        except ValueError:
             raise BenchError(E_FORMAT, f"line {number} of the stage times is not one of the "
                              f"timed verifier's records: {line[:120]!r}") from None
         records.append(record)
@@ -91,8 +100,8 @@ def summarise(lines) -> dict:
                                total=grand) for s in STAGES},
             "rollups": rollups,
         },
-        "meetings": {r["credential"]: r["stages"]["meet"] / 1e6
-                     for r in records if r["calls"]["meet"]},
+        "meetings": {r["credential"] + (f" ({r['holder']})" if r.get("holder") else ""):
+                     r["stages"]["meet"] / 1e6 for r in records if r["calls"]["meet"]},
     }
 
 

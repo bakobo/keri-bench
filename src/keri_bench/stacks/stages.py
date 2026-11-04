@@ -5,7 +5,8 @@ around heti's own stage functions, at the heti this repository pins, before it o
 lockbox. Every verification attempt is an :class:`Attempt`; a wrapped call charges its time to
 the attempt running in the same asyncio task, on the harness's monotonic clock. Only the
 outermost wrapped call is charged, so no nanosecond is counted twice and the stages never sum to
-more than the attempt's total; what the stages leave over is parsing, schema fitting, SAID and
+more than the attempt's total while heti runs them one after another, as 3a8b1ccb does; what
+the stages leave over is parsing, schema fitting, SAID and
 disclosure checks, and the verifier's own bookkeeping.
 
 The stages, in the papers' terms (Fujie and Suzuki, arXiv:2611.03493):
@@ -45,6 +46,9 @@ the presenter, then verify_current_acdc, which verifies again on the Observer's 
 
 _now = time.monotonic_ns
 _current: ContextVar[Attempt | None] = ContextVar("keri_bench_stage_attempt", default=None)
+_open: ContextVar[bool] = ContextVar("keri_bench_stage_open", default=False)
+"""Whether this task is inside a charged span: per task, so a stage another task runs at the same
+time under the same attempt is charged as well, rather than being swallowed by this one."""
 _running: set[Attempt] = set()
 
 
@@ -58,7 +62,6 @@ class Attempt:
         self.phases: dict[str, int] = {}
         self.overlapped = False
         self.total = 0
-        self._depth = 0
 
     def key_state(self, aid: str) -> str:
         return "key_state.holder" if aid == self.holder else "key_state.issuer"
@@ -91,7 +94,8 @@ class Attempt:
             self.phases[name] = self.phases.get(name, 0) + _now() - began
 
     def record(self, *, outcome: str, code: str | None) -> dict:
-        return {"credential": self.credential, "outcome": outcome, "code": code,
+        return {"credential": self.credential, "holder": self.holder, "outcome": outcome,
+                "code": code,
                 "total_ns": self.total, "overlapped": self.overlapped,
                 "phases": dict(self.phases), "stages": dict(self.stages),
                 "calls": dict(self.calls)}
@@ -105,17 +109,17 @@ def span(stage: str):
         raise BenchError(E_STAGE, f"{stage!r} is not a verification stage; the stages are "
                          f"{list(STAGES)}.")
     attempt = _current.get()
-    if attempt is None or attempt._depth:
+    if attempt is None or _open.get():
         yield
         return
-    attempt._depth += 1
+    token = _open.set(True)
     began = _now()
     try:
         yield
     finally:
         attempt.stages[stage] += _now() - began
         attempt.calls[stage] += 1
-        attempt._depth -= 1
+        _open.reset(token)
 
 
 def _stage_of(stage):
