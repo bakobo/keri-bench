@@ -1,0 +1,6 @@
+9c3d865ff02d8b18f0a37a9d83fe6c4ac90ae3b624e03c0f78bccd3139e171f1  ./calibration/calibration.json
+044184f8b0dc3128f08e4428fa2c039b340a111b8f51214d0758d2ffa7a8513e  ./loadavg.log
+bd9d8455fb680feab9d35b0e8d24dfcf61cd206c06d1f68125a1ca7f16448d43  ./rss.log
+f4737c48697ef92055dc773ee27d00fe6bc3d7de6f3c076ff4075bbf01a761ca  ./stock-preseeded-40k-1home-observer/rate-0.1/rep-1/issuer-mapfull.txt
+4c4522c169ee3765e05b618ab24db9ebac58467bd32413830587c40581e9ebdc  ./stock-preseeded-40k-1home-observer/rate-0.1/rep-1/store-sizes.txt
+c11f25629ac814a968aec59ed1e4f9d2ed6a16ec0a2989e00efd0f5ce90866e3  ./stock-preseeded-40k-1home-observer/rate-0.1/rep-1/timeline.jsonl.gz

@@ -1,0 +1,2 @@
+issuer.h0.log: 61321 lines; 14549 lines report lmdb.MapFullError; first at line 26347:
+operation q31xcy9uAUI0RyQif89J0Q (issuance) failed: LMDB map full (size=104857600 bytes); write rejected. ref) lmdb.MapFullError
