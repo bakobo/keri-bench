@@ -333,3 +333,18 @@ def test_two_threads_are_not_one_task(clock):
 def _fetch(done):
     with stages.span("tel.fetch"):
         done.set()
+
+
+def test_a_span_closing_after_its_attempt_ended_marks_it_overlapped(clock):
+    attempt = stages.Attempt("c1", holder="E")
+    with attempt.active():
+        pass
+    # As a thread holding a copy of the attempt's context, entering just before the end.
+    token = stages._current.set(attempt)
+    attempt.ended = False
+    try:
+        with stages.span("tel.fetch"):
+            attempt.ended = True
+    finally:
+        stages._current.reset(token)
+    assert attempt.overlapped and attempt.calls["tel.fetch"] == 0

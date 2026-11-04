@@ -158,7 +158,11 @@ def span(stage: str):
     finally:
         me.closed = True
         attempt._live -= 1
-        if not attempt.ended:  # an ended attempt is recorded, and marked overlapped above
+        if attempt.ended:
+            # It crossed the attempt's end, so its time is not the attempt's to add; the
+            # attempt is marked overlapped here as well, should its own check have run first.
+            attempt.overlapped = True
+        else:
             attempt.stages[stage] += _now() - began
             attempt.calls[stage] += 1
         _open.reset(token)

@@ -79,6 +79,7 @@ def _well_formed(record) -> bool:
             and _text(record.get("credential"), optional=False)
             and _text(record.get("holder"), optional=True)
             and "code" in record and _text(record["code"], optional=True)
+            and record["code"] != UNCODED
             and _count(record.get("total_ns")) and isinstance(record.get("overlapped"), bool)
             and isinstance(record.get("phases"), dict)):
         return False

@@ -112,6 +112,7 @@ def test_blank_lines_are_skipped():
                                          "tel.vet": 10**12}},   # alone, yet past total
     {**attempt("c1", **WARM), "calls": {**attempt("c1", **WARM)["calls"], "tel.vet": 10**400}},
     {**attempt("c1", **WARM), "credential": "\ud800"},
+    attempt("c1", outcome="refused", code=verifystages.UNCODED, **WARM),
     [1, 2]])
 def test_a_record_missing_what_the_summary_reads_is_refused_by_line_number(broken):
     with pytest.raises(verifystages.BenchError) as bad:
