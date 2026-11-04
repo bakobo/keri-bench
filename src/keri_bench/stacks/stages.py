@@ -31,6 +31,7 @@ import asyncio
 import contextlib
 import functools
 import inspect
+import threading
 import time
 from contextvars import ContextVar
 
@@ -50,16 +51,18 @@ _current: ContextVar[Attempt | None] = ContextVar("keri_bench_stage_attempt", de
 class _Span:
     """One charged span, and the task that opened it."""
 
-    def __init__(self) -> None:
-        self.task = _task()
+    def __init__(self, attempt) -> None:
+        self.attempt, self.task = attempt, _task()
         self.closed = False
 
 
 def _task():
+    """The asyncio task running, or, with no running loop, the thread: two threads must not
+    look like one task to each other."""
     try:
         return asyncio.current_task()
     except RuntimeError:
-        return None  # no running loop: a synchronous caller, one task by construction
+        return threading.current_thread()
 
 
 _open: ContextVar[_Span | None] = ContextVar("keri_bench_stage_open", default=None)
@@ -102,6 +105,9 @@ class Attempt:
         finally:
             self.total = _now() - began
             self.ended = True
+            if self._live:
+                # A stage another task opened is still running past the attempt's end.
+                self.overlapped = True
             _current.reset(token)
             _running.discard(self)
 
@@ -131,12 +137,13 @@ def span(stage: str):
     attempt = _current.get()
     outer = _open.get()
     if attempt is None or attempt.ended or (
-            outer is not None and not outer.closed and outer.task is _task()):
+            outer is not None and not outer.closed and outer.task is _task()
+            and outer.attempt is attempt):
         # No attempt; or one already ended and recorded, which a task outliving it must not
         # change; or this task is already inside a charged span of its own.
         yield
         return
-    me = _Span()
+    me = _Span(attempt)
     token = _open.set(me)
     attempt._live += 1
     if attempt._live > 1:
@@ -149,8 +156,9 @@ def span(stage: str):
     finally:
         me.closed = True
         attempt._live -= 1
-        attempt.stages[stage] += _now() - began
-        attempt.calls[stage] += 1
+        if not attempt.ended:  # an ended attempt is recorded, and marked overlapped above
+            attempt.stages[stage] += _now() - began
+            attempt.calls[stage] += 1
         _open.reset(token)
 
 

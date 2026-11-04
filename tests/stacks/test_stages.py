@@ -286,3 +286,50 @@ async def test_a_task_outliving_its_attempt_does_not_change_it(clock):
     go.set()
     await task
     assert attempt.calls["tel.fetch"] == 0 and attempt.stages["tel.fetch"] == 0
+
+
+async def test_a_stage_running_past_its_attempts_end_marks_it_overlapped_and_is_not_added(clock):
+    attempt = stages.Attempt("c1", holder="E")
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def child():
+        with stages.span("tel.fetch"):
+            entered.set()
+            await release.wait()
+            clock.now += 50
+
+    with attempt.active():
+        task = asyncio.create_task(child())
+        await entered.wait()
+    release.set()
+    await task
+    assert attempt.overlapped and attempt.calls["tel.fetch"] == 0
+
+
+def test_an_attempt_nested_inside_anothers_span_is_charged_for_its_own_stages(clock):
+    outer, inner = stages.Attempt("c1", holder="E"), stages.Attempt("c2", holder="E")
+    with outer.active():
+        with stages.span("tel.vet"):
+            with inner.active():
+                with stages.span("tel.fetch"):
+                    clock.now += 2
+    assert inner.calls["tel.fetch"] == 1 and inner.stages["tel.fetch"] == 2
+
+
+def test_two_threads_are_not_one_task(clock):
+    import threading
+    attempt = stages.Attempt("c1", holder="E")
+    done = threading.Event()
+    with attempt.active():
+        with stages.span("tel.vet"):
+            import contextvars
+            context = contextvars.copy_context()
+            worker = threading.Thread(target=lambda: context.run(_fetch, done))
+            worker.start()
+            worker.join()
+    assert done.is_set() and attempt.calls["tel.fetch"] == 1 and attempt.overlapped
+
+
+def _fetch(done):
+    with stages.span("tel.fetch"):
+        done.set()
