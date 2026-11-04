@@ -32,6 +32,9 @@ ROLLUPS = {
 }
 LEFT = "everything else"
 OUTCOMES = ("accepted", "refused", "opened")
+UNCODED = "(no code)"
+"""How a refusal the verifier answered without a code is counted, such as a 200 that was not
+valid: a key that sorts with the codes, which None does not."""
 
 
 def _row(values: list[int], calls: list[int] | None = None, total: int | None = None) -> dict:
@@ -48,12 +51,24 @@ def _row(values: list[int], calls: list[int] | None = None, total: int | None = 
     return row
 
 
+MAX_NS = 2**63 - 1
+"""The histogram's ceiling, about 292 years; the writer never comes near it."""
+
+
 def _count(value) -> bool:
-    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+    return isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= MAX_NS
 
 
 def _text(value, *, optional: bool) -> bool:
-    return isinstance(value, str) or (optional and value is None)
+    if optional and value is None:
+        return True
+    if not isinstance(value, str):
+        return False
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:  # a lone surrogate, which no report can write
+        return False
+    return True
 
 
 def _well_formed(record) -> bool:
@@ -72,8 +87,13 @@ def _well_formed(record) -> bool:
         return False
     if record["outcome"] == "accepted" and set(phases) != set(PHASES):
         return False
-    return all(isinstance(record.get(key), dict) and set(record[key]) == set(STAGES)
-               and all(_count(v) for v in record[key].values()) for key in ("stages", "calls"))
+    if not all(isinstance(record.get(key), dict) and set(record[key]) == set(STAGES)
+               and all(_count(v) for v in record[key].values()) for key in ("stages", "calls")):
+        return False
+    # heti's two calls run one after the other inside the attempt, and so do its stages unless
+    # the attempt says it overlapped.
+    return sum(phases.values()) <= record["total_ns"] and (
+        record["overlapped"] or sum(record["stages"].values()) <= record["total_ns"])
 
 
 def _parsed(lines) -> list[dict]:
@@ -104,7 +124,8 @@ def summarise(lines) -> dict:
     refused: dict[str, int] = {}
     for r in attempts:
         if r["outcome"] == "refused":
-            refused[r["code"]] = refused.get(r["code"], 0) + 1
+            code = r["code"] if r["code"] is not None else UNCODED
+            refused[code] = refused.get(code, 0) + 1
     totals = [r["total_ns"] for r in warm]
     grand = sum(totals)
     rollups = {name: _row([sum(r["stages"][s] for s in members) for r in warm], total=grand)

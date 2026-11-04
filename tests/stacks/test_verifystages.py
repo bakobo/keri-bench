@@ -107,6 +107,11 @@ def test_blank_lines_are_skipped():
     {**attempt("c1", **WARM), "overlapped": 0},
     {**attempt("c1", **WARM), "phases": []},
     {**attempt("c1", **WARM), "stages": {**attempt("c1", **WARM)["stages"], "extra": 0}},
+    {**attempt("c1", **WARM), "phases": {"admit": 10**12, "current": 10**12}},  # past total
+    {**attempt("c1", **WARM), "stages": {**attempt("c1", **WARM)["stages"],
+                                         "tel.vet": 10**12}},   # alone, yet past total
+    {**attempt("c1", **WARM), "calls": {**attempt("c1", **WARM)["calls"], "tel.vet": 10**400}},
+    {**attempt("c1", **WARM), "credential": "\ud800"},
     [1, 2]])
 def test_a_record_missing_what_the_summary_reads_is_refused_by_line_number(broken):
     with pytest.raises(verifystages.BenchError) as bad:
@@ -118,3 +123,19 @@ def test_a_meeting_names_the_holder_it_met():
     summary = verifystages.summarise(lines({**attempt("c0", meet=MS, **WARM), "holder": "Eh"},
                                            attempt("c1", **WARM)))
     assert summary["meetings"] == {"c0 (Eh)": pytest.approx(1)}
+
+
+def test_stages_past_the_total_are_allowed_on_an_overlapped_attempt():
+    record = {**attempt("c1", **WARM), "overlapped": True}
+    record["stages"] = {**record["stages"], "tel.vet": 10**12}
+    summary = verifystages.summarise(lines(record, attempt("c2", **WARM)))
+    assert summary["attempts"]["overlapped"] == 1
+
+
+def test_a_refusal_without_a_code_is_counted_under_a_name_that_sorts():
+    summary = verifystages.summarise(lines(
+        attempt("c1", **WARM), attempt("c2", outcome="refused", **WARM),
+        attempt("c3", outcome="refused", code="e.env.observer.gap.r", **WARM)))
+    assert summary["attempts"]["refused_codes"] == {verifystages.UNCODED: 1,
+                                                    "e.env.observer.gap.r": 1}
+    json.dumps(summary, sort_keys=True)

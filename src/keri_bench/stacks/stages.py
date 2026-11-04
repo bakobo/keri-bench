@@ -103,8 +103,10 @@ class Attempt:
         try:
             yield self
         finally:
-            self.total = _now() - began
+            # Ended before the total is read: a span finishing after this adds nothing, and
+            # one that finished before it lay inside the attempt, so inside the total.
             self.ended = True
+            self.total = _now() - began
             if self._live:
                 # A stage another task opened is still running past the attempt's end.
                 self.overlapped = True
