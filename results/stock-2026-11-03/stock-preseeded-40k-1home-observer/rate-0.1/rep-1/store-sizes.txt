@@ -1,0 +1,11 @@
+-rw------T 1 daniel daniel 104853504 Nov  4 01:57 runs/bench-stock/stock-preseeded-40k-1home-observer/rate-0.1/rep-1/imbu/h0/bench/keri/acdc/reg/lockbox/data.mdb
+-rw------- 1 daniel daniel 18333696 Nov  4 02:32 observer/observer.sqlite3
+-rw------- 1 daniel daniel 21749760 Nov  4 02:32 registrar/registrar.sqlite3
+-rw-r--r-- 1 daniel daniel 129097728 Nov  4 02:41 imbu/h0/bench/operations.sqlite3
+-rw-r--r-- 1 daniel daniel 23592960 Nov  4 01:57 imbu/h0/bench/registry-publications.sqlite3
+-rw------T 1 daniel daniel 73363456 Nov  4 02:32 observer/lockbox/keri/db/lockbox/data.mdb
+-rw------T 1 daniel daniel 79900672 Nov  4 01:57 witnesses/keri/db/wit0/data.mdb
+-rw------T 1 daniel daniel 80027648 Nov  4 01:57 witnesses/keri/db/wit1/data.mdb
+-rw------T 1 daniel daniel 79949824 Nov  4 01:57 witnesses/keri/db/wit2/data.mdb
+-rw------T 1 daniel daniel 78290944 Nov  4 01:57 imbu/h0/bench/keri/db/lockbox/data.mdb
+-rw------T 1 daniel daniel 104853504 Nov  4 01:57 imbu/h0/bench/keri/acdc/reg/lockbox/data.mdb

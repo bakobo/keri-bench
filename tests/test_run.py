@@ -112,6 +112,43 @@ async def test_a_whole_lifecycle_run_writes_a_timeline_provenance_and_report(tmp
     assert "harness.driver" in provenance["adapters"]
 
 
+async def test_a_role_that_dies_mid_run_is_in_the_timeline_provenance_and_report(tmp_path):
+    # this.i 9zgpyjxt: the run goes on, and says it ran on a stack missing a role.
+    import os
+    import signal
+
+    class Dying(runner.Run):
+        victim = "state_distribution"
+
+        def _fire(self, index, scheduled):
+            if index == 3:
+                os.killpg(self.procs.process(self.victim).pid, signal.SIGKILL)
+            super()._fire(index, scheduled)
+
+    resolved = runner.plan(load(tmp_path, scenario(stages='["issue"]',
+                                                    names=("state_distribution", "issuer"))))
+    run_dir = tmp_path / "out"
+    got = await Dying(resolved, run_dir, 10.0, 1, "test", None).execute()
+    _, events = read_timeline(run_dir / "timeline.jsonl")
+    [exit_event] = [e for e in events if e.name == "process_exited"]
+    assert exit_event.attrs["process"] == "state_distribution"
+    assert exit_event.attrs["code"] == -signal.SIGKILL
+    provenance = json.loads((run_dir / "provenance.json").read_text())
+    assert provenance["unexpected_exits"] == [exit_event.attrs]
+    assert got["degraded"] is True and got["refused"] is False
+    assert got["unexpected_exits"] == [{**exit_event.attrs, "t": exit_event.t}]
+    assert any("degraded" in w and "state_distribution" in w for w in got["warnings"])
+
+
+async def test_a_run_whose_roles_all_lived_records_no_exit(tmp_path):
+    resolved = runner.plan(load(tmp_path, scenario(stages='["issue"]',
+                                                    names=("state_distribution", "issuer"))))
+    got = await runner.Run(resolved, tmp_path / "out", 10.0, 1, "test", None).execute()
+    provenance = json.loads((tmp_path / "out" / "provenance.json").read_text())
+    assert provenance["unexpected_exits"] == []
+    assert "degraded" not in got
+
+
 async def test_faults_are_scheduled_recorded_and_survived(tmp_path):
     faults = "\n".join([
         '[[faults]]\nkind = "crash"\ntarget = "issuer"\nat_s = 0.3\nduration_s = 0.1\n',

@@ -215,7 +215,7 @@ class Run:
         for role in roles:
             self.peers[role].update(await self._proxy(role, await self.adapters[role].connect()))
 
-    async def _offsets(self) -> None:
+    async def _offsets(self) -> None:  # ~3q2p: a dead role's clock read aborts the run
         """Sample every foreign clock, keeping each domain's tightest bracket of several reads,
         as NTP does: a read delayed by a busy loop or a cold connection widens only itself."""
         samples = [min((clocks.sample_offset(self.realtime_clock, time.time_ns, mono=self.clock)
@@ -579,7 +579,8 @@ class Run:
                         for role, cls in self.plan.classes.items()}
         for declaration in self.plan.harness:
             declarations[declaration.adapter] = declaration.describe()
-        extra = {"measurement_cost": cost, "calibration": _calibration(self.calibration)}
+        extra = {"measurement_cost": cost, "calibration": _calibration(self.calibration),
+                 "unexpected_exits": list(self.procs.unexpected_exits)}
         shape = {}
         if scenario.soak is not None:
             shape["soak"] = {"bucket": scenario.soak.bucket,

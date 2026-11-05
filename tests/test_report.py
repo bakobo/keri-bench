@@ -456,6 +456,35 @@ def test_an_untested_component_version_is_warned(tmp_path):
         "contract-tested against (it was tested against no version of it)."]
 
 
+def test_an_unexpected_exit_marks_the_run_degraded_and_names_it(tmp_path):
+    exit_attrs = {"process": "witness_pool.w0", "pid": 4242, "code": -11,
+                  "at": "2026-11-03T05:07:20.123456+00:00"}
+    events = window() + simple("c1", 100, 1000) + [ev("process_exited", 5000, attrs=exit_attrs)]
+    got = derive(write_run(tmp_path, events))
+    assert got["degraded"] is True and got["refused"] is False
+    assert got["unexpected_exits"] == [{**exit_attrs, "t": 5000}]
+    assert got["warnings"] == [
+        "The run is degraded. The witness_pool.w0 process (pid 4242) exited with code -11 at "
+        "2026-11-03T05:07:20.123456+00:00 (harness t 5000 ns), and the harness did not stop it, "
+        "so everything measured after that moment ran on a stack without it."]
+    markdown = report.render_markdown(got)
+    assert "This run is degraded. The witness_pool.w0 process (pid 4242)" in markdown
+
+
+def test_a_run_with_no_unexpected_exit_carries_no_degraded_mark(tmp_path):
+    got = derive(write_run(tmp_path, window() + simple("c1", 100, 1000)))
+    assert "degraded" not in got and "unexpected_exits" not in got
+    assert "degraded" not in report.render_markdown(got)
+
+
+def test_an_exit_record_with_missing_attributes_is_still_named(tmp_path):
+    events = window() + simple("c1", 100, 1000) + [ev("process_exited", 7000)]
+    got = derive(write_run(tmp_path, events))
+    assert got["degraded"] is True
+    assert got["warnings"][-1].startswith("The run is degraded. The ? process (pid ?) exited "
+                                          "with code ? at ? (harness t 7000 ns)")
+
+
 # --- writing and rendering ---------------------------------------------------------------------
 
 def test_write_report_writes_json_and_markdown_beside_the_inputs(tmp_path):

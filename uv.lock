@@ -536,7 +536,7 @@ wheels = [
 [[package]]
 name = "heti"
 version = "0.0.0"
-source = { git = "ssh://git@github.com/bakobo/heti?rev=3a8b1ccb17e1c29b79aafb191cb16cde35e2727b#3a8b1ccb17e1c29b79aafb191cb16cde35e2727b" }
+source = { git = "ssh://git@github.com/bakobo/heti?rev=fc25249ed004998f1d8977e9de4b69cfc6a3379b#fc25249ed004998f1d8977e9de4b69cfc6a3379b" }
 dependencies = [
     { name = "bakobo-errors" },
     { name = "fiki" },
@@ -623,7 +623,7 @@ wheels = [
 [[package]]
 name = "imbu"
 version = "0.0.1"
-source = { git = "ssh://git@github.com/bakobo/imbu?rev=7ff15e6ada507c462a740633d5f16c92cc34470d#7ff15e6ada507c462a740633d5f16c92cc34470d" }
+source = { git = "ssh://git@github.com/bakobo/imbu?rev=e912ec4b245769bf86daea56093917f8c4acb18f#e912ec4b245769bf86daea56093917f8c4acb18f" }
 dependencies = [
     { name = "falcon" },
     { name = "fiki" },
@@ -761,9 +761,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.10" },
-    { name = "heti", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/heti?rev=3a8b1ccb17e1c29b79aafb191cb16cde35e2727b" },
+    { name = "heti", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/heti?rev=fc25249ed004998f1d8977e9de4b69cfc6a3379b" },
     { name = "httpx", specifier = ">=0.27" },
-    { name = "imbu", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/imbu?rev=7ff15e6ada507c462a740633d5f16c92cc34470d" },
+    { name = "imbu", marker = "extra == 'stacks'", git = "ssh://git@github.com/bakobo/imbu?rev=e912ec4b245769bf86daea56093917f8c4acb18f" },
     { name = "sniffio", specifier = ">=1.3" },
 ]
 provides-extras = ["stacks"]

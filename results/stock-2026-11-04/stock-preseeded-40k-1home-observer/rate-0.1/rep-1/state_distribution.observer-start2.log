@@ -1,0 +1,8 @@
+--- state_distribution.observer start 2 ---
+INFO:httpx:HTTP Request: GET http://127.0.0.1:34207/oobi/BMKxDlD8YwexYnrJjlzcC3AFEeLDSYtwdt7Rkrt0nXa5/controller "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://127.0.0.1:39367/oobi/BPqjivAcj04k-ydNP12wYSEDxjSifxujTO-UPe5_FeVN/controller "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://127.0.0.1:38349/oobi/BK6PqAB2q_9QgPeA_S_JjhTcSJ6WA-Dk2FPAsCJLZw8E/controller "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://127.0.0.1:34207/query?typ=kel&pre=EPLMP3DRDbwWXbjiUJycr8zAfb8BA09NemBB8eVN43KE&fn=34999 "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://127.0.0.1:39367/query?typ=kel&pre=EPLMP3DRDbwWXbjiUJycr8zAfb8BA09NemBB8eVN43KE&fn=34999 "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://127.0.0.1:38349/query?typ=kel&pre=EPLMP3DRDbwWXbjiUJycr8zAfb8BA09NemBB8eVN43KE&fn=34999 "HTTP/1.1 200 OK"
+e.env.oobi.timeout.r: http://127.0.0.1:34207/oobi/EPLMP3DRDbwWXbjiUJycr8zAfb8BA09NemBB8eVN43KE/witness/BMKxDlD8YwexYnrJjlzcC3AFEeLDSYtwdt7Rkrt0nXa5 did not answer (ReadTimeout), so I learned nothing about who lives there. [e.env.oobi.timeout.r]

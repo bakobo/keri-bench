@@ -25,6 +25,7 @@ import socket
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +40,10 @@ STARTUP_TIMEOUT = 120.0
 
 STOP_TIMEOUT = 15.0
 """Seconds a process has to exit after SIGTERM before it is sent SIGKILL."""
+
+EXIT_GRACE = 0.2
+"""Seconds a process that failed to start is given to exit by itself, so its exit code is kept,
+before it is stopped."""
 
 Validate = Callable[[dict], None]
 Ready = Callable[[dict], Awaitable[None]]
@@ -67,6 +72,15 @@ def _die_with_parent() -> None:
     ctypes.CDLL(None, use_errno=True).prctl(_PR_SET_PDEATHSIG, signal.SIGKILL)  # pragma: no cover
 
 
+def _exited(pid: int) -> bool:
+    """Whether the child has exited, asked of the kernel without reaping it, so asyncio still
+    collects its exit code (WNOWAIT)."""
+    try:
+        return os.waitid(os.P_PID, pid, os.WEXITED | os.WNOHANG | os.WNOWAIT) is not None
+    except ChildProcessError:
+        return True  # already reaped
+
+
 def _signal_group(proc: asyncio.subprocess.Process, sig: int) -> None:
     # The child leads its own session, so its pid is its process group id.
     with contextlib.suppress(ProcessLookupError):
@@ -92,6 +106,10 @@ class Process:
     announced: dict
     log: Path
     drain: asyncio.Task | None = None
+    watch: asyncio.Task | None = None
+    intended: bool = False
+    """Set when the controller stops this process while it still runs, so its exit is expected.
+    Kept on the process, not by pid, so a reused pid cannot carry the intent to another."""
 
     @property
     def pid(self) -> int:
@@ -111,6 +129,19 @@ class Process:
         if self.proc.returncode is None:
             _signal_group(self.proc, signal.SIGKILL)
         await self.proc.wait()
+
+
+async def _stop_noting_exit(process: "Process") -> str:
+    """Stop a process that failed to start, and say how it had exited if it already had, so a
+    role that dies while starting keeps its exit code in the error (this.i 9zgpyjxt)."""
+    try:
+        # A child that closed its stdout is usually a moment from exiting; a failed start can
+        # afford that moment, and the code it leaves is the evidence of why.
+        code = await asyncio.wait_for(process.proc.wait(), EXIT_GRACE)
+    except TimeoutError:
+        await process.stop()
+        return ""
+    return f" It had already exited with code {code}."
 
 
 async def spawn(name: str, command: tuple[str, ...], args: tuple[str, ...] = (), *,
@@ -137,10 +168,10 @@ async def spawn(name: str, command: tuple[str, ...], args: tuple[str, ...] = (),
     except TimeoutError:
         line = b""
     if not line:
-        await process.stop()
+        exited = await _stop_noting_exit(process)
         tail = log.read_text(errors="replace")[-2000:]
         raise StartupError(f"The {name} process did not announce itself within {timeout} "
-                           f"seconds. Its log ends:\n{tail}")
+                           f"seconds.{exited} Its log ends:\n{tail}")
     said = line.decode(errors="replace").strip()[:300]
     try:
         announced = json.loads(line)
@@ -164,13 +195,14 @@ async def spawn(name: str, command: tuple[str, ...], args: tuple[str, ...] = (),
             async with asyncio.timeout_at(deadline):
                 await ready(announced)
         except TimeoutError:
-            await process.stop()
+            exited = await _stop_noting_exit(process)
             raise StartupError(f"The {name} process announced itself but was not ready within "
-                               f"{timeout} seconds of starting, so it was stopped.") from None
+                               f"{timeout} seconds of starting, so it was stopped.{exited}"
+                               ) from None
         except Exception as wrong:
-            await process.stop()
+            exited = await _stop_noting_exit(process)
             raise StartupError(f"The {name} process's readiness probe failed ({wrong}), so it "
-                               f"was stopped.") from None
+                               f"was stopped.{exited}") from None
     return process
 
 
@@ -189,8 +221,10 @@ class _Spec:
 class ProcessController:
     """The harness's role processes by name, with what it takes to restart each identically.
 
-    ``on_event(name, t, attrs)`` receives ``process_killed`` once a killed process is reaped and
-    ``process_ready`` once a start or restart passes readiness, with ``t`` from ``clock``.
+    ``on_event(name, t, attrs)`` receives ``process_killed`` once a killed process is reaped,
+    ``process_ready`` once a start or restart passes readiness, and ``process_exited`` when a
+    process exits that the controller did not kill, restart or stop, with ``t`` from ``clock``
+    (this.i 9zgpyjxt). Every such exit is also kept in ``unexpected_exits``.
     """
 
     def __init__(self, run_dir: Path, *, clock: Callable[[], int] = time.monotonic_ns,
@@ -199,6 +233,7 @@ class ProcessController:
         self.clock = clock
         self.on_event = on_event
         self._specs: dict[str, _Spec] = {}
+        self.unexpected_exits: list[dict[str, Any]] = []
 
     def _emit(self, name: str, t: int, attrs: dict[str, Any]) -> None:
         if self.on_event is not None:
@@ -240,13 +275,37 @@ class ProcessController:
         t = self.clock()
         spec.process = process
         self._specs[name] = spec
+        process.watch = asyncio.create_task(self._watch(name, process))
         self._emit("process_ready", t, {"process": name, "restart": restart,
                                         "announced": process.announced, "ready_ns": t - began})
         return process
 
+    @staticmethod
+    def _intend(process: Process) -> None:
+        """Mark a stop as the controller's, but only of a process still running: one that has
+        already exited did so on its own, and its watcher must still record it. asyncio sets
+        ``returncode`` only once its loop reaps the child, so the kernel is asked as well,
+        without reaping, whether the child has already exited."""
+        if process.proc.returncode is None and not _exited(process.pid):
+            process.intended = True
+
+    async def _watch(self, name: str, process: Process) -> None:
+        """Wait for the process to exit, and record the exit if the controller did not cause it.
+
+        A role that dies mid-run leaves the stack short of it; without this the run's numbers
+        would read as though it were whole."""
+        code = await process.proc.wait()
+        if process.intended:
+            return
+        attrs = {"process": name, "pid": process.pid, "code": code,
+                 "at": datetime.now(UTC).isoformat()}
+        self.unexpected_exits.append(attrs)
+        self._emit("process_exited", self.clock(), attrs)
+
     async def kill(self, name: str) -> None:
         """SIGKILL the named process's group, wait until it is reaped, and record it."""
         process = self.process(name)
+        self._intend(process)
         await process.kill()
         self._emit("process_killed", self.clock(), {"process": name})
 
@@ -259,7 +318,10 @@ class ProcessController:
 
     async def stop_all(self, timeout: float = STOP_TIMEOUT) -> None:
         """Stop every process: SIGTERM, then SIGKILL for any still running after ``timeout``."""
+        for spec in self._specs.values():
+            self._intend(spec.process)
         await asyncio.gather(*(spec.process.stop(timeout) for spec in self._specs.values()))
+        await asyncio.gather(*(spec.process.watch for spec in self._specs.values()))
 
 
 def free_port() -> int:
