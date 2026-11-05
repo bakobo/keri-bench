@@ -30,10 +30,15 @@ limit=${4:-6000000}
 min_free=${5:-8000000}
 
 stop() {
-    # Stop the unit, then record why; the record is best effort, the stop is not.
-    systemctl --user stop "$unit"
-    echo "$(date -u +%FT%TZ) STOP $1; stopped $unit" >> "$log" 2>/dev/null
-    exit 0
+    # Stop the unit, then record why; the record is best effort, the stop is not, and a stop
+    # that fails is reported as one, with a failing exit, rather than as a stop.
+    if systemctl --user stop "$unit"; then
+        echo "$(date -u +%FT%TZ) STOP $1; stopped $unit" >> "$log" 2>/dev/null
+        exit 0
+    fi
+    echo "$(date -u +%FT%TZ) STOP $1; stopping $unit FAILED, the run is unguarded" >> "$log" 2>/dev/null
+    echo "rss.sh: could not stop $unit ($1)" >&2
+    exit 1
 }
 
 describe() {
@@ -49,7 +54,9 @@ describe() {
 }
 
 while systemctl --user is-active --quiet "$unit"; do
-    group=$(systemctl --user show -p ControlGroup --value "$unit")
+    group=$(systemctl --user show -p ControlGroup --value "$unit" 2>/dev/null)
+    # Without the unit's own cgroup the sample would read the root's, so stop (fail closed).
+    [ -n "$group" ] && [ -d "/sys/fs/cgroup$group" ] || stop "the unit's cgroup could not be found ('$group')"
     now=$(date -u +%FT%TZ)
     over=""
     for pid in $(cat "/sys/fs/cgroup$group/cgroup.procs" 2>/dev/null; \
