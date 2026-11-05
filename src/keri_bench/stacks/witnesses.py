@@ -6,7 +6,9 @@ from the witness's signed location record when it resolves the OOBI; after that,
 request goes to that address. So this subclass binds each witness on a port the harness chose and
 advertises the harness's proxy in front of it instead, and receipts pass through the fault proxy
 like every other link (this.i 0wcr2rrj). The loop is heti's ``Witnesses.start`` at heti
-ed519a21c76554a1a345f0dc02a1a0bdf5623618, with the port and the advertised URL supplied.
+a830fcda3783ba74c9b970b12a65952992a9aef1, with the port, the advertised URL and the home
+supplied, and it opens each witness's stores through heti's ``open_witness_stores`` so they are
+mapped as heti maps every store (this.i 8ujhdv9k).
 
 With ``--seed`` and ``--store`` a witness is restartable (this.i 5ed29j5w): its salt comes from
 the seed and its index (``--first`` names the index of the first witness this process runs), so
@@ -22,12 +24,13 @@ import contextlib
 from dataclasses import dataclass, field
 
 from hio.base import doing
-from keri.app import configing, habbing, storing
+from keri.app import configing
 from keri.core import signing
 from keri.help import helping
 
+from heti.anchored import stores
 from heti.anchored.produce import declaring
-from heti.demo.witnesses import Witnesses
+from heti.demo.witnesses import Witnesses, open_witness_stores
 
 from . import announce, until_terminated
 
@@ -39,7 +42,8 @@ class AdvertisedWitnesses(Witnesses):
     store: str | None = None
     first: int = 0
 
-    async def start(self) -> AdvertisedWitnesses:  # ~6ibc: open stores through heti
+    async def start(self) -> AdvertisedWitnesses:
+        stores.map_size()  # a size that is not one refuses before anything opens, as heti's does
         temp = self.store is None
         for offset, (port, url) in enumerate(zip(self.ports, self.advertised)):
             which = self.first + offset
@@ -48,12 +52,13 @@ class AdvertisedWitnesses(Witnesses):
             configuration = configing.Configer(name=name, base="", temp=temp, reopen=True,
                                                clear=False, headDirPath=self.store)
             configuration.put({name: {"dt": helping.nowIso8601(), "curls": [url]}})
-            environment = habbing.Habery(
-                name=name, base="", temp=temp, cf=configuration, headDirPath=self.store,
+            # Through heti, so the Baser, Keeper and Mailboxer get heti's map rather than
+            # keripy's 100 MiB, which two witnesses filled at about 40,000 events (8ujhdv9k);
+            # heti's _doers sizes setupWitness's Reger the same way.
+            environment, mailbox = open_witness_stores(
+                name=name, cf=configuration, temp=temp, head=self.store,
                 salt=signing.Salter(raw=self.seed + which.to_bytes(2, "big")).qb64)
             self._closers.append(environment)
-            mailbox = storing.Mailboxer(name=name, base=environment.base, temp=temp,
-                                        headDirPath=self.store)
             self._mailboxes.append(mailbox)
             self._doers(alias=name, environment=environment, mailbox=mailbox, port=port)
             hab = environment.habByName(name)
