@@ -1,0 +1,14 @@
+Stores at the end of the run (ls -l, bytes):
+29790208 observer/observer.sqlite3
+35266560 registrar/registrar.sqlite3
+182427648 imbu/h0/bench/operations.sqlite3
+38375424 imbu/h0/bench/registry-publications.sqlite3
+104853504 witnesses/keri/db/wit2/data.mdb
+104853504 witnesses/keri/db/wit0/data.mdb
+104853504 observer/lockbox/keri/db/lockbox/data.mdb
+126574592 imbu/h0/bench/keri/db/lockbox/data.mdb
+170401792 imbu/h0/bench/keri/acdc/reg/lockbox/data.mdb
+
+Observer store: registries by gap flag, and meta (seed omitted):
+[(0, 33832)] {'number': 28, 'arrived': 1793858034.046287, 'gap': 0, 'missing': 0, 'nonce': 'KoT1Qev7TX9Bn3QIk4g7YBM95KVvl18S'}
+Registrar heads 40049 subscriber number/seen/pages [(30, 40049, 16777216)]
