@@ -104,7 +104,7 @@ def _map_sizes(pool):
 
 async def test_the_bench_witnesses_stores_are_mapped_as_heti_maps_them(tmp_path, monkeypatch):
     """this.i 8ujhdv9k: the copy of heti's start loop must open its stores through heti, or two
-    of three witnesses fill at keripy's 100 MiB at about 40,000 events of one KEL (~6ibc)."""
+    of three witnesses fill at keripy's 100 MiB at about 40,000 events of one KEL."""
     from keri_bench.stacks.witnesses import AdvertisedWitnesses
     size = 3 * 1024 * 1024 * 1024
     monkeypatch.setenv("HETI_LMDB_MAP_SIZE", str(size))
