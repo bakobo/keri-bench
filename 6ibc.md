@@ -1,6 +1,7 @@
 # Rerun stock-preseeded-40k-1home-observer to 40,000 with a measured window, once store-limits-2 lands (heti 93c7674 or later and the imbu that pins it): keri_bench/stacks/witnesses.py's AdvertisedWitnesses.start must call heti.demo.witnesses.open_witness_stores() so the bench witnesses' Basers get heti's map, and the Observer's and issuer's restart fixes must be in; then report issuance at 40,000, Observer resync past 18,600 and restart at that stock (bench-stock land p2.2, 2026-11-05)
 kind: todo
 created: 2026-11-05T07:04Z
+closed: 2026-11-05T19:45Z
 
 - 2026-11-05T08:19Z store-limits-2, 2026-11-05: heti utah/next d193dc3 has heti.demo.witnesses.open_witness_stores(*, name, cf, salt, temp=True, head=None) -> (environment, mailbox), which opens a witness's Habery and Mailboxer at HETI_LMDB_MAP_SIZE (16 GiB default). AdvertisedWitnesses.start calls it in place of its inline Habery(...)/Mailboxer(...), and keeps calling self._doers, which now sizes setupWitness's Reger. The Observer's stall came from the witnesses; its lockbox was not full. bakobo/witness main 9c8e673 sizes the production witness (WITNESS_LMDB_MAP_SIZE). Wait for the Observer and issuer restart fixes' SHAs from the PM before rerunning.
 - 2026-11-05T11:52Z 2026-11-05: keri-bench 913ea19 opens the bench witnesses' stores through heti.demo.witnesses.open_witness_stores (this.i 8ujhdv9k); rerun started 11:52 UTC on imbu bb6ac45, heti a830fcd, witness 9c8e673.
