@@ -295,6 +295,28 @@ async def test_a_role_that_died_can_be_restarted_and_its_next_stop_is_intended(c
         "process_ready", "process_exited", "process_ready"]
 
 
+async def test_an_exit_that_lands_before_stop_all_is_still_recorded(controller):
+    # A role that exited on its own before teardown is not made intended by stop_all.
+    proc = await controller.start("registrar", FAKE, ("ok", "--exit-after", "0.1",
+                                                      "--exit-code", "7"))
+    await proc.proc.wait()
+    await controller.stop_all(timeout=0.5)
+    [attrs] = controller.unexpected_exits
+    assert attrs["code"] == 7 and attrs["pid"] == proc.pid
+
+
+async def test_a_reused_pid_does_not_hide_a_later_process_exit(controller, monkeypatch):
+    # Intent belongs to the process the harness stopped, not to its pid number.
+    first = await controller.start("holder", FAKE, ("ok",))
+    await controller.kill("holder")
+    second = await controller.start("verifier", FAKE, ("ok", "--exit-after", "0.1",
+                                                      "--exit-code", "5"))
+    reused = first.pid
+    monkeypatch.setattr(type(second), "pid", property(lambda self: reused))
+    [(_, _, attrs)] = await exited(controller)
+    assert attrs["process"] == "verifier" and attrs["code"] == 5
+
+
 async def test_spawn_alone_stops_cleanly(tmp_path):
     proc = await spawn("solo", FAKE, ("ok",), run_dir=tmp_path, timeout=5)
     await proc.stop()

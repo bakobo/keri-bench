@@ -94,6 +94,9 @@ class Process:
     log: Path
     drain: asyncio.Task | None = None
     watch: asyncio.Task | None = None
+    intended: bool = False
+    """Set when the controller stops this process while it still runs, so its exit is expected.
+    Kept on the process, not by pid, so a reused pid cannot carry the intent to another."""
 
     @property
     def pid(self) -> int:
@@ -203,7 +206,6 @@ class ProcessController:
         self.clock = clock
         self.on_event = on_event
         self._specs: dict[str, _Spec] = {}
-        self._intended: set[int] = set()
         self.unexpected_exits: list[dict[str, Any]] = []
 
     def _emit(self, name: str, t: int, attrs: dict[str, Any]) -> None:
@@ -251,13 +253,20 @@ class ProcessController:
                                         "announced": process.announced, "ready_ns": t - began})
         return process
 
+    @staticmethod
+    def _intend(process: Process) -> None:
+        """Mark a stop as the controller's, but only of a process still running: one that has
+        already exited did so on its own, and its watcher must still record it."""
+        if process.proc.returncode is None:
+            process.intended = True
+
     async def _watch(self, name: str, process: Process) -> None:
         """Wait for the process to exit, and record the exit if the controller did not cause it.
 
         A role that dies mid-run leaves the stack short of it; without this the run's numbers
         would read as though it were whole."""
         code = await process.proc.wait()
-        if process.pid in self._intended:
+        if process.intended:
             return
         attrs = {"process": name, "pid": process.pid, "code": code,
                  "at": datetime.now(UTC).isoformat()}
@@ -267,7 +276,7 @@ class ProcessController:
     async def kill(self, name: str) -> None:
         """SIGKILL the named process's group, wait until it is reaped, and record it."""
         process = self.process(name)
-        self._intended.add(process.pid)
+        self._intend(process)
         await process.kill()
         self._emit("process_killed", self.clock(), {"process": name})
 
@@ -280,7 +289,8 @@ class ProcessController:
 
     async def stop_all(self, timeout: float = STOP_TIMEOUT) -> None:
         """Stop every process: SIGTERM, then SIGKILL for any still running after ``timeout``."""
-        self._intended.update(spec.process.pid for spec in self._specs.values())
+        for spec in self._specs.values():
+            self._intend(spec.process)
         await asyncio.gather(*(spec.process.stop(timeout) for spec in self._specs.values()))
         await asyncio.gather(*(spec.process.watch for spec in self._specs.values()))
 
