@@ -15,8 +15,10 @@ dependencies = [
 [project.optional-dependencies]
 # The real stack's adapters (imbu issuer; heti witness pool, Observer, holder and verifier). Kept
 # out of the core so the harness, the synthetic stack and CI's calibration need no private repo.
-# Pinned to commits: imbu utah/next e912ec4b (2026-11-04), and the heti it pins, fc25249, which
-# maps every store at 16 GiB (heti-lmdb-mapsize, this.i 5nvt7d4g), on top of witness-kel-growth-2's
+# Pinned to commits: imbu utah/next bb6ac45 (2026-11-05), and the heti it pins, a830fcd, which
+# maps the demo witnesses' stores like every other and fixes the Observer's and issuer's restarts
+# (store-limits-2, this.i 8ujhdv9k); before it e912ec4b and fc25249, which map every store at
+# 16 GiB (heti-lmdb-mapsize, this.i 5nvt7d4g), on top of witness-kel-growth-2's
 # kept witness cursors, seal-index anchor lookup and paged batches and heti-dead-lane's bounded
 # witness lanes (7wvv745c); before it eda942c6 and 70c7d8e, and 7ff15e6a and 3a8b1ccb
 # (0v5zd44x, 5c8ks2lq). Targets 1, 2, 4 and 5 of
@@ -24,8 +26,8 @@ dependencies = [
 # (bakobo/witness) runs in its own uvx environment, as the summit harness runs it, because it pins
 # a different keripy.
 stacks = [
-    "imbu @ git+ssh://git@github.com/bakobo/imbu@e912ec4b245769bf86daea56093917f8c4acb18f",
-    "heti @ git+ssh://git@github.com/bakobo/heti@fc25249ed004998f1d8977e9de4b69cfc6a3379b",
+    "imbu @ git+ssh://git@github.com/bakobo/imbu@bb6ac45db43313be1a2f8c422b8850eff7a4cba3",
+    "heti @ git+ssh://git@github.com/bakobo/heti@a830fcda3783ba74c9b970b12a65952992a9aef1",
 ]
 
 [project.scripts]

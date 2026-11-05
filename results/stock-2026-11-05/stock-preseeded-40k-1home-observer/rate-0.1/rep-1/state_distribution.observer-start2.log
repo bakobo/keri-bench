@@ -1,0 +1,11 @@
+--- state_distribution.observer start 2 ---
+INFO:httpx:HTTP Request: GET http://127.0.0.1:38781/oobi/BKeqOzVjMDRQG_rfdvhr3ZlWwlLPbI6S1xy89HgoHD0G/controller "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://127.0.0.1:44909/oobi/BAqCPKZxIT9GooeTICQC1JsFb80KJtW6i31vsH4Fou0_/controller "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://127.0.0.1:42531/oobi/BJo02zlSsa6opNnH15HRTlCcWLTkpFV11_MXmG_VGTLA/controller "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: DELETE http://127.0.0.1:34627/v1/registrar/subscription "HTTP/1.1 204 No Content"
+INFO:httpx:HTTP Request: POST http://127.0.0.1:34627/v1/registrar/subscription "HTTP/1.1 200 OK"
+INFO:heti.observer:Gap open; resubscribing: resubscribed.
+INFO:httpx:HTTP Request: GET http://127.0.0.1:38781/query?typ=kel&pre=EB36ZXFnQW2-6UFxnKT_ycJ4ZRl-e6IkU7Ql0xUaEpjo&fn=39952 "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://127.0.0.1:44909/query?typ=kel&pre=EB36ZXFnQW2-6UFxnKT_ycJ4ZRl-e6IkU7Ql0xUaEpjo&fn=39964 "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://127.0.0.1:38781/query?typ=kel&pre=EB36ZXFnQW2-6UFxnKT_ycJ4ZRl-e6IkU7Ql0xUaEpjo&fn=39964 "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://127.0.0.1:44909/query?typ=kel&pre=EB36ZXFnQW2-6UFxnKT_ycJ4ZRl-e6IkU7Ql0xUaEpjo&fn=39964 "HTTP/1.1 200 OK"

@@ -88,3 +88,49 @@ async def test_two_seeded_pools_with_different_first_indexes_are_different_witne
         assert len(set(aids)) == 2
     finally:
         await procs.stop_all()
+
+
+def _map_sizes(pool):
+    """Every LMDB map a pool's witnesses opened: Baser, Keeper, Mailboxer and Reger."""
+    from keri.vdr import eventing as vdr_eventing
+    stores = []
+    for environment in pool._closers:
+        stores += [environment.db, environment.ks]
+    stores += pool._mailboxes
+    stores += [doer.baser for doer in pool._pending
+               if isinstance(getattr(doer, "baser", None), vdr_eventing.Reger)]
+    return [store.env.info()["map_size"] for store in stores]
+
+
+async def test_the_bench_witnesses_stores_are_mapped_as_heti_maps_them(tmp_path, monkeypatch):
+    """this.i 8ujhdv9k: the copy of heti's start loop must open its stores through heti, or two
+    of three witnesses fill at keripy's 100 MiB at about 40,000 events of one KEL."""
+    from keri_bench.stacks.witnesses import AdvertisedWitnesses
+    size = 3 * 1024 * 1024 * 1024
+    monkeypatch.setenv("HETI_LMDB_MAP_SIZE", str(size))
+    for store in (None, str(tmp_path / "witnesses")):
+        ports = [free_port(), free_port()]
+        pool = await AdvertisedWitnesses(count=2, ports=ports,
+                                         advertised=[f"http://127.0.0.1:{p}" for p in ports],
+                                         seed=b"\xef" * 14, store=store).start()
+        try:
+            sizes = _map_sizes(pool)
+            assert len(sizes) == 8, sizes
+            assert set(sizes) == {size}, sizes
+        finally:
+            await pool.stop()
+
+
+async def test_a_map_size_that_is_not_one_refuses_before_any_witness_opens(tmp_path,
+                                                                           monkeypatch):
+    import pytest
+
+    from keri_bench.stacks.witnesses import AdvertisedWitnesses
+    monkeypatch.setenv("HETI_LMDB_MAP_SIZE", "lots")
+    store = tmp_path / "witnesses"
+    pool = AdvertisedWitnesses(count=1, ports=[free_port()], advertised=["http://127.0.0.1:1"],
+                               seed=b"\xef" * 14, store=str(store))
+    with pytest.raises(Exception) as refused:
+        await pool.start()
+    assert "HETI_LMDB_MAP_SIZE" in str(refused.value)
+    assert pool._closers == [] and not store.exists()
