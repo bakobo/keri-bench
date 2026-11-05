@@ -90,6 +90,8 @@ What this means for a million: storage is not the constraint, at about 13 GB on 
 
 **It did not remove the slowdown.** The fill ran faster than the October one before it broke, 1.75 a second against 1.40, flat to about 14,000, with imbu's stages flat to 18,000. Then the rate fell, from about 16,000 rather than 20,000. The same witness signature came with it. One of the three witness processes grew about 10 MB every 15 minutes, from 78 MB to 195 MB, until about 16,000 credentials, and then by 1.3 to 2.5 GB every 15 minutes, to 7.9 GB at its peak. The other two stayed under 200 MB, the Observer under 275 MB and the issuer under 340 MB (`results/stock-2026-11/rss.log`). The host had 4 GB of 23 GB left at the stop. So the cost that grows with one KEL is still in a witness, and its onset tracks that witness's memory. heti 1e6839bc marks one place where a witness still builds a KEL answer whole (heti tick `~3ylh`), which is where this points, unproven. It was not rerun on heti 3a8b1ccb, whose change is in the Observer, not the witness. On disk at 20,466 the issuer's home held 268 MB, 13.1 KB a credential, and the three witnesses 182 MB.
 
+**The fill a third time, on the November fixes.** bench-stock ran the 40,000 fill on imbu e912ec4b and heti fc25249, which carry witness-kel-growth-2, heti-dead-lane and heti-lmdb-mapsize, and it reached 40,000 at 1.47 to 1.63 a second in every 2,000, with imbu's stages flat and no witness above 272 MB. So the slowdown under this target is gone to 40,000. Its window then failed, because the witnesses' and the Observer's KEL stores reached keripy's default 100 MiB map at about 40,000 events. A 25-minute witness outage on the same stack left issuance at the office day's rate throughout. Both are in [`docs/stock-2026-11.md`](stock-2026-11.md).
+
 **Restart at 10,000.** imbu killed at 900 s was ready again in 9.4 s, against 10.8 s, and completed its next credential 2.3 s after that, against 18.4 s. p50 was 0.36 s before and after, against 7.8 and 8.0 s. It lost the 1 credential in flight, against 2. One point again: restart time is not fitted against stock.
 
 ## Target 3: revocation freshness
@@ -204,7 +206,7 @@ Between 58df2a9 and afa7dfa only `this.i` and a scenario file changed, and 571cc
 ## What this does not measure
 
 - **More than one host.** As before, every party ran on one machine over loopback.
-- **More than 23,973 credentials in one KEL**, or a measured window above 10,000. The 40,000 fill was stopped (target 2), and a million is not extrapolated.
+- **More than 23,973 credentials in one KEL on the stacks this report measured**, or a measured window above 10,000. The 40,000 fill was stopped (target 2), and a million is not extrapolated. On the November fixes a fill reached 40,000 ([`docs/stock-2026-11.md`](stock-2026-11.md)).
 - **Why the fill slowed past 20,000, or why one witness grew to 8.4 GB.** Both are observed, and the witnesses are the likely place, but this host allows no profiler.
 - **The office day past its first day.** Each soak is one day. The claim that three homes hold past day 5 is read from the stock fill, not from a soak.
 - **Targets 1, 2, 4 and 5 on the November stack.** Only target 3, and the 40,000 fill under target 2, were rerun on imbu 027ca678 and heti 1e6839bc.
