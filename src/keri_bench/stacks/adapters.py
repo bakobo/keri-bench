@@ -30,14 +30,15 @@ from ..procs import free_port
 from ..vocabulary import Role
 
 VERSION = "2"
-HETI = "fc25249ed004998f1d8977e9de4b69cfc6a3379b"
-IMBU = "e912ec4b245769bf86daea56093917f8c4acb18f"
-WITNESS = "6b3f279233248a694b446fc9b89e9d2c47e4d132"
+HETI = "a830fcda3783ba74c9b970b12a65952992a9aef1"
+IMBU = "bb6ac45db43313be1a2f8c422b8850eff7a4cba3"
+WITNESS = "9c8e673036cccb21f90f13d807b2969d0d440d42"
 """The bakobo/witness commit the Registrar runs from: main with the Registrar that takes a
 publication without the issuer KEL (witness @23vjzsf0), which imbu sends since 670a3d8 (this.i
 5k8z0pxe), at 6b3f279, which pages a batch larger than the size a subscriber declares, as heti
-70c7d8e's Observer does (this.i 7wvv745c); its keripy pin answers a KEL query from a first-seen
-ordinal (0v5zd44x). It pins another keripy than heti does, so it runs in its own uvx environment, as the
+70c7d8e's Observer does (this.i 7wvv745c), and at 9c8e673, which maps the production
+witness's stores at WITNESS_LMDB_MAP_SIZE (store-limits-2, this.i 8ujhdv9k); its keripy pin
+answers a KEL query from a first-seen ordinal (0v5zd44x). It pins another keripy than heti does, so it runs in its own uvx environment, as the
 summit runs it."""
 
 REGISTRAR = ("uvx", "--from", f"witness @ git+https://github.com/bakobo/witness@{WITNESS}",
