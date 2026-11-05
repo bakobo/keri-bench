@@ -82,7 +82,7 @@ async def serve(ports: list[int], advertised: list[str], *, seed: bytes | None =
         announce(oobis=[pool.oobi(aid) for aid in pool.aids], aids=pool.aids)
         await until_terminated()
     finally:
-        await pool.stop()
+        await pool.stop()  # ~5thx: heti's stop clears even a --store home
 
 
 def main(argv=None) -> None:
