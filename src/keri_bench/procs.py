@@ -41,6 +41,10 @@ STARTUP_TIMEOUT = 120.0
 STOP_TIMEOUT = 15.0
 """Seconds a process has to exit after SIGTERM before it is sent SIGKILL."""
 
+EXIT_GRACE = 0.2
+"""Seconds a process that failed to start is given to exit by itself, so its exit code is kept,
+before it is stopped."""
+
 Validate = Callable[[dict], None]
 Ready = Callable[[dict], Awaitable[None]]
 OnEvent = Callable[[str, int, dict], None]
@@ -127,6 +131,19 @@ class Process:
         await self.proc.wait()
 
 
+async def _stop_noting_exit(process: "Process") -> str:
+    """Stop a process that failed to start, and say how it had exited if it already had, so a
+    role that dies while starting keeps its exit code in the error (this.i 9zgpyjxt)."""
+    try:
+        # A child that closed its stdout is usually a moment from exiting; a failed start can
+        # afford that moment, and the code it leaves is the evidence of why.
+        code = await asyncio.wait_for(process.proc.wait(), EXIT_GRACE)
+    except TimeoutError:
+        await process.stop()
+        return ""
+    return f" It had already exited with code {code}."
+
+
 async def spawn(name: str, command: tuple[str, ...], args: tuple[str, ...] = (), *,
                 run_dir: Path, env: dict | None = None, timeout: float = STARTUP_TIMEOUT,
                 validate: Validate | None = None, ready: Ready | None = None,
@@ -151,10 +168,10 @@ async def spawn(name: str, command: tuple[str, ...], args: tuple[str, ...] = (),
     except TimeoutError:
         line = b""
     if not line:
-        await process.stop()
+        exited = await _stop_noting_exit(process)
         tail = log.read_text(errors="replace")[-2000:]
         raise StartupError(f"The {name} process did not announce itself within {timeout} "
-                           f"seconds. Its log ends:\n{tail}")
+                           f"seconds.{exited} Its log ends:\n{tail}")
     said = line.decode(errors="replace").strip()[:300]
     try:
         announced = json.loads(line)
@@ -178,13 +195,14 @@ async def spawn(name: str, command: tuple[str, ...], args: tuple[str, ...] = (),
             async with asyncio.timeout_at(deadline):
                 await ready(announced)
         except TimeoutError:
-            await process.stop()
+            exited = await _stop_noting_exit(process)
             raise StartupError(f"The {name} process announced itself but was not ready within "
-                               f"{timeout} seconds of starting, so it was stopped.") from None
+                               f"{timeout} seconds of starting, so it was stopped.{exited}"
+                               ) from None
         except Exception as wrong:
-            await process.stop()
+            exited = await _stop_noting_exit(process)
             raise StartupError(f"The {name} process's readiness probe failed ({wrong}), so it "
-                               f"was stopped.") from None
+                               f"was stopped.{exited}") from None
     return process
 
 

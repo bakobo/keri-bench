@@ -323,6 +323,20 @@ def test_a_pid_that_is_not_an_unreaped_child_counts_as_exited():
     assert _exited(1) is True  # init is never our child, so the kernel has nothing to report
 
 
+async def test_a_role_that_dies_during_its_readiness_probe_names_its_exit_code(controller):
+    async def never(announced):
+        await asyncio.sleep(3600)
+
+    with pytest.raises(StartupError, match="had already exited with code 9"):
+        await controller.start("registrar", FAKE, ("ok", "--exit-after", "0.05",
+                                                   "--exit-code", "9"), ready=never, timeout=1)
+
+
+async def test_a_role_that_exits_before_announcing_names_its_exit_code(controller):
+    with pytest.raises(StartupError, match="had already exited with code 3"):
+        await controller.start("quitter", FAKE, ("exit",), timeout=5)
+
+
 async def test_a_reused_pid_does_not_hide_a_later_process_exit(controller, monkeypatch):
     # Intent belongs to the process the harness stopped, not to its pid number.
     first = await controller.start("holder", FAKE, ("ok",))

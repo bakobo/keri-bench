@@ -17,7 +17,10 @@
 # unit is no longer active. Run it beside the run's unit, under its own unit:
 #
 #   systemd-run --user --unit=keri-bench-rss --nice=19 scripts/rss.sh keri-bench-stock rss.log
-set -euo pipefail
+set -uo pipefail
+# No `set -e`: this is a guard, and a failed log write or a failed probe must never end it while
+# the run it guards goes on. Each stop stops the unit first and logs after, and a disk that cannot
+# be read stops the run rather than leaving it unguarded (fail closed).
 
 usage="usage: scripts/rss.sh <unit> <log> [interval-s] [limit-kb] [min-free-kb]"
 unit=${1:?$usage}
@@ -25,6 +28,13 @@ log=${2:?$usage}
 interval=${3:-300}
 limit=${4:-6000000}
 min_free=${5:-8000000}
+
+stop() {
+    # Stop the unit, then record why; the record is best effort, the stop is not.
+    systemctl --user stop "$unit"
+    echo "$(date -u +%FT%TZ) STOP $1; stopped $unit" >> "$log" 2>/dev/null
+    exit 0
+}
 
 describe() {
     # The module after -m, else the command's basename; and the value after --port, else -.
@@ -48,22 +58,17 @@ while systemctl --user is-active --quiet "$unit"; do
         rss=$(awk '/^VmRSS:/ {print $2}' "/proc/$pid/status" 2>/dev/null) || continue
         [ -n "$rss" ] || continue
         what=$(describe "$pid" 2>/dev/null) || continue
-        echo "$now $pid $rss $what" >> "$log"
+        echo "$now $pid $rss $what" >> "$log" 2>/dev/null
         [ "$rss" -gt "$limit" ] && over="$pid ($what) at $rss kB"
     done
-    if [ -n "$over" ]; then
-        echo "$now STOP $over is past the $limit kB limit; stopping $unit" >> "$log"
-        systemctl --user stop "$unit"
-        exit 0
-    fi
+    [ -n "$over" ] && stop "$over is past the $limit kB limit"
     waited=0
     while [ "$waited" -lt "$interval" ] && systemctl --user is-active --quiet "$unit"; do
-        free=$(df --output=avail / | tail -1 | tr -d ' ')
-        if [ "$free" -lt "$min_free" ]; then
-            echo "$(date -u +%FT%TZ) STOP the root disk has $free kB free, under $min_free; stopping $unit" >> "$log"
-            systemctl --user stop "$unit"
-            exit 0
-        fi
+        free=$(df --output=avail / 2>/dev/null | tail -1 | tr -d ' ')
+        case "$free" in
+            ''|*[!0-9]*) stop "the root disk's free space could not be read ('$free')" ;;
+        esac
+        [ "$free" -lt "$min_free" ] && stop "the root disk has $free kB free, under $min_free"
         step=$(( interval - waited < 60 ? interval - waited : 60 ))
         sleep "$step"
         waited=$(( waited + step ))
