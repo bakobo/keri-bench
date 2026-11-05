@@ -39,7 +39,7 @@ class AdvertisedWitnesses(Witnesses):
     store: str | None = None
     first: int = 0
 
-    async def start(self) -> AdvertisedWitnesses:
+    async def start(self) -> AdvertisedWitnesses:  # ~6ibc: open stores through heti
         temp = self.store is None
         for offset, (port, url) in enumerate(zip(self.ports, self.advertised)):
             which = self.first + offset

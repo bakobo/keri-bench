@@ -6,6 +6,7 @@ import os
 import signal
 import socket
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -303,6 +304,23 @@ async def test_an_exit_that_lands_before_stop_all_is_still_recorded(controller):
     await controller.stop_all(timeout=0.5)
     [attrs] = controller.unexpected_exits
     assert attrs["code"] == 7 and attrs["pid"] == proc.pid
+
+
+async def test_an_exit_asyncio_has_not_yet_reaped_is_still_recorded(controller):
+    # The child has exited in the kernel, but the loop has not run to set returncode.
+    proc = await controller.start("observer", FAKE, ("ok", "--exit-after", "0.1",
+                                                     "--exit-code", "9"))
+    while os.waitid(os.P_PID, proc.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT) is None:
+        time.sleep(0.01)  # no await: the loop must not reap it before stop_all looks
+    assert proc.proc.returncode is None
+    await controller.stop_all(timeout=0.5)
+    [attrs] = controller.unexpected_exits
+    assert attrs["code"] == 9
+
+
+def test_a_pid_that_is_not_an_unreaped_child_counts_as_exited():
+    from keri_bench.procs import _exited
+    assert _exited(1) is True  # init is never our child, so the kernel has nothing to report
 
 
 async def test_a_reused_pid_does_not_hide_a_later_process_exit(controller, monkeypatch):

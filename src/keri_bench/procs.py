@@ -68,6 +68,15 @@ def _die_with_parent() -> None:
     ctypes.CDLL(None, use_errno=True).prctl(_PR_SET_PDEATHSIG, signal.SIGKILL)  # pragma: no cover
 
 
+def _exited(pid: int) -> bool:
+    """Whether the child has exited, asked of the kernel without reaping it, so asyncio still
+    collects its exit code (WNOWAIT)."""
+    try:
+        return os.waitid(os.P_PID, pid, os.WEXITED | os.WNOHANG | os.WNOWAIT) is not None
+    except ChildProcessError:
+        return True  # already reaped
+
+
 def _signal_group(proc: asyncio.subprocess.Process, sig: int) -> None:
     # The child leads its own session, so its pid is its process group id.
     with contextlib.suppress(ProcessLookupError):
@@ -256,8 +265,10 @@ class ProcessController:
     @staticmethod
     def _intend(process: Process) -> None:
         """Mark a stop as the controller's, but only of a process still running: one that has
-        already exited did so on its own, and its watcher must still record it."""
-        if process.proc.returncode is None:
+        already exited did so on its own, and its watcher must still record it. asyncio sets
+        ``returncode`` only once its loop reaps the child, so the kernel is asked as well,
+        without reaping, whether the child has already exited."""
+        if process.proc.returncode is None and not _exited(process.pid):
             process.intended = True
 
     async def _watch(self, name: str, process: Process) -> None:
