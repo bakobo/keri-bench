@@ -1,0 +1,18 @@
+Stores at the end of the run (ls -l, bytes). The witnesses' stores are not listed: heti's Witnesses.stop closes them with clear=True, which removes even a --store home at teardown (tick, this run).
+159744 holder/keri/db/lockbox/data.mdb
+69632 holder/keri/ks/lockbox/data.mdb
+170704896 imbu/h0/bench/keri/acdc/reg/lockbox/data.mdb
+127856640 imbu/h0/bench/keri/db/lockbox/data.mdb
+69632 imbu/h0/bench/keri/ks/lockbox/data.mdb
+185221120 imbu/h0/bench/operations.sqlite3
+36864 imbu/h0/bench/overtures.sqlite3
+77824 imbu/h0/bench/registry-pool.sqlite3
+38481920 imbu/h0/bench/registry-publications.sqlite3
+119443456 observer/lockbox/keri/db/lockbox/data.mdb
+61440 observer/lockbox/keri/ks/lockbox/data.mdb
+29941760 observer/observer.sqlite3
+35377152 registrar/registrar.sqlite3
+159744 verifier/keri/db/lockbox/data.mdb
+69632 verifier/keri/ks/lockbox/data.mdb
+observer meta: [('number', 1), ('arrived', 1793906787.6709461), ('gap', 0), ('missing', 0), ('nonce', '7yr-Smn6f-6pVQOSM6mlIqRKhVbfx2BH')]
+observer registries by gap: [(0, 40100)]
