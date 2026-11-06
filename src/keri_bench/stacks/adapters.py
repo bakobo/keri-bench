@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import dataclasses
 import json
 import secrets
 import socket
@@ -273,12 +274,14 @@ class HetiVerifier(_Party, VerifierAdapter):
     async def start(self):
         return {}
 
+    extra: tuple[str, ...] = ()
+
     async def connect(self):
         """The Observer starts in the state-distribution role's connect, which runs first."""
         observer = self.ctx.peers[Role.STATE_DISTRIBUTION]
         return await self._spawn(("--observer-url", observer["observer"], "--observer-aid",
                                   observer["observer_aid"], "--freshness",
-                                  f"{self.ctx.knobs['freshness_s']:g}"))
+                                  f"{self.ctx.knobs['freshness_s']:g}", *self.extra))
 
     async def verify(self, credential: str, presentation) -> bool:
         """Verify, retrying refusals until the deadline: a presentation can reach the verifier
@@ -326,3 +329,12 @@ class HetiVerifier(_Party, VerifierAdapter):
         self.ctx.emit("sync_full_started", credentials=["sync-cold"])
         _check(await self.client.post(f"{self.api()}/sync/cold"), "a cold sync", "sync-cold")
         self.ctx.emit("sync_full_done", credentials=["sync-cold"])
+
+
+class HetiTimedVerifier(HetiVerifier):
+    """The same verifier with heti's stage functions wrapped, writing each verification's stage
+    times to ``verifier-spool/stages.jsonl`` in the run directory (this.i 3jeks5st). Its own
+    name rather than a knob, so no other scenario's knob schema moves for it."""
+
+    declaration = dataclasses.replace(HetiVerifier.declaration, adapter="heti.timed_verifier")
+    extra = ("--stages",)

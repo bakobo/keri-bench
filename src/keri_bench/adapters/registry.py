@@ -24,6 +24,7 @@ ADAPTERS = {
     "registrar.state_distribution": "keri_bench.stacks.adapters:RegistrarObserver",
     "heti.holder": "keri_bench.stacks.adapters:HetiHolder",
     "heti.verifier": "keri_bench.stacks.adapters:HetiVerifier",
+    "heti.timed_verifier": "keri_bench.stacks.adapters:HetiTimedVerifier",
 }
 
 E_UNKNOWN = "e.input.range.scenario.adapter.f"

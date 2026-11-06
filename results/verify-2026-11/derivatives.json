@@ -1,0 +1,122 @@
+{
+  "attributes": 20,
+  "disclosed": 5,
+  "formats": {
+    "mdoc (process per verification)": {
+      "bytes": 2059,
+      "max_ms": 887.33684,
+      "mean_ms": 670.7046885,
+      "n": 30,
+      "p50_ms": 655.910032,
+      "p99_ms": 887.33684
+    },
+    "mdoc (warm JVM)": {
+      "bytes": 2059,
+      "max_ms": 45.219178,
+      "mean_ms": 2.8690220159999997,
+      "n": 2000,
+      "p50_ms": 2.371809,
+      "p99_ms": 8.674067
+    },
+    "sd-jwt-vc": {
+      "bytes": 3455,
+      "max_ms": 7.068813,
+      "mean_ms": 1.336017756,
+      "n": 2000,
+      "p50_ms": 1.20444,
+      "p99_ms": 2.048509
+    },
+    "sd-jwt-vc+kb": {
+      "bytes": 3762,
+      "max_ms": 8.197794,
+      "mean_ms": 1.7340917960000002,
+      "n": 2000,
+      "p50_ms": 1.591829,
+      "p99_ms": 2.711234
+    },
+    "w3c-vc-rdfc-20": {
+      "bytes": 1078,
+      "max_ms": 39.223853,
+      "mean_ms": 4.0677670525,
+      "n": 2000,
+      "one_canonicalization": {
+        "max_ms": 9.091774,
+        "mean_ms": 1.7351051885,
+        "n": 2000,
+        "p50_ms": 1.602241,
+        "p99_ms": 2.918017
+      },
+      "p50_ms": 3.74488,
+      "p99_ms": 6.893373
+    },
+    "w3c-vc-rdfc-5": {
+      "bytes": 678,
+      "max_ms": 11.287237,
+      "mean_ms": 3.883517358,
+      "n": 2000,
+      "one_canonicalization": {
+        "max_ms": 37.843788,
+        "mean_ms": 1.5669404505,
+        "n": 2000,
+        "p50_ms": 1.464512,
+        "p99_ms": 2.677356
+      },
+      "p50_ms": 3.637925,
+      "p99_ms": 6.391865
+    }
+  },
+  "host": {
+    "cpu": "Intel Core Processor (Haswell, no TSX)",
+    "cpu_count": 8,
+    "kernel": "7.0.0-38-generic",
+    "loadavg": [
+      3.08544921875,
+      4.19677734375,
+      4.31396484375
+    ],
+    "nice": 0,
+    "python": "3.14.6"
+  },
+  "iterations": 2000,
+  "mdoc_checks": [
+    [
+      "response.decoded",
+      "passed"
+    ],
+    [
+      "response.single-document",
+      "passed"
+    ],
+    [
+      "issuer.signature",
+      "passed"
+    ],
+    [
+      "elements.digests",
+      "passed"
+    ],
+    [
+      "signer.trusted",
+      "passed"
+    ],
+    [
+      "credential.in-force",
+      "passed"
+    ],
+    [
+      "device.authenticated",
+      "not-run"
+    ]
+  ],
+  "versions": {
+    "arf-interop": "62b961c3fa8c5d3b51dc2ad9cac78ef5d16967e7",
+    "cbor2": "6.1.4",
+    "cryptography": "50.0.1",
+    "java": "openjdk version \"25.0.4.1\" 2026-08-18",
+    "joserfc": "1.7.4",
+    "keri-bench": "225be096062bfc67e95c8deafbe0776869a93c99",
+    "mdoc-interop": "ad5f03fe48afaa34e4b08a1661585db10ff1a262",
+    "pyld": "3.3.0"
+  },
+  "warmup": 200
+}

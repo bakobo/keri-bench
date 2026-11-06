@@ -1,0 +1,1113 @@
+{
+  "adapters": {
+    "harness.driver": {
+      "adapter": "harness.driver",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {
+        "requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "issuer",
+      "tested_against": {},
+      "version": "1"
+    },
+    "harness.relay": {
+      "adapter": "harness.relay",
+      "knobs": {
+        "knobs": {},
+        "version": 1
+      },
+      "milestones": {
+        "grant_sent": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "issuer",
+      "tested_against": {},
+      "version": "1"
+    },
+    "holder": {
+      "adapter": "heti.holder",
+      "knobs": {
+        "knobs": {
+          "toad": {
+            "allow_na": false,
+            "description": "Receipts the holder's facet requires.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "delivered": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "proof_generated": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "stored": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "holder",
+      "tested_against": {
+        "heti": "3a8b1ccb17e1c29b79aafb191cb16cde35e2727b"
+      },
+      "version": "2"
+    },
+    "issuer": {
+      "adapter": "imbu.issuer",
+      "knobs": {
+        "knobs": {
+          "answer_burst": {
+            "allow_na": false,
+            "description": "Signed answers each controller may hold unspent.",
+            "type": "int",
+            "unit": ""
+          },
+          "answer_rate": {
+            "allow_na": false,
+            "description": "Signed answers each controller regains a second (imbu's answer budget).",
+            "type": "float",
+            "unit": "/s"
+          },
+          "clients": {
+            "allow_na": false,
+            "description": "How many controllers each home serves, each with its own key and connection pool.",
+            "type": "int",
+            "unit": ""
+          },
+          "homes": {
+            "allow_na": false,
+            "description": "How many imbu issuers, each its own home and process, share the deployment (this.i 2lkqz9mq).",
+            "type": "int",
+            "unit": ""
+          },
+          "operation_timeout_s": {
+            "allow_na": false,
+            "description": "How long an operation may run before the adapter gives up on it.",
+            "type": "float",
+            "unit": "s"
+          },
+          "poll_ms": {
+            "allow_na": true,
+            "description": "How often the adapter reads an operation until it finishes; the milestone times come from imbu, not from this poll. n/a when the adapter waits instead.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "signer": {
+            "allow_na": false,
+            "description": "lockbox: the principal's keys are in the lockbox; external: heti's ThrottledSigner holds them (this.i 2p26rn9h).",
+            "type": "str",
+            "unit": ""
+          },
+          "signer_latency_ms": {
+            "allow_na": true,
+            "description": "The external signer's latency per operation.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "signer_rate": {
+            "allow_na": true,
+            "description": "The external signer's cap on operation starts per second.",
+            "type": "float",
+            "unit": "/s"
+          },
+          "toad": {
+            "allow_na": false,
+            "description": "Witness receipts imbu requires before an event is settled.",
+            "type": "int",
+            "unit": ""
+          },
+          "wait_s": {
+            "allow_na": true,
+            "description": "Prefer: wait sent on each request and operation read, so imbu answers once the operation settles; n/a when the adapter polls.",
+            "type": "float",
+            "unit": "s"
+          }
+        },
+        "version": 4
+      },
+      "milestones": {
+        "accepted": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "anchored": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "published": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_anchored": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_published": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "revocation_requested": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "revocation_witnessed": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        },
+        "witnessed": {
+          "clock": "realtime",
+          "method": "reported",
+          "resolution_ns": 1000
+        }
+      },
+      "role": "issuer",
+      "tested_against": {
+        "imbu": "7ff15e6ada507c462a740633d5f16c92cc34470d"
+      },
+      "version": "5"
+    },
+    "state_distribution": {
+      "adapter": "registrar.state_distribution",
+      "knobs": {
+        "knobs": {
+          "delivery_timeout_s": {
+            "allow_na": false,
+            "description": "How long the Registrar waits on a subscriber.",
+            "type": "float",
+            "unit": "s"
+          },
+          "resync_s": {
+            "allow_na": false,
+            "description": "How often the Observer resynchronizes; must exceed the window.",
+            "type": "float",
+            "unit": "s"
+          },
+          "window_s": {
+            "allow_na": false,
+            "description": "The Registrar's batching window.",
+            "type": "float",
+            "unit": "s"
+          }
+        },
+        "version": 1
+      },
+      "milestones": {},
+      "role": "state_distribution",
+      "tested_against": {
+        "heti": "3a8b1ccb17e1c29b79aafb191cb16cde35e2727b",
+        "witness": "b12a25e293e46b8a0febe180ca19f38cdbeeec3e"
+      },
+      "version": "2"
+    },
+    "verifier": {
+      "adapter": "heti.timed_verifier",
+      "knobs": {
+        "knobs": {
+          "deadline_s": {
+            "allow_na": false,
+            "description": "How long verification is retried before the credential counts as not verified.",
+            "type": "float",
+            "unit": "s"
+          },
+          "freshness_s": {
+            "allow_na": false,
+            "description": "How old the Observer's state may be before the verifier refuses to rely on it.",
+            "type": "float",
+            "unit": "s"
+          },
+          "retry_ms": {
+            "allow_na": false,
+            "description": "How soon a refused verification is tried again.",
+            "type": "float",
+            "unit": "ms"
+          },
+          "toad": {
+            "allow_na": false,
+            "description": "Receipts the verifier's facet requires.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {
+        "sync_full_done": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "sync_full_started": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        },
+        "verified": {
+          "clock": "harness",
+          "method": "observed",
+          "resolution_ns": 1
+        }
+      },
+      "role": "verifier",
+      "tested_against": {
+        "heti": "3a8b1ccb17e1c29b79aafb191cb16cde35e2727b"
+      },
+      "version": "2"
+    },
+    "witness_pool": {
+      "adapter": "heti.witness_pool",
+      "knobs": {
+        "knobs": {
+          "count": {
+            "allow_na": false,
+            "description": "How many witnesses the pool runs.",
+            "type": "int",
+            "unit": ""
+          }
+        },
+        "version": 1
+      },
+      "milestones": {},
+      "role": "witness_pool",
+      "tested_against": {
+        "heti": "3a8b1ccb17e1c29b79aafb191cb16cde35e2727b"
+      },
+      "version": "2"
+    }
+  },
+  "calibration": {
+    "budget": {
+      "anchored->witnessed": {
+        "p50_error_ns": 192182,
+        "p99_error_ns": 192106
+      },
+      "constructed->registry_updated": {
+        "p50_error_ns": 257965,
+        "p99_error_ns": 152719
+      },
+      "delivered->stored": {
+        "p50_error_ns": 1545766,
+        "p99_error_ns": 1722121
+      },
+      "proof_generated->verified": {
+        "p50_error_ns": 1771969,
+        "p99_error_ns": 1847380
+      },
+      "registry_updated->anchored": {
+        "p50_error_ns": 136204,
+        "p99_error_ns": 251056
+      },
+      "revocation_anchored->revocation_witnessed": {
+        "p50_error_ns": 279256,
+        "p99_error_ns": 218299
+      },
+      "revocation_requested->revocation_anchored": {
+        "p50_error_ns": 1701011,
+        "p99_error_ns": 1299999
+      },
+      "revocation_witnessed->revocation_published": {
+        "p50_error_ns": 470240,
+        "p99_error_ns": 445618
+      },
+      "stored->proof_generated": {
+        "p50_error_ns": 2054226,
+        "p99_error_ns": 1992348
+      },
+      "witnessed->published": {
+        "p50_error_ns": 572220,
+        "p99_error_ns": -271902
+      }
+    },
+    "harness_commit": "250e2b2b27cc9da095949ab5be226fd23dca144e",
+    "ok": true,
+    "path": "runs/verify/calibration/calibration.json",
+    "saturation_relative_error": 0.0040055058185042465
+  },
+  "clocks": {
+    "harness": "monotonic@d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "realtime": "realtime@kelun"
+  },
+  "components": {
+    "holder": {
+      "heti": "3a8b1ccb17e1c29b79aafb191cb16cde35e2727b"
+    },
+    "issuer": {
+      "imbu": "7ff15e6ada507c462a740633d5f16c92cc34470d"
+    },
+    "state_distribution": {
+      "heti": "3a8b1ccb17e1c29b79aafb191cb16cde35e2727b",
+      "witness": "b12a25e293e46b8a0febe180ca19f38cdbeeec3e"
+    },
+    "verifier": {
+      "heti": "3a8b1ccb17e1c29b79aafb191cb16cde35e2727b"
+    },
+    "witness_pool": {
+      "heti": "3a8b1ccb17e1c29b79aafb191cb16cde35e2727b"
+    }
+  },
+  "harness_commit": "225be096062bfc67e95c8deafbe0776869a93c99",
+  "host": {
+    "boot_id": "d44b48ed-c31d-4d33-8bdf-bce24c3a91ac",
+    "cpu_count": 8,
+    "cpu_model": "Intel Core Processor (Haswell, no TSX)",
+    "hostname": "kelun",
+    "kernel": "7.0.0-38-generic",
+    "machine": "x86_64",
+    "memory_bytes": 24598093824,
+    "python": "3.14.6"
+  },
+  "knobs": {
+    "holder": {
+      "toad": 2
+    },
+    "issuer": {
+      "answer_burst": 20,
+      "answer_rate": 2.0,
+      "clients": 1,
+      "homes": 1,
+      "operation_timeout_s": 60.0,
+      "poll_ms": "n/a",
+      "signer": "lockbox",
+      "signer_latency_ms": "n/a",
+      "signer_rate": "n/a",
+      "toad": 2,
+      "wait_s": 25.0
+    },
+    "state_distribution": {
+      "delivery_timeout_s": 1.0,
+      "resync_s": 6.0,
+      "window_s": 2.0
+    },
+    "verifier": {
+      "deadline_s": 60.0,
+      "freshness_s": 30.0,
+      "retry_ms": 250.0,
+      "toad": 2
+    },
+    "witness_pool": {
+      "count": 3
+    }
+  },
+  "measurement_cost": {
+    "harness_cpu_s": 239.01488,
+    "links": {
+      "holder.api": {
+        "exchanges": 480,
+        "p50_ns": 262781,
+        "p99_ns": 506186,
+        "samples": 200
+      },
+      "issuer.control.0": {
+        "exchanges": 121,
+        "p50_ns": 239451,
+        "p99_ns": 415376,
+        "samples": 200
+      },
+      "state_distribution.observer": {
+        "exchanges": 499,
+        "p50_ns": 301063,
+        "p99_ns": 435279,
+        "samples": 200
+      },
+      "state_distribution.registrar": {
+        "exchanges": 122,
+        "p50_ns": 219054,
+        "p99_ns": 429837,
+        "samples": 200
+      },
+      "verifier.api": {
+        "exchanges": 379,
+        "p50_ns": 219250,
+        "p99_ns": 469206,
+        "samples": 200
+      },
+      "witness_pool.w0": {
+        "exchanges": 1628,
+        "p50_ns": 218778,
+        "p99_ns": 579795,
+        "samples": 200
+      },
+      "witness_pool.w1": {
+        "exchanges": 1618,
+        "p50_ns": 212609,
+        "p99_ns": 585991,
+        "samples": 200
+      },
+      "witness_pool.w2": {
+        "exchanges": 270,
+        "p50_ns": 311816,
+        "p99_ns": 495090,
+        "samples": 200
+      }
+    }
+  },
+  "provenance_schema": 1,
+  "reconciliation": {
+    "anchors": {
+      "c000000": null,
+      "c000001": null,
+      "c000002": null,
+      "c000003": null,
+      "c000004": null,
+      "c000005": null,
+      "c000006": null,
+      "c000007": null,
+      "c000008": null,
+      "c000009": null,
+      "c000010": null,
+      "c000011": null,
+      "c000012": null,
+      "c000013": null,
+      "c000014": null,
+      "c000015": null,
+      "c000016": null,
+      "c000017": null,
+      "c000018": null,
+      "c000019": null,
+      "c000020": null,
+      "c000021": null,
+      "c000022": null,
+      "c000023": null,
+      "c000024": null,
+      "c000025": null,
+      "c000026": null,
+      "c000027": null,
+      "c000028": null,
+      "c000029": null,
+      "c000030": null,
+      "c000031": null,
+      "c000032": null,
+      "c000033": null,
+      "c000034": null,
+      "c000035": null,
+      "c000036": null,
+      "c000037": null,
+      "c000038": null,
+      "c000039": null,
+      "c000040": null,
+      "c000041": null,
+      "c000042": null,
+      "c000043": null,
+      "c000044": null,
+      "c000045": null,
+      "c000046": null,
+      "c000047": null,
+      "c000048": null,
+      "c000049": null,
+      "c000050": null,
+      "c000051": null,
+      "c000052": null,
+      "c000053": null,
+      "c000054": null,
+      "c000055": null,
+      "c000056": null,
+      "c000057": null,
+      "c000058": null,
+      "c000059": null,
+      "c000060": null,
+      "c000061": null,
+      "c000062": null,
+      "c000063": null,
+      "c000064": null,
+      "c000065": null,
+      "c000066": null,
+      "c000067": null,
+      "c000068": null,
+      "c000069": null,
+      "c000070": null,
+      "c000071": null,
+      "c000072": null,
+      "c000073": null,
+      "c000074": null,
+      "c000075": null,
+      "c000076": null,
+      "c000077": null,
+      "c000078": null,
+      "c000079": null,
+      "c000080": null,
+      "c000081": null,
+      "c000082": null,
+      "c000083": null,
+      "c000084": null,
+      "c000085": null,
+      "c000086": null,
+      "c000087": null,
+      "c000088": null,
+      "c000089": null,
+      "c000090": null,
+      "c000091": null,
+      "c000092": null,
+      "c000093": null,
+      "c000094": null,
+      "c000095": null,
+      "c000096": null,
+      "c000097": null,
+      "c000098": null,
+      "c000099": null,
+      "c000100": null,
+      "c000101": null,
+      "c000102": null,
+      "c000103": null,
+      "c000104": null,
+      "c000105": null,
+      "c000106": null,
+      "c000107": null,
+      "c000108": null,
+      "c000109": null,
+      "c000110": null,
+      "c000111": null,
+      "c000112": null,
+      "c000113": null,
+      "c000114": null,
+      "c000115": null,
+      "c000116": null,
+      "c000117": null,
+      "c000118": null,
+      "c000119": null
+    },
+    "verifier": {
+      "c000000": {
+        "said": "EE7fDpmnamykuExu2eNhwMhUr0meyzs5ingI3Rxf7_8y",
+        "status": "valid"
+      },
+      "c000001": {
+        "said": "EIQBP_Gu3JGnguOv1NPNDP7ZcFKubkE-4g0fdOAJRqmI",
+        "status": "valid"
+      },
+      "c000002": {
+        "said": "EDJyJLACTBdTrzZpEgQIUCWcK-228Z3Pf6L_sycuI4oJ",
+        "status": "valid"
+      },
+      "c000003": {
+        "said": "EJhW3n9PRa1ZmijkwOEjT4JfDnqCZuWSInEDS637wHyJ",
+        "status": "valid"
+      },
+      "c000004": {
+        "said": "EPOb9wAW0Kac8h6_PeZ9sGrXBzWiFnxXJozM18DjcGyU",
+        "status": "valid"
+      },
+      "c000005": {
+        "said": "EK9j3J1FVDkNQanXSejNa3s_Nd7gHJbYkXL_EmDCLNe5",
+        "status": "valid"
+      },
+      "c000006": {
+        "said": "ENeRMTczDz4jnMKJy_CBioLuxjzneMVYZfv_hAGKm6sN",
+        "status": "valid"
+      },
+      "c000007": {
+        "said": "EBxay-lW0LQxYveu0DKV0TS-84mnqWsPs6xg7ixIkxYK",
+        "status": "valid"
+      },
+      "c000008": {
+        "said": "EOFpk5NPvZsAw5cF1IPLDLh78njxaa6BfHhAVq9ZCAMl",
+        "status": "valid"
+      },
+      "c000009": {
+        "said": "EALJ9i1CuSCpaiYYvnAZsvGG0wodvd97lU3P-4Ti5f38",
+        "status": "valid"
+      },
+      "c000010": {
+        "said": "EGt0pliDQ4K9-EDRM9P7VrXWixpsXtBuRtU_JsW7Q6SQ",
+        "status": "valid"
+      },
+      "c000011": {
+        "said": "ED4zzOuvrGGLU7cmyb19RMqh-F3zuCHZn7-ykeCJaTyx",
+        "status": "valid"
+      },
+      "c000012": {
+        "said": "EL-hmAiatkVui_T1c0-LG5Y3PP7K_t7Wh_hgBmojF2fc",
+        "status": "valid"
+      },
+      "c000013": {
+        "said": "EFEI8eGp638bmnh3GftbAswkbytcXW07R2lCt52awIaa",
+        "status": "valid"
+      },
+      "c000014": {
+        "said": "EE9RpdgDvgyiQJZNQx1k2Y6WnLpyx4DG04yRWDzRt5kq",
+        "status": "valid"
+      },
+      "c000015": {
+        "said": "EH3tC2SgYg0FedX8P9P9pXmVU7G1nGBDhB7Vd5B0KN_Q",
+        "status": "valid"
+      },
+      "c000016": {
+        "said": "EEIkGTwUowd8FMsBBqof1LmVlD13sUS_imViffkVBGvt",
+        "status": "valid"
+      },
+      "c000017": {
+        "said": "EFDa3cEpUKNSZ2Ol2Cdp5BWa5AUbKqf2-4fUoG1EEAfp",
+        "status": "valid"
+      },
+      "c000018": {
+        "said": "EP0Wc8ka0WJKzrsU3jJ87UV_xa7V1lCJXsLnu4oIEIiQ",
+        "status": "valid"
+      },
+      "c000019": {
+        "said": "EDRIA8gpdSw3Zw83OFVc99FkKh3eOxqYQShllNncxPZu",
+        "status": "valid"
+      },
+      "c000020": {
+        "said": "EGqmWG7oWU6lVIIx0_YT5IU-Ip0gfbit3ZxoPKu0YgG-",
+        "status": "valid"
+      },
+      "c000021": {
+        "said": "EOcSPB7ok8Pf_8ByzBn5KgQeAsin6QB68cJQy2dqHAeP",
+        "status": "valid"
+      },
+      "c000022": {
+        "said": "ECpI0RPnCgiF65cxxFEs1JrqgUpZ2SPJf3d6L5u_ojNh",
+        "status": "valid"
+      },
+      "c000023": {
+        "said": "EIy7usuB608mEedFi4oanNJbZAH360siGploADKavJ2O",
+        "status": "valid"
+      },
+      "c000024": {
+        "said": "EFamfyJI-V5XGyWrk4jgWl1UUXqCwN0qY1bRopbb1wv7",
+        "status": "valid"
+      },
+      "c000025": {
+        "said": "EBk4P7fZwUug3q50QRAe1fJaoojbeVhbTUJTaqiver-O",
+        "status": "valid"
+      },
+      "c000026": {
+        "said": "EKwAzGQpo5Y-x26yvY_fPcggJs10XZqB6u3iJuBz8DBq",
+        "status": "valid"
+      },
+      "c000027": {
+        "said": "EHR4er0Pwhz3zPFSd1flG8TQK_g6FwNomyV7E4Pa6eAm",
+        "status": "valid"
+      },
+      "c000028": {
+        "said": "ECbYNWDDWOGwNKsnPr3VILq-mrJaO58DTHJW-YyRWkBP",
+        "status": "valid"
+      },
+      "c000029": {
+        "said": "EFNOJhspKdvV-rfAIU-AK4YL-Oxu0kL_5w3Qr8-qwJph",
+        "status": "valid"
+      },
+      "c000030": {
+        "said": "EJnj3BR82VwUEmizFdwa78HrGI4Tt1lUREVYAfXJvVtJ",
+        "status": "valid"
+      },
+      "c000031": {
+        "said": "ELTVksxS7yxuXLkTWskMwm2Oqu9U5F2XRkWVVX8mw17r",
+        "status": "valid"
+      },
+      "c000032": {
+        "said": "EH3m-WwXNLj90R8mHNE4wT-9zEy-XgkrZrACl8u0DTVs",
+        "status": "valid"
+      },
+      "c000033": {
+        "said": "EJEWRBRaBR7ZHyxcHNsPJOtlgznxI8raQka6VkBwor9I",
+        "status": "valid"
+      },
+      "c000034": {
+        "said": "EGR-MldYh_qLYOw50I9593FR6S247R7ycd9mPLnA4Zst",
+        "status": "valid"
+      },
+      "c000035": {
+        "said": "EJMlsMRXokWmEGoueVPqzZzBBnIuuSgE6Fo3Xk4nabFZ",
+        "status": "valid"
+      },
+      "c000036": {
+        "said": "EP-tRHklpbLA4_NMRjoAnq4EJ_kFtsbgkjNhb1o-pSuj",
+        "status": "valid"
+      },
+      "c000037": {
+        "said": "EIi_PgL0D9y14DDKyYbwuI8UQ4RuoL7B__tpNnijHBG1",
+        "status": "valid"
+      },
+      "c000038": {
+        "said": "ECxtFh6mGbCqH6e3iT9JMMydDBVF96ZwcwZTKgD7U5TF",
+        "status": "valid"
+      },
+      "c000039": {
+        "said": "EBFGPrD4DKC2FNTAjc_H2o_0El0zG8nlaEMWDWwZsKnf",
+        "status": "valid"
+      },
+      "c000040": {
+        "said": "EC7xj2uah-I38luuK365-gU9jswAMykM7CZJ1s3D3CFh",
+        "status": "valid"
+      },
+      "c000041": {
+        "said": "EGRXah0Z3mv_5m_OlIs6GpAhk-Jj_WvVJJ6r5QjOuvwD",
+        "status": "valid"
+      },
+      "c000042": {
+        "said": "EIoJBbghLzgukvYe32tCIDXuNs2Lf7QMrZP-Nu9SU19x",
+        "status": "valid"
+      },
+      "c000043": {
+        "said": "EKj90TNl0Q1kjiUyN7FLL1VYwu5PQ2yRKlNVwUE5I1sz",
+        "status": "valid"
+      },
+      "c000044": {
+        "said": "EASn69vlnVQu_Tqy68v6qye85KQGC9xOVivEdzItBEA6",
+        "status": "valid"
+      },
+      "c000045": {
+        "said": "EFCDVtUNvLjUQsIvbt9-4-GQUffvXEfBZGmeW99laj6j",
+        "status": "valid"
+      },
+      "c000046": {
+        "said": "EJcCFqHSto8ZMrBW47j8Bq_qPTE6k74C3fs0ZqMHBa7C",
+        "status": "valid"
+      },
+      "c000047": {
+        "said": "EAX123JcEDM0V_R789SdUifJ1jCBdiYgIy6J-nmh0Chy",
+        "status": "valid"
+      },
+      "c000048": {
+        "said": "EO-ZFJ4Xc7MCrqt2z-0gIUU54z1fznQ4FOA3VUnYuuc2",
+        "status": "valid"
+      },
+      "c000049": {
+        "said": "EEn0Z7LZqRo_OI1sz4_90bl4MAqD9_y_zAiVMXOmcoMV",
+        "status": "valid"
+      },
+      "c000050": {
+        "said": "EJGWHsx2sAv6fYCyZxxnr5ybV__OCzrmY-j9xJP5TcEG",
+        "status": "valid"
+      },
+      "c000051": {
+        "said": "ED4Aupqu8DnMvs6Z-opDXxYsF6VDweart7L78NYgLues",
+        "status": "valid"
+      },
+      "c000052": {
+        "said": "EJD_L6pRXfq0hRt2dSCPrPGFU0mQjItEcwN0jWJ54BNP",
+        "status": "valid"
+      },
+      "c000053": {
+        "said": "EM0kZnQpZqZAEyuUQE-pHyADu9MNSkxy5I63rRLpqeIl",
+        "status": "valid"
+      },
+      "c000054": {
+        "said": "EPT4dzD38Q7654uT3oX3RxipRzxmEmocGi89MH027tOl",
+        "status": "valid"
+      },
+      "c000055": {
+        "said": "EGWOtAv7UgqPB7H1cLFgpqggmO7PNdCUti_BuOB7rvy8",
+        "status": "valid"
+      },
+      "c000056": {
+        "said": "EJ1Pq6cNsqLi0A0kDnUop2lI3YOyxnjYA8i1v7QW3932",
+        "status": "valid"
+      },
+      "c000057": {
+        "said": "EEnT3cU-30pIUFr7odClx7j-F5i5861PMaXdzuFVWRc7",
+        "status": "valid"
+      },
+      "c000058": {
+        "said": "ECR-_laNMIWXeUHYvsgSF-ompOu88CTv_Qc511r7u9q5",
+        "status": "valid"
+      },
+      "c000059": {
+        "said": "EFpdbUaFNIXBCtHhiw4BLJRB_emop8EpLQEfflKEnLvN",
+        "status": "valid"
+      },
+      "c000060": {
+        "said": "EAMgX3ppwzk_5sVjEnhIZrQur_N1LXxS0Akh8KLcIq91",
+        "status": "valid"
+      },
+      "c000061": {
+        "said": "EF8CFqG5Pq5IQrXxRrNjTr_IqwwssakhvHHK2pTTf8VZ",
+        "status": "valid"
+      },
+      "c000062": {
+        "said": "EOnmZX0A2Um3Mi525365gwDF8TIhdLgm9WK6TRLm39Xg",
+        "status": "valid"
+      },
+      "c000063": {
+        "said": "EI74tcLjBoCFq9XB6btnuuTlkjpaKXOoyUhoGsJ61WGl",
+        "status": "valid"
+      },
+      "c000064": {
+        "said": "EAZ9O9gJcQrj8ZL8FvpcI09RrdllHyM426cu8SMUAtyH",
+        "status": "valid"
+      },
+      "c000065": {
+        "said": "ENnvcl3DsPX-XJo9ROnXTc8tqEhi7B37kyKdddX8vz6v",
+        "status": "valid"
+      },
+      "c000066": {
+        "said": "EE_jwc7ws8tGgpJQs_K0NsDv9Q4uI2xLzWTJg7Agvu5K",
+        "status": "valid"
+      },
+      "c000067": {
+        "said": "EPNCkryxNBGEo6OOJS-aQpIqj0hgxgSsLr1sUTinj-nN",
+        "status": "valid"
+      },
+      "c000068": {
+        "said": "EBXyoHSaK7A0izLulPUP95YoGFuYXGHoGsz_3RZsp0xG",
+        "status": "valid"
+      },
+      "c000069": {
+        "said": "EKmnS8TMw5-PuvfxU3CSBuDNIzA5I0zdd0B-dGiE0sfk",
+        "status": "valid"
+      },
+      "c000070": {
+        "said": "EI2r5jSHH_SiY_fUrrQDl8Q5M0oA7RNfi5Nim2KwW8Ub",
+        "status": "valid"
+      },
+      "c000071": {
+        "said": "EJKCz6N5sxAytM56_KkMAVoIj26TaMVIEHpuOwMDLLVD",
+        "status": "valid"
+      },
+      "c000072": {
+        "said": "ELObf8xz82Oh4ioZA495b17zj27yFC_9GPlSWvKNOBM9",
+        "status": "valid"
+      },
+      "c000073": {
+        "said": "ENgDUFgi30DqW4pGWc5yk73hvStWjm6Cqe9Mm0DlrBYt",
+        "status": "valid"
+      },
+      "c000074": {
+        "said": "EL557YQYl7Sczk4-yV8Bdu94jAZt1DwfyvHlUPmcL8f6",
+        "status": "valid"
+      },
+      "c000075": {
+        "said": "EOOkMMir90bkFlX38u4w5VqqBQMeGfW0W26OTgff4ekv",
+        "status": "valid"
+      },
+      "c000076": {
+        "said": "EM_Cx6ixUPYghpTMnfmehbj8EyhvSiYq_sV8Ux4OvwTV",
+        "status": "valid"
+      },
+      "c000077": {
+        "said": "ELoGVUCiuMJN0PzZKCK8q-x-bqJNoIINo88pn1cjRKMQ",
+        "status": "valid"
+      },
+      "c000078": {
+        "said": "EKz3DsveeyehxWxWLAsgpmsCg7-quSxm-Jj5bzspplYe",
+        "status": "valid"
+      },
+      "c000079": {
+        "said": "EK4lIiC1TgiJ4z4TEeQOvrRGyXBe8HOezVdR4n1xyFfw",
+        "status": "valid"
+      },
+      "c000080": {
+        "said": "EHTJ2HSG82MUGbtK3fF3hTox809OZmFVkQinGSqOS6fR",
+        "status": "valid"
+      },
+      "c000081": {
+        "said": "EBaIMHmg2Lhmfqy0k--rDXj5W5qwX9jJ_0NhkHGETAJ4",
+        "status": "valid"
+      },
+      "c000082": {
+        "said": "EEvwB9cGuWO8SI56e2BUDd2hN4gXGLA8w3N4-avXSwvx",
+        "status": "valid"
+      },
+      "c000083": {
+        "said": "EE0MvS9zAuBrdAhmyYNpSIpRK0sQCmjW7mojHK3jJcjk",
+        "status": "valid"
+      },
+      "c000084": {
+        "said": "ECnteFaQ5i5U63W-5tMZeiBwdiQe7VitN2b8kXJSfl0T",
+        "status": "valid"
+      },
+      "c000085": {
+        "said": "EIXMvXtjPdo0T-AHvMjhxgxXoHq7d2J8bIjR1DcTYP8k",
+        "status": "valid"
+      },
+      "c000086": {
+        "said": "EAMfaB0lKZ4TpcSu_iVKj9oUucw6GzO_BRBJBMJNBSkb",
+        "status": "valid"
+      },
+      "c000087": {
+        "said": "EE3SWdX1G0VysefISWnrsAyAZ4wKvcePKa0UI3Nd1j2q",
+        "status": "valid"
+      },
+      "c000088": {
+        "said": "EDKVqenkui7n21HYPHzj_-76lZwmgadho22-Xvwku87k",
+        "status": "valid"
+      },
+      "c000089": {
+        "said": "EOna5egrf4_Xz4179xBivp4NlTe2lVj-gpF-GmIqkQDd",
+        "status": "valid"
+      },
+      "c000090": {
+        "said": "EEaDfpOEKNQzWeZjlPqOYQkAcq5whDv_CxaEGkgfbHVu",
+        "status": "valid"
+      },
+      "c000091": {
+        "said": "ELJHdD7djbcJKHtsPbvRYXT-QQecm9_66ZObh-sardcp",
+        "status": "valid"
+      },
+      "c000092": {
+        "said": "EMAxiKQ4M0iGFAAMOhoytxkDE8MKvvxNlA-9GrF-hvs-",
+        "status": "valid"
+      },
+      "c000093": {
+        "said": "EIlkQdr9koJtR-jU4O0eTv4axkLIX1KhtyHwE6ADG2W0",
+        "status": "valid"
+      },
+      "c000094": {
+        "said": "EInmm4N1w9QK9AdzEpCKyqSt46iVnwxnB__ifXHrLTxP",
+        "status": "valid"
+      },
+      "c000095": {
+        "said": "ELyzmfRkdToo9Q1iIFotb9Hst_r5Eg7YwK003r6a4rTY",
+        "status": "valid"
+      },
+      "c000096": {
+        "said": "EPm-uWSsq7QOBiPAI72Pz1BXclKTh2y5f9WTvZVpbi4h",
+        "status": "valid"
+      },
+      "c000097": {
+        "said": "EF-Ge9sxgVw6vyRK3S55OVagrVtiubWMvt0Sf55g88Xq",
+        "status": "valid"
+      },
+      "c000098": {
+        "said": "ENXpPE2MJrxA_KMylQVeHJBQ1UWtgPbMttH8JkugqA1B",
+        "status": "valid"
+      },
+      "c000099": {
+        "said": "EN6RFXLulvAj9Nxd-TQot8FN3t7tPtzGfg1qc7znHsXc",
+        "status": "valid"
+      },
+      "c000100": {
+        "said": "EEzQF_2VgyJ7fHOAS61zElpOJvGsP-UKWItSCGCxgXOr",
+        "status": "valid"
+      },
+      "c000101": {
+        "said": "EIVeoXz0fSVAoJKBJAW8MMPFm-LDmOqzUuZFOWDMz8-6",
+        "status": "valid"
+      },
+      "c000102": {
+        "said": "EK_vX-VIDXoY3ue8V8ogQVCst5qw09LV1jvYub8jS2B8",
+        "status": "valid"
+      },
+      "c000103": {
+        "said": "ECqUo5tkix6LKXuk34medIgTd8o43HvBnlhirDhmkBQO",
+        "status": "valid"
+      },
+      "c000104": {
+        "said": "EMzg1DVW9DKhftpr1dgwAGcz9Dh9F9SMOK25TlT67qur",
+        "status": "valid"
+      },
+      "c000105": {
+        "said": "EAOXPnHbjwd2TX_wGn7oC6k4DwErSf3ObXAaYol0hXm_",
+        "status": "valid"
+      },
+      "c000106": {
+        "said": "EGvWPHDkifnRlDESFywqWL_i17yFne960iabJp2Gf-3s",
+        "status": "valid"
+      },
+      "c000107": {
+        "said": "EEheWDwQMyPjcDPYDmITS2AvB5wquI0mHncDKiRQ5PH8",
+        "status": "valid"
+      },
+      "c000108": {
+        "said": "EB0Npcbh93jKZNTRH3U6BETUnG9-a9LxRbP130ZKzTyu",
+        "status": "valid"
+      },
+      "c000109": {
+        "said": "EKp1cBD-Fn74cPZDfCpP72i0o4xgLTB1NxCFrwtQXISd",
+        "status": "valid"
+      },
+      "c000110": {
+        "said": "ECsSYdN3Z2V9baVYqIu74ozTzYYe8z3dD7uJcmLNELss",
+        "status": "valid"
+      },
+      "c000111": {
+        "said": "EIDphwfdmDVGIJxyEj7g4bMYxpLOa98ywTe7rrbFUWs_",
+        "status": "valid"
+      },
+      "c000112": {
+        "said": "EH6KQp-51qIVXG0ElWA7EgNas3mreUULpuvsg2AKx5ZS",
+        "status": "valid"
+      },
+      "c000113": {
+        "said": "EDb1UjApbfYfN3pTaJ1P1G60vS-9MhiGOGpTExdKlpZv",
+        "status": "valid"
+      },
+      "c000114": {
+        "said": "EDsm_gwxw00myxuhMyo855kVM0YIANoOdMZq2pfcUf0u",
+        "status": "valid"
+      },
+      "c000115": {
+        "said": "EETf1nzW3aHxiKjNS7FbieOTFD5VGtQqLKON0UPWiXnb",
+        "status": "valid"
+      },
+      "c000116": {
+        "said": "ECRQNnWWuDaxAo0t93UIhJIgKuqE1uXj7yxFmsyjiZ6t",
+        "status": "valid"
+      },
+      "c000117": {
+        "said": "EOLJosImnxIK5tW1bSAsFJexP5m7DiRp1izia1HMYeZS",
+        "status": "valid"
+      },
+      "c000118": {
+        "said": "EK7FBda8up5Fvn2hVTj_O1VAkFgLwVZSofL-SHurhkNT",
+        "status": "valid"
+      },
+      "c000119": {
+        "said": "EFE4NJa6qwZaUQ66lJoU7XqBx3m5Qn2ARlIOLlRXIUC_",
+        "status": "valid"
+      }
+    }
+  },
+  "run": {
+    "duration_s": 240.0,
+    "host_load": {
+      "before": [
+        4.26,
+        5.59,
+        4.66
+      ],
+      "end": [
+        3.09,
+        4.2,
+        4.31
+      ],
+      "window": [
+        3.62,
+        5.39,
+        4.61
+      ]
+    },
+    "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+    "lag_limit_ms": 25.0,
+    "measure": [
+      "requested",
+      "verified"
+    ],
+    "rate": 0.5,
+    "repetition": 1,
+    "scenario": "verify-stages-1home",
+    "stages": [
+      "issue",
+      "deliver",
+      "present",
+      "verify"
+    ],
+    "warmup_s": 0.0
+  },
+  "scenario": "# Verification by stage (this.i 3jeks5st): the lifecycle to verified at a rate low enough that\n# no two verifications overlap, with the timed verifier, which writes each verification's stage\n# times to verifier-spool/stages.jsonl. Run and collected by scripts/verify.sh; read in\n# docs/verify-2026-11.md. Needs `uv sync --extra stacks`.\nscenario_schema = 1\nname = \"verify-stages-1home\"\ndescription = \"The lifecycle to verified at 0.5 a second, one home, each verification timed by stage.\"\nstages = [\"issue\", \"deliver\", \"present\", \"verify\"]\n\n[load]\nrates = [0.5]\nduration_s = 240.0\nwarmup_s = 0.0\ndrain_s = 120.0\nrepetitions = 3\nmeasure = [\"requested\", \"verified\"]\n\n[statistics]\nlag_limit_ms = 25.0\n\n[roles.witness_pool]\nadapter = \"heti.witness_pool\"\n[roles.witness_pool.knobs]\nknob_schema = 1\ncount = 3\n\n[roles.state_distribution]\nadapter = \"registrar.state_distribution\"\n[roles.state_distribution.knobs]\nknob_schema = 1\nwindow_s = 2.0\ndelivery_timeout_s = 1.0\nresync_s = 6.0\n\n[roles.issuer]\nadapter = \"imbu.issuer\"\n[roles.issuer.knobs]\nknob_schema = 4\ntoad = 2\npoll_ms = \"n/a\"\nwait_s = 25.0\nanswer_rate = 2.0\nanswer_burst = 20\noperation_timeout_s = 60.0\nhomes = 1\nclients = 1\nsigner = \"lockbox\"\nsigner_latency_ms = \"n/a\"\nsigner_rate = \"n/a\"\n\n[roles.holder]\nadapter = \"heti.holder\"\n[roles.holder.knobs]\nknob_schema = 1\ntoad = 2\n\n[roles.verifier]\nadapter = \"heti.timed_verifier\"\n[roles.verifier.knobs]\nknob_schema = 1\ntoad = 2\nfreshness_s = 30.0\nretry_ms = 250.0\ndeadline_s = 60.0\n",
+  "scenario_sha256": "171efa2d5a694644dae90e974363f553a5237b6a05c7cd27f6ba2120b5da9396"
+}
