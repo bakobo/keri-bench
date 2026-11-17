@@ -138,18 +138,20 @@ def bracket(run_dir: Path) -> dict:
             entry["least_slack_ns"] = slack
     for entry in transitions.values():
         entry["ok"] = entry["unmeasured"] == 0 and entry["short"] == 0
-    # A transition the stack injected, between milestones the run saw, must have truth: a truth
-    # file missing all of one transition's lines would otherwise check nothing for it.
+    # A transition the stack injected must have truth unless the run saw neither of its
+    # milestones (a stage the scenario does not run): a truth file missing all of one
+    # transition's lines would otherwise check nothing for it.
     seen = {event.name for event in events}
     for knobs in record["knobs"].values():
         if not isinstance(knobs.get("delays"), str):
             continue
         for transition in parse_delays(knobs["delays"]):
             start, end = transition.split(">")
-            if start in seen and end in seen and f"{start}->{end}" not in transitions:
+            if (start in seen or end in seen) and f"{start}->{end}" not in transitions:
                 transitions[f"{start}->{end}"] = {
                     "count": 0, "ok": False, "reason": "The stack injected this transition and "
-                    "the run saw both its milestones, but the truth has no line for it."}
+                    "the run saw at least one of its milestones, but the truth has no line for "
+                    "it."}
     offsets = _offsets(record, clocks, events)
     ok = bool(transitions) and all(e["ok"] for e in [*transitions.values(), *offsets.values()])
     return {"ok": ok, "transitions": transitions, "offsets": offsets}
@@ -159,30 +161,35 @@ def _offsets(record: dict, clocks: Clocks, events) -> dict:
     """Every stack clock the timeline uses or a role declares, against its role's skew. A clock
     the timeline uses that no role declares has no skew to check, and fails."""
     realtime = clocks.offsets.get(record["clocks"]["realtime"])
-    owners: dict[str, str] = {}
+    owners: dict[str, set[str]] = defaultdict(set)
     for role, declared in sorted(record["adapters"].items()):
         for milestone in declared["milestones"].values():
             if milestone["clock"].startswith("stack:"):
-                owners.setdefault(milestone["clock"], role)
+                owners[milestone["clock"]].add(role)
     used = {event.clock for event in events} - {clocks.harness, record["clocks"]["realtime"]}
     out = {}
     for domain in sorted(used | set(owners)):
-        role = owners.get(domain)
-        if role is None:
+        if not owners.get(domain):
             out[domain] = {"ok": False, "reason": "The timeline stamps events on this clock, "
                            "but no role declares it, so there is no injected skew to check."}
             continue
-        skew = record["knobs"].get(role, {}).get("clock_skew_ms")
-        measured = clocks.offsets.get(domain)
-        if measured is None or realtime is None or not isinstance(skew, (int, float)):
-            out[domain] = {"ok": False, "reason": "The run has no offset to this domain, "
-                           "no realtime offset, or no injected skew to check it against."}
-            continue
-        error = measured.offset_ns - (realtime.offset_ns - round(skew * 1e6))
-        bound = measured.bound_ns + realtime.bound_ns
-        out[domain] = {"skew_ms": skew, "error_ns": error, "bound_ns": bound,
-                       "ok": abs(error) <= bound}
+        # Roles that share a clock must each agree with its offset, whatever their skews.
+        checks = {role: _offset(clocks.offsets.get(domain), realtime,
+                                record["knobs"].get(role, {}).get("clock_skew_ms"))
+                  for role in sorted(owners[domain])}
+        entry = checks[next(iter(checks))] if len(checks) == 1 else {
+            "roles": checks, "ok": all(check["ok"] for check in checks.values())}
+        out[domain] = entry
     return out
+
+
+def _offset(measured, realtime, skew) -> dict:
+    if measured is None or realtime is None or not isinstance(skew, (int, float)):
+        return {"ok": False, "reason": "The run has no offset to this domain, no realtime "
+                "offset, or no injected skew to check it against."}
+    error = measured.offset_ns - (realtime.offset_ns - round(skew * 1e6))
+    bound = measured.bound_ns + realtime.bound_ns
+    return {"skew_ms": skew, "error_ns": error, "bound_ns": bound, "ok": abs(error) <= bound}
 
 
 def _accepted(out: Path) -> tuple[list[Path], list[str]]:

@@ -629,6 +629,7 @@ def _calibration(path: Path | None) -> dict | str:
 async def run_once(scenario: Scenario, out: Path, *, rate: float, repetition: int,
                    harness_commit: str, calibration: Path | None = None) -> dict:
     resolved = plan(scenario)
+    # ~6ih6: rates that print alike under :g share a directory.
     run_dir = Path(out) / f"rate-{rate:g}" / f"rep-{repetition}"
     return await Run(resolved, run_dir, rate, repetition, harness_commit,
                      calibration).execute()

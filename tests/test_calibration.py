@@ -207,6 +207,33 @@ def test_an_injected_transition_with_no_truth_at_all_breaks_the_bounds(tmp_path)
     assert "sync_full_started->sync_full_done" not in run["transitions"]
 
 
+def test_a_milestone_removed_with_its_truth_still_owes_its_neighbours_truth(tmp_path):
+    source = recording(tmp_path)
+    rewrite_jsonl(source / REP / "timeline.jsonl", lambda lines: [
+        line for line in lines if line.get("name") != "registry_updated"])
+    rewrite_jsonl(source / REP / "truth.jsonl", lambda lines: [
+        line for line in lines if "registry_updated" not in (line["start"], line["end"])])
+    calibration.replay(source, tmp_path / "out", harness_commit="test", gate="bounds")
+    run = calibration.bracket(tmp_path / "out" / REP)
+    assert not run["transitions"]["constructed->registry_updated"]["ok"]
+    assert not run["transitions"]["registry_updated->anchored"]["ok"] and not run["ok"]
+
+
+def test_roles_sharing_a_clock_must_each_agree_with_its_offset(tmp_path):
+    source = recording(tmp_path)
+    record = json.loads((source / REP / "provenance.json").read_text())
+    record["adapters"]["holder"]["milestones"]["stored"]["clock"] = "stack:synthetic-issuer"
+    record["knobs"]["holder"]["clock_skew_ms"] = 7400.0
+    (source / REP / "provenance.json").write_text(json.dumps(record))
+    calibration.replay(source, tmp_path / "out", harness_commit="test", gate="bounds")
+    offset = calibration.bracket(tmp_path / "out" / REP)["offsets"]["stack:synthetic-issuer"]
+    assert offset["roles"]["issuer"]["ok"] and not offset["roles"]["holder"]["ok"]
+    assert not offset["ok"]
+    record["knobs"]["holder"]["clock_skew_ms"] = 7300.0
+    (tmp_path / "out" / REP / "provenance.json").write_text(json.dumps(record))
+    assert calibration.bracket(tmp_path / "out" / REP)["offsets"]["stack:synthetic-issuer"]["ok"]
+
+
 def test_a_stack_clock_no_role_declares_breaks_the_bounds(tmp_path):
     source = recording(tmp_path)
     record = json.loads((source / REP / "provenance.json").read_text())
