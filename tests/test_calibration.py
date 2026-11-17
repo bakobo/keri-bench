@@ -1,6 +1,7 @@
 """The calibration (Part B #1): the comparison logic on fixed inputs, then the real thing."""
 
 import json
+import math
 import tarfile
 from pathlib import Path
 
@@ -290,12 +291,12 @@ def test_an_offset_that_disagrees_with_the_injected_skew_breaks_the_bounds(tmp_p
     assert abs(offset["error_ns"]) > offset["bound_ns"] and not offset["ok"] and not run["ok"]
 
 
-@pytest.mark.parametrize("change", ["no skew", "no realtime offset"])
+@pytest.mark.parametrize("change", ["no skew", "no realtime offset", "NaN skew"])
 def test_an_offset_with_nothing_to_check_it_against_breaks_the_bounds(tmp_path, change):
     source = recording(tmp_path)
-    if change == "no skew":
+    if change in ("no skew", "NaN skew"):
         record = json.loads((source / REP / "provenance.json").read_text())
-        record["knobs"]["issuer"]["clock_skew_ms"] = "n/a"
+        record["knobs"]["issuer"]["clock_skew_ms"] = "n/a" if change == "no skew" else math.nan
         (source / REP / "provenance.json").write_text(json.dumps(record))
     else:
         rewrite_jsonl(source / REP / "timeline.jsonl", lambda lines: [

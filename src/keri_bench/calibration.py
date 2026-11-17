@@ -173,7 +173,8 @@ def _offsets(record: dict, clocks: Clocks, events) -> dict:
             out[domain] = {"ok": False, "reason": "The timeline stamps events on this clock, "
                            "but no role declares it, so there is no injected skew to check."}
             continue
-        # Roles that share a clock must each agree with its offset, whatever their skews.
+        # Roles that share a clock must each agree with its offset, whatever their skews. ~63pw:
+        # the offset's bound spans every disagreement between its samples.
         checks = {role: _offset(clocks.offsets.get(domain), realtime,
                                 record["knobs"].get(role, {}).get("clock_skew_ms"))
                   for role in sorted(owners[domain])}
@@ -184,7 +185,8 @@ def _offsets(record: dict, clocks: Clocks, events) -> dict:
 
 
 def _offset(measured, realtime, skew) -> dict:
-    if measured is None or realtime is None or not isinstance(skew, (int, float)):
+    if measured is None or realtime is None or not isinstance(skew, (int, float)) \
+            or not math.isfinite(skew):
         return {"ok": False, "reason": "The run has no offset to this domain, no realtime "
                 "offset, or no injected skew to check it against."}
     error = measured.offset_ns - (realtime.offset_ns - round(skew * 1e6))
