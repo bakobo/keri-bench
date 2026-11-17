@@ -1,28 +1,53 @@
 """The calibration: proof that the harness measures correctly (test plan, Part B #1; this.i
-6he49n0k).
+6he49n0k, 0hykugwr).
 
-Three scenarios run against the synthetic stack. ``calibration-intervals`` must recover every
-injected interval's p50 and p99 within the larger of 5% or the interval's resolution;
+Three scenarios run against the synthetic stack, and the result is judged at two gates.
+
+The bounds gate checks what a loaded host cannot move. Every injected transition is measured for
+every credential, and each measured interval plus its resolution is at least what had elapsed
+inside the role when it began the effect ending the transition (``floor_ns``), since every
+observation brackets that much of the role's work. Each offset to a skewed stack clock
+agrees with the realtime offset less the injected skew, within the two offsets' bounds. The stall
+reaches the tail, and the saturation detector fires at no more than the cap plus 10%.
+
+The strict gate adds the two-sided bars: ``calibration-intervals`` must recover every injected
+interval's p50 and p99 within the largest of 5%, the interval's resolution and 5 ms (this.i
+93uwk6r3);
 ``calibration-saturation`` must put the saturation point within 10% of the known construction
-cap; ``calibration-stall`` must show a stall it injected in the tail. The result, with the
-measured error per transition, is the error budget a real run carries in its provenance.
+cap; ``calibration-stall`` must show its stall in the tail without moving the median. Those
+depend on how busy the host is, so they gate a recorded calibration (``replay``) and the bench
+host, while CI's live run is gated on bounds. The result, with the measured error per transition,
+is the error budget a real run carries in its provenance.
 """
 
 from __future__ import annotations
 
 import json
 import math
+import shutil
 from collections import defaultdict
 from pathlib import Path
 
+from .clocks import Clocks, Interval, interval
 from .errors import BenchError
-from .run import sweep
+from .report import write_report
+from .run import summarize, sweep
 from .scenario import load_scenario
+from .synthetic.adapters import parse_delays
+from .timeline import read_timeline
 
 INTERVAL_TOLERANCE = 0.05
+# The cost of one observation's round trip on a busy bench host, which 5% of a 60 ms injected
+# median does not cover (this.i 93uwk6r3).
+INTERVAL_FLOOR_NS = 5_000_000
 SATURATION_TOLERANCE = 0.10
+GATES = ("strict", "bounds")
+SCENARIOS = ("calibration-intervals", "calibration-saturation", "calibration-stall")
 
 E_TRUTH = "e.state.missing.calibration.truth.f"
+E_TRUTH_FORMAT = "e.input.format.calibration.truth.f"
+E_GATE = "e.input.range.calibration.gate.f"
+E_RECORDING = "e.state.missing.calibration.scenarios.f"
 
 
 def _rank(values: list[int], p: float) -> int:
@@ -32,13 +57,8 @@ def _rank(values: list[int], p: float) -> int:
 def compare(run_dir: Path) -> dict:
     """Each injected transition's truth against what the run's report measured."""
     run_dir = Path(run_dir)
-    truth_path = run_dir / "truth.jsonl"
-    if not truth_path.exists():
-        raise BenchError(E_TRUTH, f"{run_dir} has no truth.jsonl, so it was not a calibration "
-                         f"run and cannot be compared.")
     truth: dict[str, list[int]] = defaultdict(list)
-    for line in truth_path.read_text().splitlines():
-        item = json.loads(line)
+    for item in _truth(run_dir):
         truth[f"{item['start']}->{item['end']}"].append(item["elapsed_ns"])
     report = json.loads((run_dir / "report.json").read_text())
     out = {}
@@ -53,7 +73,8 @@ def compare(run_dir: Path) -> dict:
         ok = len(values) == measured["count"]
         for p, name in ((50, "p50"), (99, "p99")):
             expected = _rank(values, p)
-            tolerance = max(round(INTERVAL_TOLERANCE * expected), measured["resolution_ns"])
+            tolerance = max(round(INTERVAL_TOLERANCE * expected), measured["resolution_ns"],
+                            INTERVAL_FLOOR_NS)
             error = measured[name] - expected
             entry[name] = {"truth_ns": expected, "measured_ns": measured[name],
                            "error_ns": error, "tolerance_ns": tolerance}
@@ -63,14 +84,142 @@ def compare(run_dir: Path) -> dict:
     return out
 
 
-def _intervals(out: Path) -> dict:
-    comparisons, refused = {}, []
-    for run_dir in sorted(Path(out).glob("rate-*/rep-*")):
-        report = json.loads((run_dir / "report.json").read_text())
-        if report.get("refused"):
-            refused.append(str(run_dir))
+def _truth(run_dir: Path) -> list[dict]:
+    truth_path = run_dir / "truth.jsonl"
+    if not truth_path.exists():
+        raise BenchError(E_TRUTH, f"{run_dir} has no truth.jsonl, so it was not a calibration "
+                         f"run and cannot be compared.")
+    lines = []
+    for number, line in enumerate(truth_path.read_text().splitlines(), start=1):
+        try:
+            lines.append(json.loads(line))
+        except ValueError:
+            raise BenchError(E_TRUTH_FORMAT, f"Line {number} of {truth_path} is not JSON, so "
+                             f"the run's truth is damaged and cannot be compared.") from None
+    return lines
+
+
+def bracket(run_dir: Path) -> dict:
+    """Each credential's measured interval against its truth's floor, and each skewed
+    stack clock's measured offset against the skew injected into it.
+
+    Neither can be moved by a busy host. The harness stamps a transition's start before it asks
+    the role and its end once the role's effect is seen (or on the role's own clock around the
+    role's work), so the measured interval, widened by its resolution and offset bounds, contains
+    the floor however late anything ran. Both offsets are bracketed reads taken on one host,
+    so the realtime offset less the skew must fall within their bounds of the stack's.
+    """
+    run_dir = Path(run_dir)
+    truth = _truth(run_dir)
+    header, events = read_timeline(run_dir / "timeline.jsonl")
+    record = json.loads((run_dir / "provenance.json").read_text())
+    clocks = Clocks.from_events(header.harness_clock, events)
+    first: dict[str, dict] = defaultdict(dict)
+    for event in events:
+        for credential in event.credentials:
+            seen = first[credential].get(event.name)
+            if seen is None or event.t < seen.t:
+                first[credential][event.name] = event
+    transitions: dict[str, dict] = {}
+    for item in truth:
+        start, end = item["start"], item["end"]
+        entry = transitions.setdefault(f"{start}->{end}", {"count": 0, "unmeasured": 0,
+                                                            "short": 0, "least_slack_ns": None})
+        entry["count"] += 1
+        names = first[item["credential"]]
+        result = (interval(names[start], names[end], clocks)
+                  if start in names and end in names else None)
+        if not isinstance(result, Interval):
+            entry["unmeasured"] += 1
             continue
-        comparisons[str(run_dir)] = compare(run_dir)
+        slack = result.value_ns + result.resolution_ns - item["floor_ns"]
+        entry["short"] += slack < 0
+        if entry["least_slack_ns"] is None or slack < entry["least_slack_ns"]:
+            entry["least_slack_ns"] = slack
+    for entry in transitions.values():
+        entry["ok"] = entry["unmeasured"] == 0 and entry["short"] == 0
+    # A transition the stack injected must have truth unless the run saw neither of its
+    # milestones (a stage the scenario does not run): a truth file missing all of one
+    # transition's lines would otherwise check nothing for it.
+    seen = {event.name for event in events}
+    for knobs in record["knobs"].values():
+        if not isinstance(knobs.get("delays"), str):
+            continue
+        for transition in parse_delays(knobs["delays"]):
+            start, end = transition.split(">")
+            if (start in seen or end in seen) and f"{start}->{end}" not in transitions:
+                transitions[f"{start}->{end}"] = {
+                    "count": 0, "ok": False, "reason": "The stack injected this transition and "
+                    "the run saw at least one of its milestones, but the truth has no line for "
+                    "it."}
+    offsets = _offsets(record, clocks, events)
+    ok = bool(transitions) and all(e["ok"] for e in [*transitions.values(), *offsets.values()])
+    return {"ok": ok, "transitions": transitions, "offsets": offsets}
+
+
+def _offsets(record: dict, clocks: Clocks, events) -> dict:
+    """Every stack clock the timeline uses or a role declares, against its role's skew. A clock
+    the timeline uses that no role declares has no skew to check, and fails."""
+    realtime = clocks.offsets.get(record["clocks"]["realtime"])
+    owners: dict[str, set[str]] = defaultdict(set)
+    for role, declared in sorted(record["adapters"].items()):
+        for milestone in declared["milestones"].values():
+            if milestone["clock"].startswith("stack:"):
+                owners[milestone["clock"]].add(role)
+    used = {event.clock for event in events} - {clocks.harness, record["clocks"]["realtime"]}
+    out = {}
+    for domain in sorted(used | set(owners)):
+        if not owners.get(domain):
+            out[domain] = {"ok": False, "reason": "The timeline stamps events on this clock, "
+                           "but no role declares it, so there is no injected skew to check."}
+            continue
+        # Roles that share a clock must each agree with its offset, whatever their skews. ~63pw:
+        # the offset's bound spans every disagreement between its samples.
+        checks = {role: _offset(clocks.offsets.get(domain), realtime,
+                                record["knobs"].get(role, {}).get("clock_skew_ms"))
+                  for role in sorted(owners[domain])}
+        entry = checks[next(iter(checks))] if len(checks) == 1 else {
+            "roles": checks, "ok": all(check["ok"] for check in checks.values())}
+        out[domain] = entry
+    return out
+
+
+def _offset(measured, realtime, skew) -> dict:
+    if measured is None or realtime is None or not isinstance(skew, (int, float)) \
+            or not math.isfinite(skew):
+        return {"ok": False, "reason": "The run has no offset to this domain, no realtime "
+                "offset, or no injected skew to check it against."}
+    error = measured.offset_ns - (realtime.offset_ns - round(skew * 1e6))
+    bound = measured.bound_ns + realtime.bound_ns
+    return {"skew_ms": skew, "error_ns": error, "bound_ns": bound, "ok": abs(error) <= bound}
+
+
+def _accepted(out: Path) -> tuple[list[Path], list[str]]:
+    accepted, refused = [], []
+    for run_dir in _run_dirs(out):
+        if json.loads((run_dir / "report.json").read_text()).get("refused"):
+            refused.append(str(run_dir))
+        else:
+            accepted.append(run_dir)
+    return accepted, refused
+
+
+def _run_dirs(out: Path) -> list[Path]:
+    def order(path: Path) -> tuple[float, int]:
+        return float(path.parent.name.removeprefix("rate-")), int(path.name.removeprefix("rep-"))
+    return sorted(Path(out).glob("rate-*/rep-*"), key=order)
+
+
+def _bracketed(out: Path) -> dict:
+    accepted, refused = _accepted(out)
+    runs = {str(run_dir): bracket(run_dir) for run_dir in accepted}
+    return {"ok": bool(runs) and all(r["ok"] for r in runs.values()), "runs": runs,
+            "refused": refused}
+
+
+def _intervals(out: Path) -> dict:
+    accepted, refused = _accepted(out)
+    comparisons = {str(run_dir): compare(run_dir) for run_dir in accepted}
     budget: dict[str, dict] = {}
     for result in comparisons.values():
         for key, entry in result.items():
@@ -98,32 +247,127 @@ def _saturation(summary: dict, cap: float) -> dict:
 
 def _stall(out: Path, stall_ms: float) -> dict:
     runs = {}
-    for run_dir in sorted(Path(out).glob("rate-*/rep-*")):
-        report = json.loads((run_dir / "report.json").read_text())
-        if report.get("refused"):
-            continue
-        interval = report["intervals"]["requested->constructed"]
-        runs[str(run_dir)] = {"max_ns": interval["max"], "p50_ns": interval["p50"],
-                              "ok": interval["max"] >= stall_ms * 1e6
-                              and interval["p50"] < stall_ms * 1e6 / 2}
+    for run_dir in _accepted(out)[0]:
+        measured = json.loads((run_dir / "report.json").read_text())["intervals"][
+            "requested->constructed"]
+        runs[str(run_dir)] = {"max_ns": measured["max"], "p50_ns": measured["p50"],
+                              "ok": measured["max"] >= stall_ms * 1e6
+                              and measured["p50"] < stall_ms * 1e6 / 2}
     return {"ok": bool(runs) and all(r["ok"] for r in runs.values()), "stall_ms": stall_ms,
             "runs": runs}
 
 
-async def calibrate(scenarios: Path, out: Path, *, harness_commit: str) -> dict:
-    scenarios, out = Path(scenarios), Path(out)
-    intervals = load_scenario(scenarios / "calibration-intervals.toml")
-    await sweep(intervals, out / "intervals", harness_commit=harness_commit)
+def _stall_reached(out: Path, stall_ms: float) -> dict:
+    """The bounds gate's stall: the slowest construction, widened by its resolution, is at least
+    the stall. A credential queued behind the stall waited all of it, however busy the host."""
+    runs = {}
+    for run_dir in _accepted(out)[0]:
+        measured = json.loads((run_dir / "report.json").read_text())["intervals"][
+            "requested->constructed"]
+        top = measured["max"] + measured["resolution_ns"]
+        runs[str(run_dir)] = {"max_ns": measured["max"],
+                              "resolution_ns": measured["resolution_ns"],
+                              "ok": top >= stall_ms * 1e6}
+    return {"ok": bool(runs) and all(r["ok"] for r in runs.values()), "stall_ms": stall_ms,
+            "runs": runs}
+
+
+def _saturation_capped(summary: dict, cap: float) -> dict:
+    """The bounds gate's saturation: the detector fires, and at no more than the cap plus 10%.
+    The issuer cannot construct faster than its service rate, and a busy host only slows it."""
+    found = summary["saturation"]
+    if found is None:
+        return {"ok": False, "cap": cap, "reason": "No load step saturated."}
+    return {"ok": found["achieved"] <= cap * (1 + SATURATION_TOLERANCE), "cap": cap,
+            "achieved_at_saturation": found["achieved"], "offered": found["offered"]}
+
+
+def _reports(out: Path) -> dict[float, list[dict]]:
+    reports: dict[float, list[dict]] = defaultdict(list)
+    for run_dir in _run_dirs(out):
+        reports[float(run_dir.parent.name.removeprefix("rate-"))].append(
+            json.loads((run_dir / "report.json").read_text()))
+    return reports
+
+
+def _complete(out: Path, scenarios: Path) -> dict:
+    """Every run each scenario calls for, refused or not, has a report: a calibration missing a
+    repetition's directory is judged on less than the scenario asked for, and fails."""
+    missing = []
+    for name, sub in zip(SCENARIOS, ("intervals", "saturation", "stall")):
+        scenario = load_scenario(scenarios / f"{name}.toml")
+        for rate in scenario.load.rates:
+            for repetition in range(1, scenario.load.repetitions + 1):
+                run_dir = out / sub / f"rate-{rate:g}" / f"rep-{repetition}"
+                if not (run_dir / "report.json").exists():
+                    missing.append(str(run_dir))
+    return {"ok": not missing, "missing": missing}
+
+
+def _check_gate(gate: str) -> None:
+    if gate not in GATES:
+        raise BenchError(E_GATE, f"A calibration gate is one of {list(GATES)}, not {gate!r}.")
+
+
+def judge(out: Path, *, harness_commit: str, gate: str = "strict") -> dict:
+    """Both gates over a calibration's output on disk; ``ok`` is the named gate's verdict.
+
+    The strict gate includes the bounds gate, since a harness that passes the two-sided bars
+    while violating a bound got there by luck."""
+    _check_gate(gate)
+    out = Path(out)
+    scenarios = out / "scenarios"
+    if not all((scenarios / f"{name}.toml").exists() for name in SCENARIOS):
+        raise BenchError(E_RECORDING, f"{out} has no copy of the calibration scenarios in "
+                         f"{scenarios}, so its runs cannot be judged against what they ran.")
     saturating = load_scenario(scenarios / "calibration-saturation.toml")
-    summary = await sweep(saturating, out / "saturation", harness_commit=harness_commit)
     stalling = load_scenario(scenarios / "calibration-stall.toml")
-    await sweep(stalling, out / "stall", harness_commit=harness_commit)
+    summary = summarize(saturating, _reports(out / "saturation"))
+    cap = saturating.roles["issuer"].knobs["service_rate"]
+    stall_ms = stalling.roles["issuer"].knobs["stall_ms"]
+    bounds = {"complete": _complete(out, scenarios),
+              "intervals": _bracketed(out / "intervals"),
+              "saturation": _saturation_capped(summary, cap),
+              "stall": _stall_reached(out / "stall", stall_ms)}
+    bounds["ok"] = all(bounds[k]["ok"] for k in ("complete", "intervals", "saturation", "stall"))
     result = {
         "harness_commit": harness_commit,
+        "gate": gate,
+        "bounds": bounds,
         "intervals": _intervals(out / "intervals"),
-        "saturation": _saturation(summary, saturating.roles["issuer"].knobs["service_rate"]),
-        "stall": _stall(out / "stall", stalling.roles["issuer"].knobs["stall_ms"]),
+        "saturation": _saturation(summary, cap),
+        "stall": _stall(out / "stall", stall_ms),
     }
-    result["ok"] = all(result[k]["ok"] for k in ("intervals", "saturation", "stall"))
+    result["strict_ok"] = bounds["ok"] and all(result[k]["ok"]
+                                               for k in ("intervals", "saturation", "stall"))
+    result["ok"] = result["strict_ok"] if gate == "strict" else bounds["ok"]
     (out / "calibration.json").write_text(json.dumps(result, indent=2) + "\n")
     return result
+
+
+async def calibrate(scenarios: Path, out: Path, *, harness_commit: str,
+                    gate: str = "strict") -> dict:
+    """Run the three calibration scenarios live, keep a copy of them beside their runs so the
+    calibration can be replayed, and judge it at ``gate``."""
+    _check_gate(gate)
+    scenarios, out = Path(scenarios), Path(out)
+    (out / "scenarios").mkdir(parents=True, exist_ok=True)
+    for name in SCENARIOS:
+        shutil.copyfile(scenarios / f"{name}.toml", out / "scenarios" / f"{name}.toml")
+    for name, sub in zip(SCENARIOS, ("intervals", "saturation", "stall")):
+        await sweep(load_scenario(out / "scenarios" / f"{name}.toml"), out / sub,
+                    harness_commit=harness_commit)
+    return judge(out, harness_commit=harness_commit, gate=gate)
+
+
+def replay(recording: Path, out: Path, *, harness_commit: str, gate: str = "strict") -> dict:
+    """Judge a recorded calibration with this code: copy it, rebuild every run's report from its
+    timeline and provenance, and judge the copy. Nothing is timed, so the strict gate holds the
+    analysis to the full two-sided bars with no dependence on the host it runs on."""
+    _check_gate(gate)
+    out = Path(out)
+    shutil.copytree(recording, out)
+    for sub in ("intervals", "saturation", "stall"):
+        for run_dir in _run_dirs(out / sub):
+            write_report(run_dir, generator_commit=harness_commit)
+    return judge(out, harness_commit=harness_commit, gate=gate)

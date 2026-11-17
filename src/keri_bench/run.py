@@ -619,7 +619,9 @@ def _calibration(path: Path | None) -> dict | str:
     if path is None:
         return "not calibrated"
     result = json.loads(Path(path).read_text())
-    return {"path": str(path), "ok": result["ok"], "harness_commit": result["harness_commit"],
+    # A calibration written before the gates existed was judged on the two-sided bars.
+    return {"path": str(path), "ok": result["ok"], "gate": result.get("gate", "strict"),
+            "harness_commit": result["harness_commit"],
             "budget": result["intervals"]["budget"],
             "saturation_relative_error": result["saturation"].get("relative_error")}
 
@@ -627,6 +629,7 @@ def _calibration(path: Path | None) -> dict | str:
 async def run_once(scenario: Scenario, out: Path, *, rate: float, repetition: int,
                    harness_commit: str, calibration: Path | None = None) -> dict:
     resolved = plan(scenario)
+    # ~6ih6: rates that print alike under :g share a directory.
     run_dir = Path(out) / f"rate-{rate:g}" / f"rep-{repetition}"
     return await Run(resolved, run_dir, rate, repetition, harness_commit,
                      calibration).execute()

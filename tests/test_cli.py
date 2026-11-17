@@ -33,6 +33,7 @@ def test_one_run_with_a_calibration_then_a_rebuilt_report(tmp_path, capsys):
     run_dir = tmp_path / "out" / "rate-10" / "rep-1"
     record = json.loads((run_dir / "provenance.json").read_text())
     assert record["calibration"]["budget"] == {"a->b": {"p50_error_ns": 1, "p99_error_ns": 2}}
+    assert record["calibration"]["gate"] == "strict"  # written before the gates existed
     (run_dir / "report.json").unlink()
     assert cli.main(["report", str(run_dir)]) in (0, 1)
     assert (run_dir / "report.json").exists()
@@ -69,13 +70,31 @@ def test_a_refused_scenario_exits_2_with_its_code(tmp_path, capsys):
 
 
 def test_calibrate_reports_failure_with_exit_1(tmp_path, monkeypatch, capsys):
-    async def fake(scenarios, out, *, harness_commit):
-        assert scenarios == tmp_path and harness_commit
+    async def fake(scenarios, out, *, harness_commit, gate):
+        assert scenarios == tmp_path and harness_commit and gate == "strict"
         return {"ok": False}
 
     monkeypatch.setattr(cli, "calibrate", fake)
     assert cli.main(["calibrate", "--scenarios", str(tmp_path), "--out", str(tmp_path)]) == 1
     assert json.loads(capsys.readouterr().out) == {"ok": False}
+
+
+def test_calibrate_takes_a_gate_and_a_recording_to_replay(tmp_path, monkeypatch, capsys):
+    seen = {}
+
+    async def fake_calibrate(scenarios, out, *, harness_commit, gate):
+        seen["calibrate"] = gate
+        return {"ok": True}
+
+    def fake_replay(recording, out, *, harness_commit, gate):
+        seen["replay"] = (recording, gate)
+        return {"ok": True}
+
+    monkeypatch.setattr(cli, "calibrate", fake_calibrate)
+    monkeypatch.setattr(cli, "replay", fake_replay)
+    assert cli.main(["calibrate", "--out", str(tmp_path), "--gate", "bounds"]) == 0
+    assert cli.main(["calibrate", "--out", str(tmp_path / "o"), "--replay", str(tmp_path)]) == 0
+    assert seen == {"calibrate": "bounds", "replay": (tmp_path, "strict")}
 
 
 def test_the_contract_command_prints_each_adapters_problems(tmp_path, capsys):
