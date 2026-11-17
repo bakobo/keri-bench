@@ -33,6 +33,7 @@ from .errors import BenchError
 from .report import write_report
 from .run import summarize, sweep
 from .scenario import load_scenario
+from .synthetic.adapters import parse_delays
 from .timeline import read_timeline
 
 INTERVAL_TOLERANCE = 0.05
@@ -44,6 +45,7 @@ GATES = ("strict", "bounds")
 SCENARIOS = ("calibration-intervals", "calibration-saturation", "calibration-stall")
 
 E_TRUTH = "e.state.missing.calibration.truth.f"
+E_TRUTH_FORMAT = "e.input.format.calibration.truth.f"
 E_GATE = "e.input.range.calibration.gate.f"
 E_RECORDING = "e.state.missing.calibration.scenarios.f"
 
@@ -87,7 +89,14 @@ def _truth(run_dir: Path) -> list[dict]:
     if not truth_path.exists():
         raise BenchError(E_TRUTH, f"{run_dir} has no truth.jsonl, so it was not a calibration "
                          f"run and cannot be compared.")
-    return [json.loads(line) for line in truth_path.read_text().splitlines()]
+    lines = []
+    for number, line in enumerate(truth_path.read_text().splitlines(), start=1):
+        try:
+            lines.append(json.loads(line))
+        except ValueError:
+            raise BenchError(E_TRUTH_FORMAT, f"Line {number} of {truth_path} is not JSON, so "
+                             f"the run's truth is damaged and cannot be compared.") from None
+    return lines
 
 
 def bracket(run_dir: Path) -> dict:
@@ -129,28 +138,50 @@ def bracket(run_dir: Path) -> dict:
             entry["least_slack_ns"] = slack
     for entry in transitions.values():
         entry["ok"] = entry["unmeasured"] == 0 and entry["short"] == 0
-    offsets = _offsets(record, clocks)
+    # A transition the stack injected, between milestones the run saw, must have truth: a truth
+    # file missing all of one transition's lines would otherwise check nothing for it.
+    seen = {event.name for event in events}
+    for knobs in record["knobs"].values():
+        if not isinstance(knobs.get("delays"), str):
+            continue
+        for transition in parse_delays(knobs["delays"]):
+            start, end = transition.split(">")
+            if start in seen and end in seen and f"{start}->{end}" not in transitions:
+                transitions[f"{start}->{end}"] = {
+                    "count": 0, "ok": False, "reason": "The stack injected this transition and "
+                    "the run saw both its milestones, but the truth has no line for it."}
+    offsets = _offsets(record, clocks, events)
     ok = bool(transitions) and all(e["ok"] for e in [*transitions.values(), *offsets.values()])
     return {"ok": ok, "transitions": transitions, "offsets": offsets}
 
 
-def _offsets(record: dict, clocks: Clocks) -> dict:
+def _offsets(record: dict, clocks: Clocks, events) -> dict:
+    """Every stack clock the timeline uses or a role declares, against its role's skew. A clock
+    the timeline uses that no role declares has no skew to check, and fails."""
     realtime = clocks.offsets.get(record["clocks"]["realtime"])
-    out = {}
+    owners: dict[str, str] = {}
     for role, declared in sorted(record["adapters"].items()):
-        domains = sorted({m["clock"] for m in declared["milestones"].values()
-                          if m["clock"].startswith("stack:")})
+        for milestone in declared["milestones"].values():
+            if milestone["clock"].startswith("stack:"):
+                owners.setdefault(milestone["clock"], role)
+    used = {event.clock for event in events} - {clocks.harness, record["clocks"]["realtime"]}
+    out = {}
+    for domain in sorted(used | set(owners)):
+        role = owners.get(domain)
+        if role is None:
+            out[domain] = {"ok": False, "reason": "The timeline stamps events on this clock, "
+                           "but no role declares it, so there is no injected skew to check."}
+            continue
         skew = record["knobs"].get(role, {}).get("clock_skew_ms")
-        for domain in domains:
-            measured = clocks.offsets.get(domain)
-            if measured is None or realtime is None or not isinstance(skew, (int, float)):
-                out[domain] = {"ok": False, "reason": "The run has no offset to this domain, "
-                               "no realtime offset, or no injected skew to check it against."}
-                continue
-            error = measured.offset_ns - (realtime.offset_ns - round(skew * 1e6))
-            bound = measured.bound_ns + realtime.bound_ns
-            out[domain] = {"skew_ms": skew, "error_ns": error, "bound_ns": bound,
-                           "ok": abs(error) <= bound}
+        measured = clocks.offsets.get(domain)
+        if measured is None or realtime is None or not isinstance(skew, (int, float)):
+            out[domain] = {"ok": False, "reason": "The run has no offset to this domain, "
+                           "no realtime offset, or no injected skew to check it against."}
+            continue
+        error = measured.offset_ns - (realtime.offset_ns - round(skew * 1e6))
+        bound = measured.bound_ns + realtime.bound_ns
+        out[domain] = {"skew_ms": skew, "error_ns": error, "bound_ns": bound,
+                       "ok": abs(error) <= bound}
     return out
 
 
@@ -250,6 +281,20 @@ def _reports(out: Path) -> dict[float, list[dict]]:
     return reports
 
 
+def _complete(out: Path, scenarios: Path) -> dict:
+    """Every run each scenario calls for, refused or not, has a report: a calibration missing a
+    repetition's directory is judged on less than the scenario asked for, and fails."""
+    missing = []
+    for name, sub in zip(SCENARIOS, ("intervals", "saturation", "stall")):
+        scenario = load_scenario(scenarios / f"{name}.toml")
+        for rate in scenario.load.rates:
+            for repetition in range(1, scenario.load.repetitions + 1):
+                run_dir = out / sub / f"rate-{rate:g}" / f"rep-{repetition}"
+                if not (run_dir / "report.json").exists():
+                    missing.append(str(run_dir))
+    return {"ok": not missing, "missing": missing}
+
+
 def _check_gate(gate: str) -> None:
     if gate not in GATES:
         raise BenchError(E_GATE, f"A calibration gate is one of {list(GATES)}, not {gate!r}.")
@@ -271,10 +316,11 @@ def judge(out: Path, *, harness_commit: str, gate: str = "strict") -> dict:
     summary = summarize(saturating, _reports(out / "saturation"))
     cap = saturating.roles["issuer"].knobs["service_rate"]
     stall_ms = stalling.roles["issuer"].knobs["stall_ms"]
-    bounds = {"intervals": _bracketed(out / "intervals"),
+    bounds = {"complete": _complete(out, scenarios),
+              "intervals": _bracketed(out / "intervals"),
               "saturation": _saturation_capped(summary, cap),
               "stall": _stall_reached(out / "stall", stall_ms)}
-    bounds["ok"] = all(bounds[k]["ok"] for k in ("intervals", "saturation", "stall"))
+    bounds["ok"] = all(bounds[k]["ok"] for k in ("complete", "intervals", "saturation", "stall"))
     result = {
         "harness_commit": harness_commit,
         "gate": gate,

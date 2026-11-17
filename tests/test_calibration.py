@@ -193,6 +193,54 @@ def test_an_injected_transition_with_no_measured_interval_breaks_the_bounds(tmp_
     assert not result["ok"]
 
 
+def test_an_injected_transition_with_no_truth_at_all_breaks_the_bounds(tmp_path):
+    source = recording(tmp_path)
+    rewrite_jsonl(source / REP / "truth.jsonl", lambda lines: [
+        line for line in lines if (line["start"], line["end"]) != ("constructed",
+                                                                   "registry_updated")])
+    calibration.replay(source, tmp_path / "out", harness_commit="test", gate="bounds")
+    run = calibration.bracket(tmp_path / "out" / REP)
+    entry = run["transitions"]["constructed->registry_updated"]
+    assert entry["count"] == 0 and not entry["ok"] and "no line" in entry["reason"]
+    assert not run["ok"]
+    # The verifier's sync delay is injected but this scenario never syncs: no truth is owed.
+    assert "sync_full_started->sync_full_done" not in run["transitions"]
+
+
+def test_a_stack_clock_no_role_declares_breaks_the_bounds(tmp_path):
+    source = recording(tmp_path)
+    record = json.loads((source / REP / "provenance.json").read_text())
+    for milestone in record["adapters"]["issuer"]["milestones"].values():
+        if milestone["clock"].startswith("stack:"):
+            milestone["clock"] = "harness"
+    (source / REP / "provenance.json").write_text(json.dumps(record))
+    calibration.replay(source, tmp_path / "out", harness_commit="test", gate="bounds")
+    run = calibration.bracket(tmp_path / "out" / REP)
+    offset = run["offsets"]["stack:synthetic-issuer"]
+    assert not offset["ok"] and "no role declares" in offset["reason"] and not run["ok"]
+
+
+def test_a_calibration_missing_a_repetition_fails_both_gates(tmp_path):
+    source = recording(tmp_path)
+    for name in ("timeline.jsonl", "provenance.json", "truth.jsonl"):
+        (source / "stall/rate-20/rep-3" / name).unlink(missing_ok=True)
+    (source / "stall/rate-20/rep-3").rmdir()
+    result = calibration.replay(source, tmp_path / "out", harness_commit="test", gate="bounds")
+    assert result["bounds"]["complete"] == {
+        "ok": False, "missing": [str(tmp_path / "out/stall/rate-20/rep-3")]}
+    assert not result["ok"] and not result["strict_ok"]
+
+
+def test_a_damaged_truth_line_is_refused_with_a_code(tmp_path):
+    path = tmp_path / "r"
+    path.mkdir()
+    (path / "truth.jsonl").write_text('{"credential": "c0"}\n{bad\n')
+    with pytest.raises(BenchError) as refused:
+        calibration.compare(path)
+    assert refused.value.code == "e.input.format.calibration.truth.f"
+    assert "Line 2" in refused.value.message
+
+
 def test_a_repeated_milestone_is_bracketed_from_its_first_sighting(tmp_path):
     source = recording(tmp_path)
 
