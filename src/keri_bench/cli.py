@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 from . import growth, provenance, report
-from .calibration import calibrate
+from .calibration import GATES, calibrate, replay
 from .contract import contract
 from .errors import BenchError
 from .run import run_once, sweep
@@ -32,7 +32,10 @@ def _run(args) -> dict:
 
 
 def _calibrate(args) -> dict:
-    return asyncio.run(calibrate(args.scenarios, args.out, harness_commit=_commit()))
+    if args.replay is not None:
+        return replay(args.replay, args.out, harness_commit=_commit(), gate=args.gate)
+    return asyncio.run(calibrate(args.scenarios, args.out, harness_commit=_commit(),
+                                 gate=args.gate))
 
 
 def _contract(args) -> dict:
@@ -70,6 +73,11 @@ def main(argv=None) -> int:
                               "the synthetic stack.")
     cal.add_argument("--scenarios", type=Path, default=REPO / "scenarios")
     cal.add_argument("--out", type=Path, required=True)
+    cal.add_argument("--gate", choices=GATES, default="strict", help="strict holds the run to "
+                     "the two-sided bars, for the host you measure on; bounds checks only what a "
+                     "loaded host cannot move, for CI (this.i 0hykugwr).")
+    cal.add_argument("--replay", type=Path, help="Judge a recorded calibration's output with "
+                     "this code instead of running the synthetic stack; nothing is timed.")
     cal.set_defaults(handler=_calibrate)
     check = commands.add_parser("contract", help="Run the adapter contract suite with the "
                                 "adapters a scenario names (Part B #10).")

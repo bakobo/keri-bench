@@ -900,6 +900,10 @@ def test_a_failed_or_foreign_calibration_is_named(tmp_path):
     got = _with_calibration(tmp_path, good)
     assert not [w for w in got["warnings"] if "calibration" in w]
     assert "passed" in report.render_markdown(got)
+    got = _with_calibration(tmp_path, {**good, "gate": "bounds"})
+    assert [w for w in got["warnings"] if "only the bounds gate" in w]
+    got = _with_calibration(tmp_path, {**good, "gate": "strict"})
+    assert not [w for w in got["warnings"] if "calibration" in w]
 
 
 def test_failed_stages_are_counted_and_a_failed_fault_refuses_the_run(tmp_path):

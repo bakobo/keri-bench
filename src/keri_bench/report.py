@@ -770,6 +770,10 @@ def _calibration_warnings(calibration: Any, harness_commit: str) -> list[str]:
     if not calibration["ok"]:
         out.append("The calibration this run carries did not pass, so its error budget does not "
                    "show that the harness measures correctly.")
+    elif calibration.get("gate", "strict") != "strict":
+        out.append("The calibration this run carries passed only the bounds gate, which checks "
+                   "what a loaded host cannot move; its error budget was not held to the "
+                   "two-sided bars. Calibrate on this host with --gate strict.")
     if calibration["harness_commit"] != harness_commit:
         out.append(f"The calibration was made by harness {calibration['harness_commit']}, not "
                    f"by {harness_commit}, which made this run.")

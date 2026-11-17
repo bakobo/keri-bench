@@ -1,6 +1,7 @@
 """The calibration (Part B #1): the comparison logic on fixed inputs, then the real thing."""
 
 import json
+import tarfile
 from pathlib import Path
 
 import pytest
@@ -9,7 +10,25 @@ from keri_bench import calibration
 from keri_bench.errors import BenchError
 
 SCENARIOS = Path(__file__).parent.parent / "scenarios"
+# A calibration recorded on kelun, 2026-11-17, that passed the strict gate live (this.i
+# 0hykugwr). Record it again with `keri-bench calibrate` when the timeline schema or the
+# calibration scenarios change, keeping only scenarios/, timeline.jsonl, provenance.json and
+# truth.jsonl.
+RECORDING = Path(__file__).parent / "golden" / "calibration" / "kelun-2026-11-17.tar.gz"
 MS = 1_000_000
+REP = "intervals/rate-15/rep-1"
+
+
+def recording(tmp_path) -> Path:
+    path = tmp_path / "recording"
+    with tarfile.open(RECORDING) as archive:
+        archive.extractall(path, filter="data")
+    return path
+
+
+def rewrite_jsonl(path: Path, change) -> None:
+    lines = [json.loads(line) for line in path.read_text().splitlines()]
+    path.write_text("".join(json.dumps(line) + "\n" for line in change(lines)))
 
 
 def interval(count, p50, p99, resolution=1, measured=True):
@@ -92,16 +111,155 @@ def test_a_stall_must_reach_the_tail_without_moving_the_median(tmp_path):
 
 
 @pytest.mark.calibration
-async def test_the_harness_recovers_what_the_calibration_stack_injected(tmp_path):
-    result = await calibration.calibrate(SCENARIOS, tmp_path, harness_commit="test")
-    detail = json.dumps({k: result[k] for k in ("saturation", "stall")}, indent=1)
+async def test_the_live_calibration_passes_the_gate_a_loaded_host_cannot_fail(tmp_path):
+    result = await calibration.calibrate(SCENARIOS, tmp_path, harness_commit="test",
+                                         gate="bounds")
+    assert result["bounds"]["ok"], json.dumps(result["bounds"], indent=1)
+    assert result["ok"] and result["gate"] == "bounds"
+    assert sorted(p.name for p in (tmp_path / "scenarios").iterdir()) == [
+        f"{name}.toml" for name in calibration.SCENARIOS]
+    assert json.loads((tmp_path / "calibration.json").read_text()) == result
+
+
+def test_the_recorded_calibration_passes_the_strict_gate_with_this_code(tmp_path):
+    result = calibration.replay(recording(tmp_path), tmp_path / "out", harness_commit="test")
     failing = {run: {k: e for k, e in res.items() if e.get("measured") and not e["ok"]}
                for run, res in result["intervals"]["runs"].items()}
     assert result["intervals"]["ok"], json.dumps(failing, indent=1)
-    assert result["saturation"]["ok"], detail
-    assert result["stall"]["ok"], detail
-    assert result["ok"]
-    assert json.loads((tmp_path / "calibration.json").read_text()) == result
+    assert result["bounds"]["ok"] and result["saturation"]["ok"] and result["stall"]["ok"]
+    assert result["ok"] and result["strict_ok"] and result["gate"] == "strict"
+    assert len(result["bounds"]["intervals"]["runs"]) == 3
+    offset = result["bounds"]["intervals"]["runs"][str(tmp_path / "out" / REP)]["offsets"]
+    assert offset["stack:synthetic-issuer"]["skew_ms"] == 7300.0
+
+
+def test_a_constant_the_harness_adds_passes_the_bounds_and_fails_the_strict_gate(tmp_path):
+    # Shrinking the truth by 4 ms is what a harness adding 4 ms to every delivered->stored would
+    # look like: above the 5% of a 60 ms median, and invisible to a lower bound.
+    source = recording(tmp_path)
+    for rep in (1, 2, 3):
+        def shrink(lines):
+            for line in lines:
+                if (line["start"], line["end"]) == ("delivered", "stored"):
+                    line["elapsed_ns"] -= 4 * MS
+                    line["floor_ns"] -= 4 * MS
+            return lines
+        rewrite_jsonl(source / f"intervals/rate-15/rep-{rep}/truth.jsonl", shrink)
+    strict = calibration.replay(source, tmp_path / "strict", harness_commit="test")
+    assert strict["bounds"]["ok"] and not strict["intervals"]["ok"] and not strict["ok"]
+    bounds = calibration.replay(source, tmp_path / "bounds", harness_commit="test",
+                                gate="bounds")
+    assert bounds["ok"] and not bounds["strict_ok"]
+
+
+def test_a_measured_interval_shorter_than_its_floor_breaks_the_bounds(tmp_path):
+    source = recording(tmp_path)
+
+    def lengthen(lines):
+        lines[0]["floor_ns"] += 10_000 * MS
+        return lines
+    rewrite_jsonl(source / REP / "truth.jsonl", lengthen)
+    first = json.loads((source / REP / "truth.jsonl").read_text().splitlines()[0])
+    result = calibration.replay(source, tmp_path / "out", harness_commit="test", gate="bounds")
+    entry = result["bounds"]["intervals"]["runs"][str(tmp_path / "out" / REP)]["transitions"][
+        f"{first['start']}->{first['end']}"]
+    assert entry["short"] == 1 and entry["least_slack_ns"] < 0 and not entry["ok"]
+    assert not result["ok"]
+
+
+def test_an_injected_transition_with_no_measured_interval_breaks_the_bounds(tmp_path):
+    source = recording(tmp_path)
+    rewrite_jsonl(source / REP / "timeline.jsonl", lambda lines: [
+        line for line in lines if not (line.get("name") == "stored"
+                                       and line.get("credentials") == ["c000000"])])
+    path = tmp_path / "out"
+    result = calibration.replay(source, path, harness_commit="test", gate="bounds")
+    entry = result["bounds"]["intervals"]["runs"][str(path / REP)]["transitions"]
+    assert entry["delivered->stored"]["unmeasured"] == 1
+    assert entry["stored->proof_generated"]["unmeasured"] == 1
+    assert not result["ok"]
+
+
+def test_a_repeated_milestone_is_bracketed_from_its_first_sighting(tmp_path):
+    source = recording(tmp_path)
+
+    def repeat(lines):
+        stored = next(line for line in lines if line.get("name") == "stored")
+        return lines + [{**stored, "t": stored["t"] + 10_000 * MS}]
+    rewrite_jsonl(source / REP / "timeline.jsonl", repeat)
+    calibration.replay(source, tmp_path / "out", harness_commit="test", gate="bounds")
+    assert calibration.bracket(tmp_path / "out" / REP)["ok"]
+
+
+def test_an_offset_that_disagrees_with_the_injected_skew_breaks_the_bounds(tmp_path):
+    source = recording(tmp_path)
+    record = json.loads((source / REP / "provenance.json").read_text())
+    record["knobs"]["issuer"]["clock_skew_ms"] = 7299.0
+    (source / REP / "provenance.json").write_text(json.dumps(record))
+    calibration.replay(source, tmp_path / "out", harness_commit="test", gate="bounds")
+    run = calibration.bracket(tmp_path / "out" / REP)
+    offset = run["offsets"]["stack:synthetic-issuer"]
+    assert abs(offset["error_ns"]) > offset["bound_ns"] and not offset["ok"] and not run["ok"]
+
+
+@pytest.mark.parametrize("change", ["no skew", "no realtime offset"])
+def test_an_offset_with_nothing_to_check_it_against_breaks_the_bounds(tmp_path, change):
+    source = recording(tmp_path)
+    if change == "no skew":
+        record = json.loads((source / REP / "provenance.json").read_text())
+        record["knobs"]["issuer"]["clock_skew_ms"] = "n/a"
+        (source / REP / "provenance.json").write_text(json.dumps(record))
+    else:
+        rewrite_jsonl(source / REP / "timeline.jsonl", lambda lines: [
+            line for line in lines if not (line.get("name") == "clock_offset"
+                                           and line["attrs"]["domain"].startswith("realtime@"))])
+    calibration.replay(source, tmp_path / "out", harness_commit="test", gate="bounds")
+    run = calibration.bracket(tmp_path / "out" / REP)
+    assert run["offsets"]["stack:synthetic-issuer"]["ok"] is False
+    assert "reason" in run["offsets"]["stack:synthetic-issuer"] and not run["ok"]
+
+
+def test_the_bounds_stall_needs_the_slowest_construction_to_reach_the_stall(tmp_path):
+    def stall(name, top, resolution, refused=False):
+        path = tmp_path / name
+        path.mkdir(parents=True)
+        (path / "report.json").write_text(json.dumps({"refused": refused, "intervals": {
+            "requested->constructed": {"max": top, "p50": 3 * MS,
+                                       "resolution_ns": resolution}}}))
+
+    stall("rate-1/rep-1", 499 * MS, 1 * MS)    # 499 ms, within its 1 ms resolution of 500 ms
+    stall("rate-1/rep-2", 1, 1, refused=True)
+    assert calibration._stall_reached(tmp_path, 500.0)["ok"]
+    stall("rate-1/rep-3", 498 * MS, 1 * MS)
+    assert not calibration._stall_reached(tmp_path, 500.0)["ok"]
+    assert not calibration._stall_reached(tmp_path / "none", 500.0)["ok"]
+
+
+def test_the_bounds_saturation_needs_a_saturation_no_faster_than_the_cap_allows():
+    assert calibration._saturation_capped({"saturation": {"achieved": 30.0, "offered": 50.0}},
+                                          50.0)["ok"]   # a loaded host saturates early: fine
+    assert calibration._saturation_capped({"saturation": {"achieved": 55.0, "offered": 70.0}},
+                                          50.0)["ok"]
+    assert not calibration._saturation_capped({"saturation": {"achieved": 56.0, "offered": 70.0}},
+                                              50.0)["ok"]
+    assert not calibration._saturation_capped({"saturation": None}, 50.0)["ok"]
+
+
+def test_a_calibration_without_its_scenarios_cannot_be_judged(tmp_path):
+    with pytest.raises(BenchError) as refused:
+        calibration.judge(tmp_path, harness_commit="test")
+    assert refused.value.code == "e.state.missing.calibration.scenarios.f"
+
+
+async def test_a_gate_must_be_one_the_calibration_knows(tmp_path):
+    for attempt in (lambda: calibration.judge(tmp_path, harness_commit="t", gate="loose"),
+                    lambda: calibration.replay(tmp_path, tmp_path / "o", harness_commit="t",
+                                               gate="loose")):
+        with pytest.raises(BenchError) as refused:
+            attempt()
+        assert refused.value.code == "e.input.range.calibration.gate.f"
+    with pytest.raises(BenchError):
+        await calibration.calibrate(SCENARIOS, tmp_path, harness_commit="t", gate="loose")
 
 
 def test_an_injected_transition_the_report_did_not_measure_fails_the_calibration(tmp_path):

@@ -42,16 +42,21 @@ class Role:
         median_ms, sigma = self.spec["delays"][transition]
         return median_ms / 1e3 * math.exp(self.rng.gauss(0.0, sigma))
 
-    def truth(self, credential: str, transition: str, injected: float, elapsed: int) -> None:
+    def truth(self, credential: str, transition: str, injected: float, elapsed: int,
+              floor: int) -> None:
         """Record what was injected and what actually elapsed on this role's monotonic clock.
 
-        The calibration compares against ``elapsed_ns``: a sleep overshoots, and that overshoot
+        The strict gate compares against ``elapsed_ns``: a sleep overshoots, and that overshoot
         is the synthetic stack's own behaviour, not the harness's measurement error.
+        ``floor_ns`` is what had elapsed when the effect that ends the transition began, the most
+        the harness's end stamp can be held to: for a transition ended by a request to another
+        role, ``elapsed_ns`` also counts the answer's way back, which the harness may stamp
+        before (this.i 0hykugwr).
         """
         start, end = transition.split(">")
         self._truth.write(json.dumps({"credential": credential, "start": start, "end": end,
                                       "injected_ns": round(injected * 1e9),
-                                      "elapsed_ns": elapsed}) + "\n")
+                                      "elapsed_ns": elapsed, "floor_ns": floor}) + "\n")
         self._truth.flush()
 
     async def delay(self, credential: str, transition: str, then=None) -> None:
@@ -60,9 +65,10 @@ class Role:
         seconds = self.draw(transition)
         began = time.monotonic_ns()
         await asyncio.sleep(seconds)
+        floor = time.monotonic_ns() - began
         if then is not None:
             await then()
-        self.truth(credential, transition, seconds, time.monotonic_ns() - began)
+        self.truth(credential, transition, seconds, time.monotonic_ns() - began, floor)
 
     async def handle(self, method: str, path: str, body: bytes):
         if path == "/clock":
