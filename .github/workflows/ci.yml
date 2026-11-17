@@ -1,7 +1,8 @@
 name: CI
 
 # Part B of docs/test-plan.md on every change: the unit and run tests, the adapter contract suite
-# against the synthetic adapters, and the calibration (Part B #1), at 100% branch coverage.
+# against the synthetic adapters, and the calibration (Part B #1) live at its bounds gate and
+# replayed at its strict gate, at 100% branch coverage.
 # Nothing here needs a private repository; the real adapters' weekly contract run is separate.
 
 on:
@@ -26,9 +27,12 @@ jobs:
         run: uv sync --locked
       - name: Test, with the calibration and the contract suite
         run: uv run pytest -q --cov --cov-report=term-missing --cov-fail-under=100
+      # The bounds gate: a shared runner's load moves the two-sided bars, so those are held on the
+      # recorded calibration in the suite and on the bench host (this.i 0hykugwr). The budget
+      # this step measures is still kept.
       - name: Calibrate, and keep the error budget
         if: always()
-        run: uv run keri-bench calibrate --out runs/calibration
+        run: uv run keri-bench calibrate --gate bounds --out runs/calibration
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
