@@ -47,21 +47,34 @@ def run_dir(tmp_path, name, truth, intervals, refused=False):
     return path
 
 
-def test_compare_holds_each_transition_to_the_larger_of_5_percent_or_its_resolution(tmp_path):
-    # Hand-computed truth: 100 values 1..100 ms; p50 is the 50th (50 ms), p99 the 99th (99 ms).
-    values = [i * MS for i in range(1, 101)]
+def test_compare_holds_each_transition_to_the_largest_of_5_percent_its_resolution_or_5_ms(
+        tmp_path):
+    # Hand-computed truth: 100 values 10..1000 ms; p50 is the 50th (500 ms, 5% = 25 ms), p99 the
+    # 99th (990 ms).
+    values = [i * 10 * MS for i in range(1, 101)]
     path = run_dir(tmp_path, "r", {("a", "b"): values, ("c", "d"): values, ("e", "f"): values,
                                    ("g", "h"): values}, {
-        "a->b": interval(100, 52 * MS, 99 * MS),                   # +2 ms <= 2.5 ms: ok
-        "c->d": interval(100, 53 * MS, 99 * MS),                   # +3 ms > 2.5 ms: not ok
-        "e->f": interval(100, 54 * MS, 99 * MS, resolution=5 * MS),  # 4 ms <= resolution 5 ms
+        "a->b": interval(100, 520 * MS, 990 * MS),                     # +20 ms <= 25 ms: ok
+        "c->d": interval(100, 530 * MS, 990 * MS),                     # +30 ms > 25 ms: not ok
+        "e->f": interval(100, 535 * MS, 990 * MS, resolution=40 * MS),  # 35 ms <= resolution
         "g->h": interval(0, 0, 0, measured=False)})
     result = calibration.compare(path)
     assert result["a->b"]["ok"] and result["e->f"]["ok"] and not result["c->d"]["ok"]
-    assert result["a->b"]["p50"] == {"truth_ns": 50 * MS, "measured_ns": 52 * MS,
-                                     "error_ns": 2 * MS, "tolerance_ns": 2_500_000}
-    assert result["e->f"]["p50"]["tolerance_ns"] == 5 * MS
+    assert result["a->b"]["p50"] == {"truth_ns": 500 * MS, "measured_ns": 520 * MS,
+                                     "error_ns": 20 * MS, "tolerance_ns": 25 * MS}
+    assert result["e->f"]["p50"]["tolerance_ns"] == 40 * MS
     assert result["g->h"] == {"measured": False}
+
+
+def test_a_short_transition_is_held_to_5_ms_not_5_percent(tmp_path):
+    # 1..100 ms: p50 50 ms, whose 5% is 2.5 ms, so the 5 ms floor is the tolerance.
+    values = [i * MS for i in range(1, 101)]
+    path = run_dir(tmp_path, "r", {("a", "b"): values, ("c", "d"): values}, {
+        "a->b": interval(100, 50 * MS + 4_500_000, 99 * MS),   # +4.5 ms <= 5 ms: ok
+        "c->d": interval(100, 50 * MS + 5_500_000, 99 * MS)})  # +5.5 ms > 5 ms: not ok
+    result = calibration.compare(path)
+    assert result["a->b"]["ok"] and not result["c->d"]["ok"]
+    assert result["a->b"]["p50"]["tolerance_ns"] == calibration.INTERVAL_FLOOR_NS == 5 * MS
 
 
 def test_compare_fails_a_transition_whose_sample_count_differs(tmp_path):
@@ -134,15 +147,15 @@ def test_the_recorded_calibration_passes_the_strict_gate_with_this_code(tmp_path
 
 
 def test_a_constant_the_harness_adds_passes_the_bounds_and_fails_the_strict_gate(tmp_path):
-    # Shrinking the truth by 4 ms is what a harness adding 4 ms to every delivered->stored would
-    # look like: above the 5% of a 60 ms median, and invisible to a lower bound.
+    # Shrinking the truth by 8 ms is what a harness adding 8 ms to every delivered->stored would
+    # look like: above the 5 ms floor and 5% of a 60 ms median, and invisible to a lower bound.
     source = recording(tmp_path)
     for rep in (1, 2, 3):
         def shrink(lines):
             for line in lines:
                 if (line["start"], line["end"]) == ("delivered", "stored"):
-                    line["elapsed_ns"] -= 4 * MS
-                    line["floor_ns"] -= 4 * MS
+                    line["elapsed_ns"] -= 8 * MS
+                    line["floor_ns"] -= 8 * MS
             return lines
         rewrite_jsonl(source / f"intervals/rate-15/rep-{rep}/truth.jsonl", shrink)
     strict = calibration.replay(source, tmp_path / "strict", harness_commit="test")

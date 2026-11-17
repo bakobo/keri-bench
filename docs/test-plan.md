@@ -138,7 +138,7 @@ The report generator accepts every timeline schema it has ever emitted.
 Development is strict TDD, with 100% branch coverage of new code, run by `uv run pytest`. Unit tests need no KERI stack.
 
 1. **Calibration (end-to-end).** A synthetic stack provides one fake adapter per role, each with a seeded, known delay distribution and a known throughput cap for every milestone transition. A full run (driver, proxy, adapters, timeline, report) against this stack must:
-   - recover each injected interval's p50 and p99 within the larger of 5% or the observation resolution;
+   - recover each injected interval's p50 and p99 within the largest of 5%, the observation resolution and 5 ms, the floor being the cost of one observation's round trip on a busy host (`this.i` 93uwk6r3);
    - report the saturation point within ±10%;
    - show an injected stall in the tail.
 

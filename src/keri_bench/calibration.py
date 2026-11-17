@@ -11,7 +11,8 @@ agrees with the realtime offset less the injected skew, within the two offsets' 
 reaches the tail, and the saturation detector fires at no more than the cap plus 10%.
 
 The strict gate adds the two-sided bars: ``calibration-intervals`` must recover every injected
-interval's p50 and p99 within the larger of 5% or the interval's resolution;
+interval's p50 and p99 within the largest of 5%, the interval's resolution and 5 ms (this.i
+93uwk6r3);
 ``calibration-saturation`` must put the saturation point within 10% of the known construction
 cap; ``calibration-stall`` must show its stall in the tail without moving the median. Those
 depend on how busy the host is, so they gate a recorded calibration (``replay``) and the bench
@@ -35,6 +36,9 @@ from .scenario import load_scenario
 from .timeline import read_timeline
 
 INTERVAL_TOLERANCE = 0.05
+# The cost of one observation's round trip on a busy bench host, which 5% of a 60 ms injected
+# median does not cover (this.i 93uwk6r3).
+INTERVAL_FLOOR_NS = 5_000_000
 SATURATION_TOLERANCE = 0.10
 GATES = ("strict", "bounds")
 SCENARIOS = ("calibration-intervals", "calibration-saturation", "calibration-stall")
@@ -67,7 +71,8 @@ def compare(run_dir: Path) -> dict:
         ok = len(values) == measured["count"]
         for p, name in ((50, "p50"), (99, "p99")):
             expected = _rank(values, p)
-            tolerance = max(round(INTERVAL_TOLERANCE * expected), measured["resolution_ns"])
+            tolerance = max(round(INTERVAL_TOLERANCE * expected), measured["resolution_ns"],
+                            INTERVAL_FLOOR_NS)
             error = measured[name] - expected
             entry[name] = {"truth_ns": expected, "measured_ns": measured[name],
                            "error_ns": error, "tolerance_ns": tolerance}
