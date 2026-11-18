@@ -173,6 +173,14 @@ def test_a_reference_style_definition_is_rewritten_and_checked(tmp_path):
     assert err.value.code == site_source.SITE_LINK.code
 
 
+def test_a_definition_shaped_line_inside_a_paragraph_is_left_alone(tmp_path):
+    """DeepSeek on keri-bench#4: a definition cannot interrupt a paragraph, so this is text."""
+    repo = _repo(tmp_path)
+    text = "This is a paragraph\n[p]: docs/plan.md\n\n[q]: docs/plan.md\n[r]: docs/plan.md\n"
+    assert rewrite_links(text, "README.md", "index.md", repo) == (
+        "This is a paragraph\n[p]: docs/plan.md\n\n[q]: plan.md\n[r]: plan.md\n")
+
+
 def test_a_destination_with_balanced_parentheses_is_rewritten(tmp_path):
     repo = _repo(tmp_path)
     out = rewrite_links("[a](docs/plan.md#section(a))", "README.md", "index.md", repo)

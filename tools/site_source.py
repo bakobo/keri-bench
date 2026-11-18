@@ -194,19 +194,23 @@ def rewrite_links(text: str, source: str, target: str, repo) -> str:
     are. ~5ewp: inline code spans are not, so a link example in backticks must resolve."""
     repo = Path(repo)
     out = []
+    # A definition cannot interrupt a paragraph, so a line shaped like one counts only after a
+    # blank line, another definition or the start of the page (DeepSeek on keri-bench#4).
+    may_define = True
     for number, line, fenced in _lines_outside_fences(text):
         if not fenced:
             def link(m, where=f"{source}:{number}"):
                 return f"]({_rewrite_target(m.group(1), source, target, repo, where)}{m.group(2)})"
 
             line = _LINK.sub(link, line)
-            reference = _REFERENCE.match(line.rstrip("\r\n"))
+            reference = may_define and _REFERENCE.match(line.rstrip("\r\n"))
             if reference:
                 url = reference.group(2)
                 bare = url[1:-1] if url.startswith("<") else url
                 new = _rewrite_target(bare, source, target, repo, f"{source}:{number}")
                 end = line[len(line.rstrip("\r\n")):]
                 line = f"{reference.group(1)}{new}{reference.group(3)}{end}"
+        may_define = not fenced and (not line.strip() or bool(reference))
         out.append(line)
     return "".join(out)
 
