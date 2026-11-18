@@ -519,7 +519,7 @@ def test_the_reading_guide_names_every_section_a_report_renders():
     rendered = {re.sub(r"\s*\($", "", name.strip()) for name in found}
     guide = set(re.findall(r"^### (.+)$", (REPO / "docs/reading-a-report.md").read_text(),
                            re.MULTILINE))
-    assert rendered and rendered == guide - {"Header"}
+    assert rendered and rendered == guide
 
 
 def test_every_published_run_report_carries_a_note(tmp_path):

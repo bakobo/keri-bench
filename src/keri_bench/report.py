@@ -782,8 +782,84 @@ def _calibration_warnings(calibration: Any, harness_commit: str) -> list[str]:
 
 # --- markdown ----------------------------------------------------------------------------------
 
+def _figures(x: float) -> str:
+    """Three significant figures, never in exponent form."""
+    if x >= 100:
+        return f"{x:.0f}"
+    if x >= 10:
+        return f"{x:.1f}"
+    return f"{x:.2f}"
+
+
 def _ns(value: int | None) -> str:
-    return "not seen" if value is None else f"{value} ns"
+    """A duration in the unit a person reads it in (this.i 6d0jwr9z): ns below a microsecond,
+    then µs, ms and s, to three significant figures. report.json keeps the exact nanoseconds."""
+    if value is None:
+        return "not seen"
+    sign, size = ("-" if value < 0 else ""), abs(value)
+    if size < 1_000:
+        return f"{value} ns"
+    for limit, unit, scale in ((1_000_000, "µs", 1e3), (1_000_000_000, "ms", 1e6)):
+        if size < limit:
+            return f"{sign}{_figures(size / scale)} {unit}"
+    return f"{sign}{_figures(size / 1e9)} s"
+
+
+def _rate(per_s: float) -> str:
+    return _figures(per_s) if per_s >= 0.01 else f"{per_s:.3g}"
+
+
+def _summary_md(report: dict) -> list[str]:
+    """The run in sentences, before any table (this.i 6d0jwr9z)."""
+    run, window = report["run"], report["window"]
+    measure = report["measure"]
+    end = measure.split("->")[1]
+    lines = ["## Summary", ""]
+    lasted = window["end_ns"] - window["measured_from_ns"]
+    lines.append(f"This run offered {run['rate']} credentials a second for {_ns(lasted)} "
+                 f"(repetition {run['repetition']}), and {window['credentials']} credential(s) "
+                 f"were requested in its measured window.")
+    if report["refused"]:
+        lines.append("The run is refused, for the reason given below, so its numbers are not "
+                     "to be used.")
+    else:  # a driver that fell behind refuses the run, so an accepted run's driver kept up
+        lines.append("The harness kept to its own schedule throughout.")
+    interval = report["intervals"][measure]
+    if interval["measured"]:
+        missing = interval["missing"]
+        tail = (f"; {missing} never got there before the window closed" if missing else "")
+        lines.append(f"From request to `{end}`, the median credential took "
+                     f"{_ns(interval['p50'])} and 1 in 100 took longer than "
+                     f"{_ns(interval['p99'])}, over {interval['count']} credential(s){tail}.")
+    else:
+        lines.append(f"The measured interval, `{measure}`, could not be measured in this run.")
+    reached = report["throughput"]["milestones"].get(end)
+    offered = report["throughput"]["offered_per_s"]
+    if reached is not None and offered:
+        share = round(100 * reached["per_s"] / offered)
+        lines.append(f"`{end}` was reached {_rate(reached['per_s'])} times a second against "
+                     f"{_rate(offered)} offered, {share}% of the offered load.")
+    for fault in report["faults"]:
+        sentence = f"A {fault['kind']} on {fault['target']} was injected"
+        if fault.get("time_to_ready_ns") is not None:
+            sentence += (f"; it was ready again {_ns(fault['time_to_ready_ns'])} after it began, "
+                         f"and the next credential succeeded "
+                         f"{_ns(fault.get('time_to_first_success_ns'))} after it began")
+        lines.append(sentence + ".")
+    if report["reconciliation"] != NOT_MEASURED:
+        counts = report["reconciliation"]["summary"]
+        fates = ", ".join(f"{counts[k]} {k}" for k in ("done", "resumed", "lost", "unanswered")
+                          if k in counts)
+        lines.append(f"Checked afterwards, of {counts.get('total', 0)} credential(s): {fates}.")
+    warnings = len(report["warnings"])
+    lines.append("There are no warnings." if not warnings else
+                 f"There {'is 1 warning' if warnings == 1 else f'are {warnings} warnings'}, "
+                 f"listed at the end.")
+    lines += ["", "Durations are rounded to three significant figures; the run's `report.json` "
+              "keeps them in nanoseconds. [Reading a run report]"
+              "(https://bakobo.github.io/keri-bench/reading-a-report/) explains each section.",
+              ""]
+    return lines
 
 
 def _interval_table(rows: Iterable[tuple[str, dict]]) -> list[str]:
@@ -835,15 +911,16 @@ def _censored_md(incomplete: dict) -> list[str]:
     return lines + [""]
 
 
-def _faults_md(faults: list[dict]) -> list[str]:
+def _faults_md(faults: list[dict], start_ns: int) -> list[str]:
     lines = ["## Faults", ""]
     if not faults:
         return lines + ["No faults were scheduled in this run.", ""]
     for fault in faults:
         ended = ("not before the window closed" if fault["ended_ns"] is None
-                 else _ns(fault["ended_ns"]))
+                 else f"{_ns(fault['ended_ns'] - start_ns)} into the run")
         lines += [f"### {fault['kind']} on {fault['target']}", "",
-                  f"Started: {_ns(fault['started_ns'])}; ended: {ended}.", ""]
+                  f"Started {_ns(fault['started_ns'] - start_ns)} into the run; ended {ended}.",
+                  ""]
         if "time_to_ready_ns" in fault:
             lines += [f"- time to ready: {_ns(fault['time_to_ready_ns'])}",
                       f"- time to first success: {_ns(fault['time_to_first_success_ns'])}", ""]
@@ -855,16 +932,16 @@ def _faults_md(faults: list[dict]) -> list[str]:
 
 def render_markdown(report: dict) -> str:
     run, window, driver = report["run"], report["window"], report["driver"]
-    lines = ["# keri-bench report", "",
+    lines = ["# keri-bench report", ""] + _summary_md(report) + ["## Provenance", "",
              f"Report schema {report['report_schema']}, generated by "
              f"{report['generator_commit']} from a timeline of schema "
              f"{report['timeline_schema']} (vocabulary {report['vocabulary_version']}) written "
              f"by harness {report['harness_commit']}. Scenario sha256 "
              f"{report['scenario_sha256']}.", "",
              f"Offered load {run['rate']} per second, repetition {run['repetition']}. The "
-             f"window ran from {_ns(window['start_ns'])} to {_ns(window['end_ns'])}, measured "
-             f"from {_ns(window['measured_from_ns'])} after {_ns(window['warmup_ns'])} of "
-             f"warmup, and covers {window['credentials']} credential(s).", ""]
+             f"window lasted {_ns(window['end_ns'] - window['start_ns'])}, measured after "
+             f"{_ns(window['warmup_ns'])} of warmup, and covers {window['credentials']} "
+             f"credential(s).", ""]
     if report["refused"]:
         lines += [f"This run is refused. {report['refused_reason']}", ""]
     for entry in report.get("unexpected_exits", []):
@@ -886,7 +963,7 @@ def render_markdown(report: dict) -> str:
               f"{report['throughput']['offered_per_s']} per second.", "",
               "| milestone | count | per second | unconvertible |", "|---|---|---|---|"]
     for name, rate in report["throughput"]["milestones"].items():
-        lines.append(f"| {name} | {rate['count']} | {rate['per_s']} | "
+        lines.append(f"| {name} | {rate['count']} | {_rate(rate['per_s'])} | "
                      f"{rate['unconvertible']} |")
     lines += ["", "## Observability matrix", "",
               "| milestone | adapter | role | method | clock | resolution | events |",
@@ -899,7 +976,7 @@ def render_markdown(report: dict) -> str:
                          f"| {seen['clock']} | {_ns(seen['resolution_ns'])} | "
                          f"{seen['events']} |")
     lines.append("")
-    lines += _faults_md(report["faults"])
+    lines += _faults_md(report["faults"], window["start_ns"])
     if "drift" in report:
         lines += _drift_md(report["drift"])
     lines += ["## Reconciliation", ""]

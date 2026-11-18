@@ -510,10 +510,10 @@ def test_the_markdown_quotes_every_pair_and_carries_the_key_numbers(tmp_path):
     text = report.render_markdown(got)
     for pair in PAIRS:
         assert f"“{pair.utah}”" in text
-    for needle in ("requested->verified", "p99.9", "1500 ns", "fake.verifier", "unobserved",
-                   "200000.0", "crash on issuer", "time to ready: 200 ns",
-                   "time to first success: not seen", "ended: not before the window closed",
-                   "lost: 2", "issuer: p50 200000 ns, p99 800000 ns", "harness CPU: 1.5 s",
+    for needle in ("requested->verified", "p99.9", "1.50 µs", "fake.verifier", "unobserved",
+                   "| 200000 |", "crash on issuer", "time to ready: 200 ns",
+                   "time to first success: not seen", "ended not before the window closed",
+                   "lost: 2", "issuer: p50 200 µs, p99 800 µs", "harness CPU: 1.5 s",
                    "never contract-tested", "not measured", "lower bound",
                    "No adapter in this run observes", "Driver check passed",
                    "The signer census is not measured"):
@@ -543,7 +543,7 @@ def test_a_non_crash_fault_renders_without_recovery_times(tmp_path):
         ev("fault_started", 2000, attrs={"kind": "duplicate", "target": "holder"}),
         ev("fault_ended", 3000, attrs={"kind": "duplicate", "target": "holder"})]
     text = report.render_markdown(derive(write_run(tmp_path, events)))
-    assert "### duplicate on holder" in text and "ended: 3000 ns" in text
+    assert "### duplicate on holder" in text and "ended 3.00 µs into the run" in text
     assert "time to ready" not in text
 
 
@@ -861,7 +861,7 @@ def test_the_batch_golden_has_one_anchor_line_for_three_credentials():
 
 def test_the_golden_markdown_carries_the_hand_computed_numbers():
     singles = report.render_markdown(frozen(GOLDEN / "v1" / "singles"))
-    assert "- p90: 8003 ns (lower bound)" in singles and "- p50: 1500 ns\n" in singles
+    assert "- p90: 8.00 µs (lower bound)" in singles and "- p50: 1.50 µs\n" in singles
     assert "| registry_updated->anchored | 3 | 0 | 0 | 114 ns | 228 ns |" in singles
     batch = report.render_markdown(frozen(GOLDEN / "v1" / "batch"))
     assert "- time to ready: 500 ns" in batch and "- time to first success: 490 ns" in batch
@@ -1064,7 +1064,7 @@ def test_the_markdown_carries_the_drift_slopes_and_the_bucket_table(tmp_path):
     fit = json.loads((tmp_path / "report.json").read_text())["drift"]["slopes"]["p50"]
     assert f"| p50 | per 10 credentials | {round(fit['store_credentials']['slope_ns'])} ns" \
         in text
-    assert f"| 3 | 3.0 | 3000 | 2 | 0 | {hdr(50 * MS)} ns | {hdr(70 * MS)} ns |" in text
+    assert "| 3 | 3.0 | 3000 | 2 | 0 | 50.0 ms | 70.1 ms |" in text  # HDR 50003967, 70057983 ns
     soak_run(tmp_path, [10, 20, 30, 40])
     report.write_report(tmp_path, generator_commit="gc")
     assert "not measured: A slope's confidence interval needs at least three points" in \
@@ -1310,3 +1310,20 @@ def test_a_profile_or_count_that_cannot_be_refuses_the_run(tmp_path, change):
     ops = [["sign", 0, 0, 10 * MS_], ["sign", 0, 1, 10 * MS_ + 1]]
     report = census_run(tmp_path, [signer(ops, **change)])
     assert report["refused"] is True
+
+
+@pytest.mark.parametrize("ns, shown", [
+    (None, "not seen"), (0, "0 ns"), (999, "999 ns"), (-999, "-999 ns"), (1_000, "1.00 µs"),
+    (12_345, "12.3 µs"), (999_999, "1000 µs"), (1_000_000, "1.00 ms"), (106_364_927, "106 ms"),
+    (-2_000_000, "-2.00 ms"), (984_612_863, "985 ms"), (3_042_967_551, "3.04 s"),
+    (1_502_000_000_000, "1502 s"),
+])
+def test_a_duration_is_shown_in_the_unit_a_person_reads(ns, shown):
+    """this.i 6d0jwr9z: three significant figures, never an exponent; report.json keeps the ns."""
+    assert report._ns(ns) == shown
+
+
+@pytest.mark.parametrize("per_s, shown", [(0.6, "0.60"), (2.8, "2.80"), (15.0, "15.0"),
+                                          (200000.0, "200000"), (0.0012, "0.0012")])
+def test_a_rate_is_shown_to_three_figures(per_s, shown):
+    assert report._rate(per_s) == shown

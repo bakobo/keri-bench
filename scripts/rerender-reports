@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+"""Re-render the committed run reports from their report.json (this.i 6d0jwr9z). The logic is in
+tools/rerender.py, where the tests measure it."""
+
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+
+from tools.rerender import main  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,29 +1,24 @@
 # Reading a run report
 
-Each page under Results that is titled "keri-bench report" is the harness's own record of one run: one scenario, at one offered load, one repetition. The write-ups are where the runs are interpreted. A run report is the evidence underneath, printed exactly as the harness wrote it, so that anyone can check a write-up's numbers against it or regenerate it from the run's raw timeline. The note at the top of each report names the write-up it belongs to.
+Each page under Results that is titled "keri-bench report" is the harness's own record of one run: one scenario, at one offered load, one repetition. The write-ups are where the runs are interpreted. A run report is the evidence underneath: the harness derives each run's numbers from its raw timeline into `report.json`, and renders this page from that file, so anyone can check a write-up's numbers against it or regenerate both. The note at the top of each report names the write-up it belongs to.
 
 The terms below are defined in the [glossary](glossary.md).
 
 ## Units, first
 
-Every duration is in nanoseconds, because that is the harness's clock. A billion nanoseconds is one second, so:
-
-| as printed | means |
-|---|---|
-| 1000 ns | one microsecond |
-| 1000000 ns | one millisecond |
-| 984612863 ns | just under one second |
-| 3042967551 ns | about three seconds |
-
-Large numbers that are not durations, such as `565379855592545 ns` for a moment in time, are readings of the machine's clock since it started. Only the difference between two of them means anything.
+Durations are printed in the unit you would say them in, to three significant figures: `387 µs` is 387 microseconds, `106 ms` is 106 milliseconds, `3.04 s` is just over three seconds. The run's `report.json`, beside each report, keeps every duration as an exact count of nanoseconds, the harness's clock, for anyone recomputing a number. Moments in a run, such as when a fault began, are given as times into the run.
 
 Latencies are given as percentiles. `p50` is the median: half the credentials took less, half took more. `p99` is the time 99 in 100 credentials beat. The tail, `p99.9` and `max`, is where a stall shows.
 
 ## The sections, in order
 
-### Header
+### Summary
 
-The harness and report versions, the scenario's hash (its file is named in the write-up and kept under `scenarios/`), the offered load in credentials a second, which repetition this was, and how many credentials the measured window covered.
+The run in a few sentences: what load was offered and for how long, how long the median credential took to reach the measured milestone and how long the slowest one in a hundred took, whether the system kept up with the offered load, what an injected fault did, what became of every credential when they were checked afterwards, and how many warnings there are. If you read one section, read this one.
+
+### Provenance
+
+The harness and report versions, the scenario's hash (its file is named in the write-up and kept under `scenarios/`), the offered load in credentials a second, which repetition this was, how long the measured window lasted and how many credentials it covered.
 
 ### Driver check
 
