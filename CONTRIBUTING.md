@@ -1,33 +1,4 @@
-<!--
-REFERENCE COPY — not used by this repo.
-
-Copy this to `CONTRIBUTING.md` — **drop the `oss-` prefix** — in a public Bakobo repo, and fill
-the placeholders below. The prefix exists only so these files sit inertly in `bakobo/template`
-without being mistaken for that repo's own; it is never part of the published filename, and
-GitHub's Community Standards check looks for the unprefixed name.
-
-It deliberately does NOT live at `CONTRIBUTING.md` here, because `bakobo/template` is private
-and seeds private repos, which have no outside contributors to address.
-
-Its siblings, same rule: `oss-SECURITY.md`, `oss-CODE_OF_CONDUCT.md`, and `oss-codeql.yml`
-(which becomes `.github/workflows/codeql.yml`). The checklist they all serve is
-`dev/standards/oss-posture.md`; audit a repo against it with `dev/oss-posture`.
-
-Placeholders, all marked `((LIKE THIS))`:
-
-  ((REPO))          the repo name, e.g. witness
-  ((BUILD+TEST))    the fresh-clone-to-passing-tests commands for this repo's toolchain
-  ((CHECKS))        the required status checks by name, e.g. `test` and `image`
-
-Ship `SECURITY.md` alongside this file — copy `oss-SECURITY.md` from the same directory. The
-vulnerability section below points at it and reads wrong without it.
-
-Keep it self-contained. A contributor cannot read `bakobo/dev`, so never link a standard there —
-restate what they need. If a rule below does not apply to a repo, delete that section rather than
-softening it into something nobody can act on.
--->
-
-# Contributing to ((REPO))
+# Contributing to keri-bench
 
 Thanks for considering it. This document is what you need to make a change here land; it stands on its own and assumes no access to anything private.
 
@@ -36,14 +7,18 @@ Before a large change, open an issue and describe what you want to do. Small fix
 ## Getting to passing tests
 
 ```sh
-((BUILD+TEST))
+git clone https://github.com/bakobo/keri-bench && cd keri-bench
+uv sync
+uv run pytest
 ```
 
-Every dependency is public. If a step asks you for a credential, that is a bug in our setup and we want to hear about it.
+You need Linux, because the harness names its clock by the kernel's boot id, and [uv](https://docs.astral.sh/uv/), which fetches Python 3.14. The suite includes the calibration, which runs a synthetic stack for about a minute and a half; `uv run pytest -m "not calibration"` skips it while you iterate.
+
+Every dependency of the harness and its tests is public. If a step asks you for a credential, that is a bug in our setup and we want to hear about it. The one exception is optional: the `stacks` extra, which drives Bakobo's own imbu and heti, needs repositories that are not public, and nothing else depends on it.
 
 ## How a change lands
 
-Branch, push the branch, open a pull request against `main`. ((CHECKS)) must pass. Maintainers merge with a **merge commit or a rebase, never a squash** — the individual commits are the record, and collapsing them loses the per-commit history and the sign-off chain.
+Branch, push the branch, open a pull request against `main`. CI's `test` and `site` jobs must pass. Maintainers merge with a **merge commit or a rebase, never a squash** — the individual commits are the record, and collapsing them loses the per-commit history and the sign-off chain.
 
 Direct pushes to `main` are blocked by a repository ruleset. Organization admins can bypass it, and that exists for the case where the process itself is broken, not as a shortcut.
 

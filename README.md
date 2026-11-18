@@ -60,3 +60,7 @@ The real stack's adapters need private bakobo repositories, so they are an extra
 - `scenarios/`: scenario files.
 - `tests/golden/`: hand-checked timelines for every timeline schema the harness has emitted.
 - `tools/site_source.py`, `scripts/site-source` and `zensical.toml`: the documentation site's build; see [`docs/site.md`](docs/site.md).
+
+## License
+
+Apache-2.0; see [`LICENSE`](LICENSE). [`CONTRIBUTING.md`](CONTRIBUTING.md) says how a change lands, and [`SECURITY.md`](SECURITY.md) how to report a vulnerability.

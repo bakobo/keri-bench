@@ -1,30 +1,3 @@
-<!--
-REFERENCE COPY — not used by this repo.
-
-Copy this to `SECURITY.md` — **drop the `oss-` prefix** — in a public Bakobo repo, and fill the
-placeholders. The prefix only keeps the file inert here; it is never part of the published name.
-It does not live at `SECURITY.md` here, because `bakobo/template` is private and seeds private
-repos. Checklist: `dev/standards/oss-posture.md`; audit with `dev/oss-posture`.
-
-Placeholders, all marked `((LIKE THIS))`:
-
-  ((REPO))       the repo name, e.g. witness
-  ((SCOPE))      what this repo is responsible for, and what belongs upstream — see the note below
-  ((KNOWN))      OPTIONAL: accepted risks a reporter would otherwise spend time rediscovering.
-                 Delete the section if there are none. Only state what is already public.
-
-((SCOPE)) is the section worth thinking about rather than pasting. Most of these repos sit on
-keripy, and a reporter cannot tell from the outside where our code stops. Say it explicitly, and
-name the upstream so a real finding reaches the people who can fix it instead of dying in our
-inbox. For example, for `witness`: the operator layer is ours, the witness itself is keripy's.
-
-Before publishing this file, turn on GitHub private vulnerability reporting for the repo:
-
-  gh api -X PUT repos/bakobo/((REPO))/private-vulnerability-reporting
-
-The "Report a vulnerability" button does not exist until you do, and this file points at it.
--->
-
 # Security Policy
 
 ## Reporting a vulnerability
@@ -52,7 +25,15 @@ Bakobo is a small company. These are commitments about *responsiveness*, not a g
 
 ## Scope
 
-((SCOPE))
+keri-bench is a measurement harness that an operator runs on a machine they control, against a stack they deploy for the purpose. It is not a service, and it holds no credentials of anyone else's. What is ours:
+
+- the harness itself, `src/keri_bench/`: its driver, fault proxy, process control, timeline and report code, and the synthetic stack it calibrates against;
+- the documentation site's build, `tools/site_source.py` and `scripts/site-source`, which publishes committed results to <https://bakobo.github.io/keri-bench/>;
+- this repository's GitHub Actions workflows.
+
+Examples of what we want to hear about: a scenario, timeline or provenance file that makes the harness run code or write outside its output directory; a committed result that makes the site publish active content; a workflow that exposes a token or runs untrusted code with write permissions.
+
+What is not ours: the stacks keri-bench measures. A vulnerability in one of them belongs to that project, even when keri-bench is how you noticed it: keripy's to [WebOfTrust/keripy](https://github.com/WebOfTrust/keripy), the Registrar's to [bakobo/witness](https://github.com/bakobo/witness), and imbu's or heti's, which are not public, to `security@bakobo.com`. A slow, failing or lost credential in a published result is a measurement, not a vulnerability in the harness.
 
 A vulnerability in a dependency should go to that project, not to us. If you are not sure which side of the line something falls on, report it here and we will route it — that is our job, not yours.
 
@@ -70,7 +51,8 @@ There is no bug bounty. We are not able to pay for reports, and we would rather 
 
 ## Known accepted risks
 
-((KNOWN))
+- The fault proxy, the synthetic stack's processes and the harness's own listeners bind to `127.0.0.1` with no authentication. The harness assumes a single host its operator controls, with no other untrusted users on it; that is a design choice for a measurement instrument, recorded in `this.i`, not an oversight.
+- Scenarios are trusted input. A scenario names adapters, commands and stack versions to run, so running someone else's scenario is running their code.
 
 ## This repository's licence carries no warranty
 
