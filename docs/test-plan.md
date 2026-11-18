@@ -1,6 +1,6 @@
 # keri-bench test plan
 
-Status: approved by Daniel on 2026-10-15 (Q-WVN0), on the condition that the testability and maintainability reviews were dispositioned and applied first. They were: see `reviews/2026-10-15-test-plan/review-panel-test-plan.md`. The plan expands the KERI-006 interview (`bakobo/utah-keri-adoption`, `design/bench-design/interview.md`), and the intentions it rests on are in `this.i`.
+Status: approved by Daniel on 2026-10-15 (Q-WVN0), on the condition that the testability and maintainability reviews were dispositioned and applied first. They were. The review run is kept in Bakobo's private review archive, `bakobo/reviews` under `keri-bench/2026-10-15-test-plan`, since keri-bench went public (`dev/standards/reviews.md`). The plan expands the KERI-006 interview (`bakobo/utah-keri-adoption`, `design/bench-design/interview.md`), and the intentions it rests on are in `this.i`.
 
 The plan has two parts. Part A, the measurement plan, is what Utah asked for. Part B covers how the harness's own code is tested, including how we know the harness measures correctly.
 

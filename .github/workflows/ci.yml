@@ -8,8 +8,9 @@ name: CI
 # raw HTML in a page fails here rather than at the deploy (this.i 2j423x8t).
 
 on:
-  # Every branch, because work on keri-bench lands on main without a pull request (pr-merge land),
-  # so a topic branch's CI is the only run before it lands.
+  # Every push and every pull request. Since keri-bench went public, main's ruleset requires a pull
+  # request whose test and site jobs passed (dev/standards/oss-posture.md item 7), so work no
+  # longer lands on main without one.
   push:
   pull_request:
 

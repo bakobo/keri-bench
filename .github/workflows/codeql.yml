@@ -1,22 +1,6 @@
-# REFERENCE COPY — not used by this repo.
-#
-# Copy to `.github/workflows/codeql.yml` (drop the `oss-` prefix and the leading path) in a public
-# Bakobo repo, then set ((LANGUAGES)) below. Item 6 of `dev/standards/oss-posture.md`.
-#
-#   ((LANGUAGES))  one entry per CodeQL language present in the repo. Valid values:
-#                  actions, c-cpp, csharp, go, java-kotlin, javascript-typescript, python,
-#                  ruby, rust, swift
-#
-#                  python                  -> did-webs, thesmo, utina, witness, errors, status
-#                  javascript-typescript   -> cesrview
-#                  several                 -> fiki, which has py/js/go/rust/java ports
-#
-# A committed workflow rather than GitHub's default setup, deliberately: this org pins every action
-# by commit SHA and keeps CI in the tree where it is diffable, and a scanner configured by a setting
-# nobody can see in a diff is a scanner nobody notices breaking.
-#
-# Action SHAs below were resolved from the tag named in each trailing comment and verified to run on
-# node24, per the GitHub Actions deprecation of node20. Re-verify when you bump them:
+# CodeQL over the harness's Python and its workflows (dev/standards/oss-posture.md item 6), from
+# bakobo/template's oss-codeql.yml. Action SHAs were resolved from the tag in each trailing comment
+# and verified to run on node24; re-verify when bumping them:
 #
 #   curl -sL https://raw.githubusercontent.com/<org>/<action>/<tag>/action.yml | grep -E '^\s*using:'
 
@@ -48,7 +32,7 @@ jobs:
       # One language's failure should not hide another's findings.
       fail-fast: false
       matrix:
-        language: [((LANGUAGES))]
+        language: [python, actions]
 
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
