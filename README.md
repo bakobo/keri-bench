@@ -4,6 +4,19 @@
 
 A measurement instrument for end-to-end KERI+ACDC issuance on any implementation: the State of Utah's KERI-006 (load and soak tests covering throughput, persistence, concurrency, restart recovery, witnessing, TEL replay and wallet delivery). It drives a stack open-loop through per-role adapters, puts a fault proxy in front of every link, and writes a raw timeline from which every reported number can be recomputed. Why it is built this way is in [`this.i`](this.i); what it measures and how its own correctness is tested is in [`docs/test-plan.md`](docs/test-plan.md).
 
+## The results
+
+The runs are read in the write-ups, each of which states what was measured, on which versions, and what it showed:
+
+- [Against Utah's targets: the rerun, November 2026](docs/targets-2026-10-rerun.md) has the most recent verdicts on Utah's targets for volume, stock, revocation, crash recovery and HSM sizing.
+- [Stock and witness outage, November 2026](docs/stock-2026-11.md) fills a single issuer to 40,000 credentials and takes a witness down for 25 minutes.
+- [Against Utah's targets, October 2026](docs/targets-2026-10.md) is the first measurement against those targets, before the fixes it led to.
+- [Baseline, October 2026](docs/baseline-2026-10.md) and [its second part](docs/baseline-2026-10-part2.md) measured the stack before Utah had given targets, including how many signatures a credential costs an HSM.
+
+The [glossary](docs/glossary.md) defines the terms these pages use, and [reading a run report](docs/reading-a-report.md) explains the raw per-run reports the write-ups cite as evidence.
+
+All of this, with every committed run's report, is published at <https://bakobo.github.io/keri-bench/>; [`docs/site.md`](docs/site.md) says how the site is built.
+
 ## From a fresh clone to passing tests
 
 You need Linux (the harness names its clock by the kernel's boot id), [uv](https://docs.astral.sh/uv/), and nothing else; uv fetches Python 3.14.
@@ -46,3 +59,4 @@ The real stack's adapters need private bakobo repositories, so they are an extra
 - `src/keri_bench/stacks/`: the imbu stack's processes and adapters.
 - `scenarios/`: scenario files.
 - `tests/golden/`: hand-checked timelines for every timeline schema the harness has emitted.
+- `tools/site_source.py`, `scripts/site-source` and `zensical.toml`: the documentation site's build; see [`docs/site.md`](docs/site.md).

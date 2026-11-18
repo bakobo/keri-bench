@@ -43,7 +43,20 @@ dependency-metadata = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8", "pytest-cov>=6", "pytest-asyncio>=1.0"]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=6",
+    "pytest-asyncio>=1.0",
+    # tools/site_source.py renders each page as the site will, to check it; pinned to the versions
+    # the site group's Zensical resolves, so the check sees the same output the site publishes.
+    "markdown==3.11.3",
+    "pymdown-extensions==13.1",
+]
+# The documentation site's generator (this.i 2j423x8t), kept out of the harness's dependencies and
+# out of dev. Zensical is pre-1.0, so it is pinned exactly; see zensical.toml.
+site = [
+    "zensical==0.0.69",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -58,10 +71,12 @@ packages = ["src/keri_bench"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# tools/ (the site source assembler) is imported from the repository root, as scripts/ runs it.
+pythonpath = ["."]
 
 [tool.coverage.run]
 branch = true
-source = ["src/keri_bench"]
+source = ["src/keri_bench", "tools"]
 # Synthetic-stack and fake-peer processes are this package's code too.
 patch = ["subprocess"]
 parallel = true

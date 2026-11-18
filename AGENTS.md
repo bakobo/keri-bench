@@ -94,7 +94,8 @@ is trusted until it passes.
 CI (`.github/workflows/ci.yml`) runs the whole suite, including the calibration and the contract
 suite, at 100% branch coverage, on every push to any branch and every pull request. Keep it green, and
 keep `README.md`'s path from a fresh clone to passing tests true when you change how the project
-installs or runs.
+installs or runs. `.github/workflows/pages.yml` publishes the documentation site on every push to
+main ([`docs/site.md`](docs/site.md)), and CI's `site` job builds the same site on every change.
 
 When writing or modifying GitHub Actions workflows, always use the latest
 stable release of each action. Avoid versions pinned to Node.js 16 or

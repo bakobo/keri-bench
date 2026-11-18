@@ -1,0 +1,83 @@
+# The documentation site (this.i 2j423x8t), built by Zensical (pinned exactly in pyproject.toml's
+# site group, because it is pre-1.0) in the same style as keri-conformance-suite's and
+# keri-priv-analysis-suite's. Its input is plain markdown assembled by scripts/site-source into
+# _site/src: the README as the home page, docs/ beside it, and each committed run's report.md under
+# results/. Replacing the generator means replacing this file and one build step.
+#
+#   uv sync --locked --group site
+#   uv run python scripts/site-source
+#   uv run zensical build --clean --strict
+#
+# The site is then in _site/html.
+
+[project]
+site_name = "keri-bench"
+site_description = "Load, soak and fault measurements of end-to-end KERI+ACDC issuance, on any implementation."
+site_url = "https://bakobo.github.io/keri-bench/"
+repo_url = "https://github.com/bakobo/keri-bench"
+repo_name = "bakobo/keri-bench"
+docs_dir = "_site/src"
+# Colours taken from keri.one, as on the other suites' sites; the stylesheet says which.
+extra_css = ["stylesheets/kb.css"]
+# Opens every link that leaves the site in one reused window named "spec".
+extra_javascript = ["javascripts/external-links.js"]
+site_dir = "_site/html"
+nav = [
+  { "Home" = "index.md" },
+  { "Results" = [
+    { "Glossary" = "glossary.md" },
+    { "Reading a run report" = "reading-a-report.md" },
+    { "Baseline, October 2026" = "baseline-2026-10.md" },
+    { "Baseline: HSM sweep and bulk issuance" = "baseline-2026-10-part2.md" },
+    { "Against Utah's targets, October 2026" = "targets-2026-10.md" },
+    { "Against Utah's targets: the rerun" = "targets-2026-10-rerun.md" },
+    { "Stock and witness outage, November 2026" = "stock-2026-11.md" },
+  ] },
+  { "Harness" = [
+    { "Test plan" = "test-plan.md" },
+    { "Adapters" = "adapters.md" },
+    { "The site" = "site.md" },
+  ] },
+]
+
+[project.validation]
+invalid_links = true
+
+[project.theme]
+language = "en"
+features = [
+  "content.code.copy",
+  "content.tooltips",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.top",
+  "search.highlight",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to light mode"
+
+# Deliberately few extensions, as on the conformance suite's site: one that gives meaning to another
+# character (magiclink, emoji, caret, tilde, smartsymbols) would change how a committed report reads.
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+tables = {}
+toc.permalink = true
+pymdownx.highlight.anchor_linenums = true
+pymdownx.superfences = {}
