@@ -1347,3 +1347,21 @@ def test_the_summary_names_the_measured_interval_and_when_the_first_success_came
     got["measure"] = "proof_generated->verified"
     got["intervals"]["proof_generated->verified"] = got["intervals"]["requested->verified"]
     assert "From `proof_generated` to `verified`" in report.render_markdown(got)
+
+
+@pytest.mark.parametrize("n, shown", [(2, "2nd"), (3, "3rd"), (11, "11th"), (21, "21st"),
+                                      (101, "101st"), (112, "112th"), (104, "104th")])
+def test_an_ordinal_reads_as_english(n, shown):
+    assert report._ordinal(n) == shown
+
+
+def test_a_sampled_run_says_its_unsampled_credentials_are_lost_by_construction():
+    """The hostile pass on #8: 9,901 of 10,001 credentials read as lost when only every 101st
+    went past issuance."""
+    got = frozen(GOLDEN / "v1" / "singles")
+    assert "by construction" not in report.render_markdown(got)
+    got["run"]["lifecycle"] = {"full_every": 101}
+    assert ("Only every 101st credential was taken past issuance in this run"
+            in report.render_markdown(got))
+    got["run"]["lifecycle"] = {"full_every": 1}
+    assert "by construction" not in report.render_markdown(got)

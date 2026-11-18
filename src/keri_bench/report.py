@@ -809,6 +809,11 @@ def _ns(value: int | None) -> str:
     return f"{sign}{_figures(size / 1e9)} s"
 
 
+def _ordinal(n: int) -> str:
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
 def _rate(per_s: float) -> str:
     return _figures(per_s)
 
@@ -857,6 +862,13 @@ def _summary_md(report: dict) -> list[str]:
         fates = ", ".join(f"{counts[k]} {k}" for k in ("done", "resumed", "lost", "unanswered")
                           if k in counts)
         lines.append(f"Checked afterwards, of {counts.get('total', 0)} credential(s): {fates}.")
+        every = (run.get("lifecycle") or {}).get("full_every", 1)
+        if every > 1:
+            # The hostile pass on #8: a sampled run's unsampled credentials are never shown to
+            # the verifier, so reconciliation counts them lost by construction.
+            lines.append(f"Only every {_ordinal(every)} credential was taken past issuance in "
+                         f"this run, so the rest were never shown to the verifier and count as "
+                         f"lost here by construction, not because they failed.")
     warnings = len(report["warnings"])
     lines.append("There are no warnings." if not warnings else
                  f"There {'is 1 warning' if warnings == 1 else f'are {warnings} warnings'}, "
