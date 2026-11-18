@@ -2,8 +2,12 @@
 beside it, and every committed markdown file under results/, which is each run's report.md.
 
 A near copy of keri-priv-analysis-suite's tools/site_source.py (its this.i 4vdpvhcz), kept close
-so a fix to one can be carried to the other: the differences are the repository URL, the marker
-name and the error type, which here is the harness's BenchError.
+so a fix to one can be carried to the other. The differences are the repository URL, the marker
+name, the error type, which here is the harness's BenchError, and the reader's note (this.i
+5gwu92w5): every published page under results/ opens with a note, set apart as an admonition,
+naming its run directory, the write-up in docs/ that cites it, how to read a run report and the
+glossary, because a run report is the harness's raw output and says none of that itself. The
+report's own text follows the note unchanged.
 
 The site generator (Zensical, pinned in pyproject.toml's site group) reads only the tree this
 writes, which is plain markdown, so replacing the generator means replacing one build step. The
@@ -330,6 +334,65 @@ def check_svg(svg: str, source: str) -> None:
                                snippet=f"a {attr} attribute that could load from elsewhere")
 
 
+_TITLE = re.compile(r"^# (.+)$", re.MULTILINE)
+READING = "docs/reading-a-report.md"
+GLOSSARY = "docs/glossary.md"
+
+
+def _writeups(repo: Path) -> dict[str, tuple[str, str]]:
+    """Each top-level write-up under docs/, by repository path: its title and its text."""
+    out = {}
+    for path in sorted((repo / "docs").glob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        title = _TITLE.search(text)
+        out[f"docs/{path.name}"] = (title.group(1).strip() if title else path.stem, text)
+    return out
+
+
+def writeup_for(run_dir: str, writeups: dict[str, tuple[str, str]]) -> list[str]:
+    """The write-ups that cite the results directory `run_dir` (``results/<name>``): the one whose
+    file name the directory's name starts with, longest first, else every one that cites it."""
+    cites = re.compile(re.escape(run_dir) + r"(?=[/`)\s]|$)")
+    citing = [path for path, (_, text) in writeups.items() if cites.search(text)]
+    name = run_dir.split("/", 1)[1]
+    named = [path for path in citing if name.startswith(posixpath.basename(path)[:-3])]
+    if named:
+        return [max(named, key=len)]
+    return citing
+
+
+def reader_note(source: str, target: str, text: str, writeups) -> str:
+    """The markdown `text` of the results page at repository path `source`, with the reader's note
+    put after its first heading (or at its top, if it has none)."""
+    run_dir = "/".join(source.split("/")[:2])
+    here = posixpath.dirname(target)
+
+    def link(path: str) -> str:
+        return posixpath.relpath(path[len("docs/"):], here)
+
+    found = writeup_for(run_dir, writeups)
+    if found:
+        named = " and ".join(f"[{writeups[path][0]}]({link(path)})" for path in found)
+        evidence = f"It is evidence for {named}."
+    else:
+        evidence = "No write-up cites this run's directory yet."
+    folder = posixpath.dirname(source)
+    if posixpath.basename(source) == "report.md" and text.startswith("# keri-bench report"):
+        title, body = "One run's raw report", (
+            f"This is the harness's own report of a single run, `{folder}`, published exactly as "
+            f"it was committed. {evidence} [Reading a run report]({link(READING)}) explains its "
+            f"sections. Durations are in nanoseconds: 1000000000 ns is one second.")
+    else:
+        title, body = "A note kept with a run", (
+            f"This file was committed with the runs in `{folder}`. {evidence}")
+    note = (f'!!! note "{title}"\n    {body} Terms are defined in the '
+            f"[glossary]({link(GLOSSARY)}).\n\n")
+    heading = re.match(r"# [^\n]*\n+", text)
+    if heading:
+        return text[:heading.end()] + note + text[heading.end():]
+    return note + text
+
+
 def _files(root: Path, repo: Path):
     """Every file under `root`, sorted, refusing a symbolic link."""
     for path in sorted(root.rglob("*")):
@@ -340,11 +403,14 @@ def _files(root: Path, repo: Path):
             yield path, relative
 
 
-def _publish(path: Path, source: str, target: str, out: Path, repo: Path) -> None:
+def _publish(path: Path, source: str, target: str, out: Path, repo: Path,
+             writeups=None) -> None:
     destination = out / target
     destination.parent.mkdir(parents=True, exist_ok=True)
     if path.suffix == ".md":
         page = rewrite_links(path.read_text(encoding="utf-8"), source, target, repo)
+        if writeups is not None:
+            page = reader_note(source, target, page, writeups)
         check_markup(page, source)
         destination.write_text(page, encoding="utf-8")
         return
@@ -370,9 +436,10 @@ def assemble(repo, out) -> None:
     for path, source in _files(docs, repo):
         _publish(path, source, source[len("docs/"):], out, repo)
     _publish(repo / "README.md", "README.md", "index.md", out, repo)
+    writeups = _writeups(repo)
     for path, source in _files(repo / RESULTS_DIR, repo):
         if source.endswith(PUBLISHED_SUFFIXES):
-            _publish(path, source, source, out, repo)
+            _publish(path, source, source, out, repo, writeups)
 
 
 class _UsageError(Exception):

@@ -6,6 +6,8 @@ keri-bench's documentation, its write-ups and every committed run's report are p
 
 The site carries the README as its home page, every file under `docs/`, and every markdown file under `results/`, which is each run's `report.md`. Every other file in the repository that a page links to, such as a run's `timeline.jsonl`, `provenance.json` or `report.json`, a scenario or a `SHA256SUMS` manifest, is linked on GitHub instead.
 
+A run report is the harness's raw output, written for checking rather than reading, and it does not say which write-up it supports. So the site puts a short note at the top of every page under `results/`, set apart from the report: the run's directory, the write-up in `docs/` that cites it, a link to [reading a run report](reading-a-report.md) and one to the [glossary](glossary.md). The report's own text follows unchanged (`this.i` 5gwu92w5). A run's write-up is the one that cites its results directory, preferring the one whose name the directory's starts with.
+
 The site renders only what is committed. It runs no scenario and no adapter, and it does not render results itself: each run's `report.md` is the one `keri-bench report` wrote from that run's timeline and provenance, so the site cannot disagree with the report a reader would regenerate. A push to `main` that changes markdown or results republishes the site without re-measuring anything.
 
 ## What the build refuses

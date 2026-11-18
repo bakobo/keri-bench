@@ -7,7 +7,8 @@ import pytest
 from keri_bench.errors import BenchError
 
 from tools import site_source
-from tools.site_source import REPO_URL, assemble, check_markup, check_svg, main, rewrite_links
+from tools.site_source import (REPO_URL, assemble, check_markup, check_svg, main, reader_note,
+                               rewrite_links, writeup_for)
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -344,6 +345,70 @@ def test_assemble_refuses_a_symbolic_link(tmp_path):
     with pytest.raises(BenchError) as err:
         assemble(repo, tmp_path / "out")
     assert err.value.code == site_source.SITE_LINK.code
+
+
+# The reader's note on results pages (this.i 5gwu92w5)
+
+
+def _writeups(**texts):
+    return {f"docs/{name}.md": (name.title(), text) for name, text in texts.items()}
+
+
+def test_a_run_belongs_to_the_write_up_its_directory_is_named_after():
+    writeups = _writeups(**{"stock-2026-11": "see `results/stock-2026-11-05/x`",
+                            "targets-rerun": "and `results/stock-2026-11-05`",
+                            "stock": "see results/stock-2026-11-05/"})
+    assert writeup_for("results/stock-2026-11-05", writeups) == ["docs/stock-2026-11.md"]
+
+
+def test_a_run_no_write_up_is_named_for_belongs_to_every_one_citing_it():
+    writeups = _writeups(a="evidence in (results/outage-1)", b="`results/outage-1`",
+                         c="not results/outage-10")
+    assert writeup_for("results/outage-1", writeups) == ["docs/a.md", "docs/b.md"]
+    assert writeup_for("results/unread", writeups) == []
+
+
+def test_a_run_report_gets_its_note_after_its_heading():
+    writeups = _writeups(**{"runs-1": "the runs are in `results/runs-1`"})
+    text = "# keri-bench report\n\nOffered load 1 per second.\n"
+    page = reader_note("results/runs-1/s/rate-1/rep-1/report.md",
+                       "results/runs-1/s/rate-1/rep-1/report.md", text, writeups)
+    head, note, rest = page.partition('!!! note "One run\'s raw report"\n')
+    assert head == "# keri-bench report\n\n" and rest.endswith(text[len(head):])
+    assert "`results/runs-1/s/rate-1/rep-1`" in rest
+    assert "[Runs-1](../../../../../runs-1.md)" in rest
+    assert "[Reading a run report](../../../../../reading-a-report.md)" in rest
+    assert "[glossary](../../../../../glossary.md)" in rest
+    check_markup(page, "results/runs-1/s/rate-1/rep-1/report.md")
+
+
+def test_another_results_page_gets_a_shorter_note_at_its_top():
+    page = reader_note("results/runs-2/STOPPED.md", "results/runs-2/STOPPED.md",
+                       "Stopped early.\n", {})
+    assert page.startswith('!!! note "A note kept with a run"\n')
+    assert "No write-up cites this run's directory yet." in page
+    assert page.endswith("\n\nStopped early.\n")
+
+
+def test_the_reading_guide_names_every_section_a_report_renders():
+    """docs/reading-a-report.md walks a run report section by section; a section the renderer
+    adds, renames or drops has to be explained there too."""
+    import re
+
+    # "## Measured interval ({...})" names its interval at run time; the guide names the section.
+    found = re.findall(r'"## ([^"{]+)', (REPO / "src/keri_bench/report.py").read_text())
+    rendered = {re.sub(r"\s*\($", "", name.strip()) for name in found}
+    guide = set(re.findall(r"^### (.+)$", (REPO / "docs/reading-a-report.md").read_text(),
+                           re.MULTILINE))
+    assert rendered and rendered == guide - {"Header"}
+
+
+def test_every_published_run_report_carries_a_note(tmp_path):
+    repo = _repo(tmp_path)
+    assemble(repo, tmp_path / "out")
+    page = (tmp_path / "out" / "results/run-a/report.md").read_text()
+    assert page.startswith('# Report\n\n!!! note "A note kept with a run"')
+    assert "[Findings](../../findings.md)" in page
 
 
 # Command line
