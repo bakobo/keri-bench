@@ -33,8 +33,12 @@ def rerender(repo) -> dict:
     if not results.is_dir():
         raise BenchError(E_RESULTS, f"{results} is not a directory, so there are no committed "
                          f"reports to re-render. Give the repository's root.")
+    sources = sorted(results.rglob("report.json"))
+    if not sources:
+        raise BenchError(E_RESULTS, f"{results} holds no report.json, so there are no committed "
+                         f"reports to re-render. Give the repository's root.")
     reports = 0
-    for source in sorted(results.rglob("report.json")):
+    for source in sources:
         page = render_markdown(json.loads(source.read_text(encoding="utf-8")))
         target = source.with_name("report.md")
         if not target.exists() or target.read_text(encoding="utf-8") != page:

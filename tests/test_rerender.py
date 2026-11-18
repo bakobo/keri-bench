@@ -63,3 +63,6 @@ def test_a_path_with_no_results_is_refused_not_reported_as_success(tmp_path, cap
     assert rerender.main([str(tmp_path / "nowhere")]) == 1
     err = capsys.readouterr().err
     assert err.startswith("scripts/rerender-reports: ") and rerender.E_RESULTS in err
+    (tmp_path / "empty" / "results").mkdir(parents=True)
+    assert rerender.main([str(tmp_path / "empty")]) == 1
+    assert "holds no report.json" in capsys.readouterr().err

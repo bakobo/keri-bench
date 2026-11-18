@@ -784,9 +784,10 @@ def _calibration_warnings(calibration: Any, harness_commit: str) -> list[str]:
 
 def _figures(x: float) -> str:
     """Three significant figures, never in exponent form."""
-    if 0 < x < 1:
-        # 0.014 and 0.010 must not both read 0.01 (the hostile pass on #7).
-        return f"{x:.{2 - math.floor(math.log10(x))}f}"
+    if x != 0 and -1 < x < 1:
+        # 0.014 and 0.010 must not both read 0.01, 0.9999 reads 1.00 and -0.0012 keeps its
+        # magnitude (the hostile pass on #7).
+        return f"{x:#.3g}"
     if x >= 100:
         return f"{x:.0f}"
     if x >= 10:
