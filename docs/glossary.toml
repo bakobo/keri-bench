@@ -4,7 +4,9 @@
 # shows the term's meaning on hover wherever that spelling appears: on every page for scope "all",
 # the default, and only on run reports for scope "reports", which is for words such as "verified"
 # that are milestones in a report's tables but plain English in a write-up's prose. Hover matches
-# whole words, case-sensitively, outside code. Keep `meaning` to one paragraph; links in it work
+# whole words, case-sensitively, outside code. A term with no `hover` shows no hover: leave it off
+# a word that fills every page, such as issuer, where an underline on each would bury the ones that
+# help. Keep `meaning` to one paragraph; links in it work
 # on the glossary page and are reduced to their text on hover.
 
 intro = "The words these pages use without stopping to explain them. KERI's own terms follow the [KERI specification](https://trustoverip.github.io/kswg-keri-specification/) and the [ACDC specification](https://trustoverip.github.io/kswg-acdc-specification/); the definitions here are short and practical, not normative. On the site, a dotted underline under a word means hovering over it shows its meaning from this page."

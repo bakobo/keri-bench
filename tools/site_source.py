@@ -460,7 +460,8 @@ def reader_note(source: str, target: str, text: str, writeups) -> str:
         title, body = "One run's raw report", (
             f"This is the harness's own report of a single run, `{folder}`, published exactly as "
             f"it was committed. {evidence} [Reading a run report]({link(READING)}) explains its "
-            f"sections. Durations are in nanoseconds: 1000000000 ns is one second.")
+            f"sections. Durations are rounded for reading; the run's report.json beside it "
+            f"keeps them exact, in nanoseconds.")
     else:
         title, body = "A note kept with a run", (
             f"This file was committed with the runs in `{folder}`. {evidence}")

@@ -15,9 +15,11 @@ import json
 import sys
 from pathlib import Path
 
+from keri_bench.errors import BenchError
 from keri_bench.report import render_markdown
 
 MANIFEST = "SHA256SUMS"
+E_RESULTS = "e.input.missing.rerender.results.f"
 
 
 def _sha256(path: Path) -> str:
@@ -28,6 +30,9 @@ def rerender(repo) -> dict:
     """Render each results/**/report.json to the report.md beside it, then bring every manifest's
     report.md lines up to date. Returns how many reports and manifest lines changed."""
     results = Path(repo) / "results"
+    if not results.is_dir():
+        raise BenchError(E_RESULTS, f"{results} is not a directory, so there are no committed "
+                         f"reports to re-render. Give the repository's root.")
     reports = 0
     for source in sorted(results.rglob("report.json")):
         page = render_markdown(json.loads(source.read_text(encoding="utf-8")))
@@ -53,7 +58,11 @@ def rerender(repo) -> dict:
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
     repo = Path(args[0]) if args else Path(__file__).resolve().parent.parent
-    changed = rerender(repo)
+    try:
+        changed = rerender(repo)
+    except BenchError as exc:
+        print(f"scripts/rerender-reports: {exc}", file=sys.stderr)
+        return 1
     print(f"re-rendered {changed['reports']} report(s); updated {changed['manifest_lines']} "
           f"manifest line(s)")
     return 0

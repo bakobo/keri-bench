@@ -1323,8 +1323,9 @@ def test_a_duration_is_shown_in_the_unit_a_person_reads(ns, shown):
     assert report._ns(ns) == shown
 
 
-@pytest.mark.parametrize("per_s, shown", [(0.6, "0.60"), (2.8, "2.80"), (15.0, "15.0"),
-                                          (200000.0, "200000"), (0.0012, "0.0012")])
+@pytest.mark.parametrize("per_s, shown", [(0.6, "0.600"), (2.8, "2.80"), (15.0, "15.0"),
+                                          (200000.0, "200000"), (0.0012, "0.00120"),
+                                          (0.014, "0.0140"), (0.010, "0.0100"), (0.0, "0.00")])
 def test_a_rate_is_shown_to_three_figures(per_s, shown):
     assert report._rate(per_s) == shown
 

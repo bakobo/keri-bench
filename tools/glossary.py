@@ -35,9 +35,15 @@ def load(path) -> dict:
     if not isinstance(data["section"], list):
         raise BenchError(E_GLOSSARY, f"{path}: section must be an array of tables, [[section]].")
     for section in data["section"]:
+        if not isinstance(section, dict):
+            raise BenchError(E_GLOSSARY, f"{path}: each section must be a table, [[section]].")
         if not isinstance(section.get("title"), str) or not section["title"].strip():
-            raise BenchError(E_GLOSSARY, f"{path}: every section needs a title (Copilot on #6).")
-        for term in section.get("term", []):
+            raise BenchError(E_GLOSSARY, f"{path}: every section needs a title.")
+        terms = section.get("term", [])
+        if not (isinstance(terms, list) and all(isinstance(term, dict) for term in terms)):
+            raise BenchError(E_GLOSSARY, f"{path}, {section['title']!r}: each term must be a "
+                             f"table, [[section.term]].")
+        for term in terms:
             where = f"{path}, {section.get('title')!r}, {term.get('name')!r}"
             if not (isinstance(term.get("name"), str) and isinstance(term.get("meaning"), str)):
                 raise BenchError(E_GLOSSARY, f"{where}: a term needs a name and a meaning.")

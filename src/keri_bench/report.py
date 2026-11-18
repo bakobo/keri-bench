@@ -784,6 +784,9 @@ def _calibration_warnings(calibration: Any, harness_commit: str) -> list[str]:
 
 def _figures(x: float) -> str:
     """Three significant figures, never in exponent form."""
+    if 0 < x < 1:
+        # 0.014 and 0.010 must not both read 0.01 (the hostile pass on #7).
+        return f"{x:.{2 - math.floor(math.log10(x))}f}"
     if x >= 100:
         return f"{x:.0f}"
     if x >= 10:
@@ -806,7 +809,7 @@ def _ns(value: int | None) -> str:
 
 
 def _rate(per_s: float) -> str:
-    return _figures(per_s) if per_s >= 0.01 else f"{per_s:.3g}"
+    return _figures(per_s)
 
 
 def _summary_md(report: dict) -> list[str]:
