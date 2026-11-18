@@ -150,6 +150,35 @@ def test_a_link_out_of_the_repository_is_refused(tmp_path):
     assert err.value.code == site_source.SITE_LINK.code
 
 
+def test_a_link_through_a_symlinked_directory_is_refused(tmp_path):
+    """Copilot and the hostile pass on keri-bench#4: only the last component used to be checked."""
+    repo = _repo(tmp_path)
+    (tmp_path / "elsewhere").mkdir()
+    (tmp_path / "elsewhere" / "x.md").write_text("x\n")
+    (repo / "docs" / "linkdir").symlink_to(tmp_path / "elsewhere")
+    with pytest.raises(BenchError) as err:
+        rewrite_links("[x](linkdir/x.md)", "docs/plan.md", "plan.md", repo)
+    assert err.value.code == site_source.SITE_LINK.code
+
+
+def test_a_reference_style_definition_is_rewritten_and_checked(tmp_path):
+    """The hostile pass on keri-bench#4: reference definitions were left as repository paths."""
+    repo = _repo(tmp_path)
+    text = '[the plan][p] and [s][s]\n\n[p]: docs/plan.md#part-b "Plan"\n  [s]: <scenarios/smoke.toml>\n'
+    out = rewrite_links(text, "README.md", "index.md", repo)
+    assert '[p]: plan.md#part-b "Plan"\n' in out
+    assert f"  [s]: {REPO_URL}/blob/main/scenarios/smoke.toml\n" in out
+    with pytest.raises(BenchError) as err:
+        rewrite_links("[g]: gone.md\n", "README.md", "index.md", repo)
+    assert err.value.code == site_source.SITE_LINK.code
+
+
+def test_a_destination_with_balanced_parentheses_is_rewritten(tmp_path):
+    repo = _repo(tmp_path)
+    out = rewrite_links("[a](docs/plan.md#section(a))", "README.md", "index.md", repo)
+    assert out == "[a](plan.md#section(a))"
+
+
 # Markup checks. A page is checked as the site will render it, with the site's markdown
 # extensions, so the checks see what a browser would and not a guess at it from the source.
 
@@ -192,6 +221,10 @@ def test_markup_that_renders_inert_passes(text):
     "<?php echo 1; ?>\n",
     "<![CDATA[x]]>\n",
     "<script>one</script>\n\n<iframe>two</iframe>\n",
+    # Copilot on keri-bench#4: no scheme, but another host.
+    "[x](//evil.example/a)\n",
+    "![x](//evil.example/a.png)\n",
+    "[x]( //evil.example)\n",
 ])
 def test_markup_that_could_run_code_is_refused(text):
     with pytest.raises(BenchError) as err:
@@ -321,6 +354,28 @@ def test_docs_may_not_shadow_a_generated_page(tmp_path, name):
     with pytest.raises(BenchError) as err:
         assemble(repo, tmp_path / "out")
     assert err.value.code == site_source.SITE_COLLISION.code
+
+
+def test_assemble_refuses_a_symlinked_docs_or_results_directory(tmp_path):
+    """Copilot on keri-bench#4: the roots handed to rglob were not checked themselves."""
+    for name in ("docs", "results"):
+        repo = _repo(tmp_path / name)
+        moved = tmp_path / name / f"real-{name}"
+        (repo / name).rename(moved)
+        (repo / name).symlink_to(moved)
+        with pytest.raises(BenchError) as err:
+            assemble(repo, tmp_path / name / "out")
+        assert err.value.code == site_source.SITE_LINK.code
+
+
+@pytest.mark.parametrize("name", ["page.html", "page.HTM", "notes.txt"])
+def test_assemble_refuses_a_docs_file_it_would_copy_unchecked(tmp_path, name):
+    """Copilot on keri-bench#4: a committed docs/*.html was copied to the site as it was."""
+    repo = _repo(tmp_path)
+    (repo / "docs" / name).write_text("<script>alert(1)</script>\n")
+    with pytest.raises(BenchError) as err:
+        assemble(repo, tmp_path / "out")
+    assert err.value.code == site_source.SITE_FILE.code
 
 
 def test_assemble_refuses_raw_html_in_a_report(tmp_path):

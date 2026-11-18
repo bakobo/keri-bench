@@ -100,6 +100,14 @@ SITE_SVG = ErrorCode(
     args=("where", "snippet"),
     hint="Regenerate the plot without scripts, event handlers or embedded HTML.",
 )
+SITE_FILE = ErrorCode(
+    "e.rule.markup.site-file-kind.f",
+    "A file under docs/ is of a kind the site does not publish.",
+    detail="{path} would be copied to the site as it is, and only markdown, which is checked, and "
+    "the site's own stylesheets, scripts and images are.",
+    args=("path",),
+    hint="Write it as markdown, or keep it out of docs/.",
+)
 SITE_ARGS = ErrorCode(
     "e.input.usage.site-source-args.f",
     "The command line could not be understood.",
@@ -107,7 +115,13 @@ SITE_ARGS = ErrorCode(
     args=("problem",),
 )
 
-_LINK = re.compile(r"\]\(([^()\s]+)((?:\s+\"[^\"]*\")?)\)")
+# An inline link's destination may hold balanced parentheses one level deep, as CommonMark allows.
+_LINK = re.compile(r"\]\(((?:[^()\s]|\([^()\s]*\))+)((?:\s+\"[^\"]*\")?)\)")
+# A reference-style link's definition, `[label]: destination "title"`, at most three spaces in.
+_REFERENCE = re.compile(r"^( {0,3}\[[^\]]+\]:[ \t]*)(<[^>\s]*>|\S+)(.*)$")
+# What docs/ may hold besides markdown: the site's own stylesheets, scripts and images. Anything
+# else would reach the site unchecked, an HTML page above all.
+DOCS_ASSETS = (".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".svg")
 _SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 # A fence opens with at most three spaces of indent (four make indented code instead) and three or
 # more of one character, and closes only on a run of the same character at least as long with
@@ -146,13 +160,25 @@ def _site_path(resolved: str) -> str | None:
     return None
 
 
+def _through_link(repo: Path, resolved: str) -> bool:
+    """Whether any component of the repository path `resolved`, not only the last, is a symbolic
+    link, which could lead outside the repository."""
+    path = repo
+    for part in resolved.split("/"):
+        path = path / part
+        if path.is_symlink():
+            return True
+    return False
+
+
 def _rewrite_target(url: str, source: str, target: str, repo: Path, where: str) -> str:
     if url.startswith(("#", "/")) or _SCHEME.match(url):
         return url
     path, hash_, fragment = url.partition("#")
     resolved = posixpath.normpath(posixpath.join(posixpath.dirname(source), path))
     full = repo / resolved
-    if resolved.startswith("../") or resolved == ".." or full.is_symlink() or not full.exists():
+    if resolved.startswith("../") or resolved == ".." or _through_link(repo, resolved) \
+            or not full.exists():
         raise SITE_LINK(where=where, url=url, path=resolved)
     new = _site_path(resolved)
     if new is None:
@@ -165,7 +191,7 @@ def _rewrite_target(url: str, source: str, target: str, repo: Path, where: str) 
 def rewrite_links(text: str, source: str, target: str, repo) -> str:
     """Rewrite the inline links and images in the markdown `text`, a file at repository path
     `source` that will live at `target` in the site source. Fenced code blocks are left as they
-    are."""
+    are. ~5ewp: inline code spans are not, so a link example in backticks must resolve."""
     repo = Path(repo)
     out = []
     for number, line, fenced in _lines_outside_fences(text):
@@ -174,6 +200,13 @@ def rewrite_links(text: str, source: str, target: str, repo) -> str:
                 return f"]({_rewrite_target(m.group(1), source, target, repo, where)}{m.group(2)})"
 
             line = _LINK.sub(link, line)
+            reference = _REFERENCE.match(line.rstrip("\r\n"))
+            if reference:
+                url = reference.group(2)
+                bare = url[1:-1] if url.startswith("<") else url
+                new = _rewrite_target(bare, source, target, repo, f"{source}:{number}")
+                end = line[len(line.rstrip("\r\n")):]
+                line = f"{reference.group(1)}{new}{reference.group(3)}{end}"
         out.append(line)
     return "".join(out)
 
@@ -203,6 +236,7 @@ _SAFE_SCHEMES = frozenset({"http", "https", "mailto"})
 _TABLE_ALIGN = re.compile(r"text-align:\s*(left|right|center);?")
 _URL_SCHEME = re.compile(r"^([a-z][a-z0-9+.-]*):")
 _STRIP = re.compile(r"[\x00-\x20\x7f]")
+_OTHER_HOST = re.compile(r"^[/\\]{2}")
 
 
 def _scheme(url: str) -> str | None:
@@ -232,6 +266,9 @@ class _Inspector(html.parser.HTMLParser):
                 self._refuse(f"a style attribute {value!r} on <{tag}>")
             elif name in _URL_ATTRS and _scheme(value) not in (None, *_SAFE_SCHEMES):
                 self._refuse(f"a {_scheme(value)}: URL in {name} on <{tag}>")
+            elif name in _URL_ATTRS and _OTHER_HOST.match(_STRIP.sub("", value)):
+                # No scheme, but a browser reads // (or a backslash in its place) as another host.
+                self._refuse(f"a protocol-relative URL in {name} on <{tag}>")
 
     def handle_comment(self, data) -> None:
         self._refuse("an HTML comment")
@@ -394,7 +431,10 @@ def reader_note(source: str, target: str, text: str, writeups) -> str:
 
 
 def _files(root: Path, repo: Path):
-    """Every file under `root`, sorted, refusing a symbolic link."""
+    """Every file under `root`, sorted, refusing a symbolic link, including `root` itself."""
+    if root.is_symlink():
+        relative = root.relative_to(repo).as_posix()
+        raise SITE_LINK(where=relative, url=relative, path=relative)
     for path in sorted(root.rglob("*")):
         relative = path.relative_to(repo).as_posix()
         if path.is_symlink():
@@ -434,6 +474,8 @@ def assemble(repo, out) -> None:
     out.mkdir(parents=True)
     (out / MARKER).write_text("Written by tools/site_source.py; safe to delete.\n")
     for path, source in _files(docs, repo):
+        if path.suffix != ".md" and path.suffix.lower() not in DOCS_ASSETS:
+            raise SITE_FILE(path=source)
         _publish(path, source, source[len("docs/"):], out, repo)
     _publish(repo / "README.md", "README.md", "index.md", out, repo)
     writeups = _writeups(repo)
