@@ -32,7 +32,11 @@ def load(path) -> dict:
         raise BenchError(E_GLOSSARY, f"{path} is not TOML ({exc}).") from None
     if not isinstance(data.get("intro"), str) or not data.get("section"):
         raise BenchError(E_GLOSSARY, f"{path} needs an intro and at least one section.")
+    if not isinstance(data["section"], list):
+        raise BenchError(E_GLOSSARY, f"{path}: section must be an array of tables, [[section]].")
     for section in data["section"]:
+        if not isinstance(section.get("title"), str) or not section["title"].strip():
+            raise BenchError(E_GLOSSARY, f"{path}: every section needs a title (Copilot on #6).")
         for term in section.get("term", []):
             where = f"{path}, {section.get('title')!r}, {term.get('name')!r}"
             if not (isinstance(term.get("name"), str) and isinstance(term.get("meaning"), str)):
@@ -54,8 +58,8 @@ def render(data: dict) -> str:
         for term in section.get("term", []):
             lines.append(f"| {term['name']} | {term['meaning']} |")
         lines.append("")
-    lines += ["This page is written from `docs/glossary.toml` by `scripts/glossary`; edit that "
-              "file, not this one.", ""]
+    lines += [("This page is written from `docs/glossary.toml` by `scripts/glossary`; edit "
+               "that file, not this one."), ""]
     return "\n".join(lines)
 
 

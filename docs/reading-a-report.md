@@ -46,7 +46,7 @@ For each milestone, which adapter saw it, how (observed by the harness, reported
 
 ### Faults
 
-Present when the scenario injected one, such as a crash. It gives when the fault started and ended, how long the crashed part took to be ready again, how long until the next credential succeeded, and the intervals before, during and after.
+Present when the scenario injected one, such as a crash. It gives when the fault started and ended, how long the crashed part took to be ready again, how long after that the next credential succeeded, and the intervals before, during and after.
 
 ### Soak drift
 

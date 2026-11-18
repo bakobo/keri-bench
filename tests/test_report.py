@@ -1327,3 +1327,21 @@ def test_a_duration_is_shown_in_the_unit_a_person_reads(ns, shown):
                                           (200000.0, "200000"), (0.0012, "0.0012")])
 def test_a_rate_is_shown_to_three_figures(per_s, shown):
     assert report._rate(per_s) == shown
+
+
+def test_the_summary_names_the_measured_interval_and_when_the_first_success_came(tmp_path):
+    """The hostile pass on #6: an interval need not start at requested, and first success is
+    measured from when the crashed process was ready again, not from the kill."""
+    events = (window() + simple("c1", 100, 1000)
+              + [ev("fault_started", 2000, attrs={"kind": "crash", "target": "issuer"}),
+                 ev("process_killed", 2100, attrs={"process": "issuer"}),
+                 ev("process_ready", 2300, attrs={"process": "issuer"}),
+                 ev("fault_ended", 2400, attrs={"kind": "crash", "target": "issuer"})])
+    got = derive(write_run(tmp_path, events))
+    text = report.render_markdown(got)
+    assert "From request to `verified`" in text
+    assert "it was ready again 200 ns after it began, and the next credential succeeded" in text
+    assert "after that." in text
+    got["measure"] = "proof_generated->verified"
+    got["intervals"]["proof_generated->verified"] = got["intervals"]["requested->verified"]
+    assert "From `proof_generated` to `verified`" in report.render_markdown(got)

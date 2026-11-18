@@ -828,7 +828,9 @@ def _summary_md(report: dict) -> list[str]:
     if interval["measured"]:
         missing = interval["missing"]
         tail = (f"; {missing} never got there before the window closed" if missing else "")
-        lines.append(f"From request to `{end}`, the median credential took "
+        start = measure.split("->")[0]
+        origin = "request" if start == "requested" else f"`{start}`"
+        lines.append(f"From {origin} to `{end}`, the median credential took "
                      f"{_ns(interval['p50'])} and 1 in 100 took longer than "
                      f"{_ns(interval['p99'])}, over {interval['count']} credential(s){tail}.")
     else:
@@ -844,7 +846,7 @@ def _summary_md(report: dict) -> list[str]:
         if fault.get("time_to_ready_ns") is not None:
             sentence += (f"; it was ready again {_ns(fault['time_to_ready_ns'])} after it began, "
                          f"and the next credential succeeded "
-                         f"{_ns(fault.get('time_to_first_success_ns'))} after it began")
+                         f"{_ns(fault.get('time_to_first_success_ns'))} after that")
         lines.append(sentence + ".")
     if report["reconciliation"] != NOT_MEASURED:
         counts = report["reconciliation"]["summary"]
@@ -855,10 +857,10 @@ def _summary_md(report: dict) -> list[str]:
     lines.append("There are no warnings." if not warnings else
                  f"There {'is 1 warning' if warnings == 1 else f'are {warnings} warnings'}, "
                  f"listed at the end.")
-    lines += ["", "Durations are rounded to three significant figures; the run's `report.json` "
-              "keeps them in nanoseconds. [Reading a run report]"
-              "(https://bakobo.github.io/keri-bench/reading-a-report/) explains each section.",
-              ""]
+    lines += ["", ("Durations are rounded to three significant figures; the run's `report.json` "
+                   "keeps them in nanoseconds. [Reading a run report]"
+                   "(https://bakobo.github.io/keri-bench/reading-a-report/) explains each "
+                   "section."), ""]
     return lines
 
 

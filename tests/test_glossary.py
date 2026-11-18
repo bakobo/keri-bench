@@ -70,6 +70,9 @@ def test_hover_text_is_plain_and_scoped(tmp_path):
     ("not = [toml", "is not TOML"),
     ('[[section]]\ntitle = "x"\n', "needs an intro"),
     ('intro = "i"\n', "needs an intro"),
+    ('intro = "i"\nsection = "x"\n', "array of tables"),
+    ('intro = "i"\n[[section]]\n[[section.term]]\nname = "n"\nmeaning = "m"\n', "needs a title"),
+    ('intro = "i"\n[[section]]\ntitle = " "\n', "needs a title"),
     ('intro = "i"\n[[section]]\ntitle = "x"\n[[section.term]]\nname = "n"\n', "name and a meaning"),
     ('intro = "i"\n[[section]]\ntitle = "x"\n[[section.term]]\nname = "n"\nmeaning = "m"\n'
      'scope = "some"\n', "scope must be"),
