@@ -41,6 +41,7 @@ from pathlib import Path
 import markdown
 
 from keri_bench.errors import BenchError
+from tools import glossary
 
 REPO_URL = "https://github.com/bakobo/keri-bench"
 MARKER = ".kb-site-source"
@@ -249,6 +250,7 @@ def rewrite_links(text: str, source: str, target: str, repo) -> str:
 # The markdown extensions the site renders with, as zensical.toml configures them; a test holds the
 # two together.
 EXTENSIONS = {
+    "abbr": {},
     "admonition": {},
     "attr_list": {},
     "tables": {},
@@ -484,13 +486,18 @@ def _files(root: Path, repo: Path):
 
 
 def _publish(path: Path, source: str, target: str, out: Path, repo: Path,
-             writeups=None) -> None:
+             writeups=None, terms=None) -> None:
     destination = out / target
     destination.parent.mkdir(parents=True, exist_ok=True)
     if path.suffix == ".md":
         page = rewrite_links(path.read_text(encoding="utf-8"), source, target, repo)
         if writeups is not None:
             page = reader_note(source, target, page, writeups)
+        if terms is not None:
+            # Every page carries the glossary as abbreviations, so each term shows its meaning
+            # on hover (this.i 4wnur86k); milestones only on results pages, where they are names.
+            hover = glossary.abbreviations(terms, report=source.startswith(RESULTS_DIR + "/"))
+            page = page.rstrip("\n") + "\n\n" + "\n".join(hover) + "\n"
         check_markup(page, source)
         destination.write_text(page, encoding="utf-8")
         return
@@ -513,15 +520,19 @@ def assemble(repo, out) -> None:
         shutil.rmtree(out)
     out.mkdir(parents=True)
     (out / MARKER).write_text("Written by tools/site_source.py; safe to delete.\n")
+    data = repo / glossary.DATA
+    terms = glossary.load(data) if data.exists() else None
     for path, source in _files(docs, repo):
+        if source == glossary.DATA:
+            continue  # the glossary's data, published as the page it writes and as hover text
         if path.suffix != ".md" and path.suffix.lower() not in DOCS_ASSETS:
             raise SITE_FILE(path=source)
-        _publish(path, source, source[len("docs/"):], out, repo)
-    _publish(repo / "README.md", "README.md", "index.md", out, repo)
+        _publish(path, source, source[len("docs/"):], out, repo, terms=terms)
+    _publish(repo / "README.md", "README.md", "index.md", out, repo, terms=terms)
     writeups = _writeups(repo)
     for path, source in _files(repo / RESULTS_DIR, repo):
         if source.endswith(PUBLISHED_SUFFIXES):
-            _publish(path, source, source, out, repo, writeups)
+            _publish(path, source, source, out, repo, writeups, terms)
 
 
 class _UsageError(Exception):

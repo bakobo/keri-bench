@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+"""Write docs/glossary.md from docs/glossary.toml (this.i 4wnur86k). The logic is in
+tools/glossary.py, where the tests measure it."""
+
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+
+from tools.glossary import main  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(main())
