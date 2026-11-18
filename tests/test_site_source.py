@@ -201,6 +201,23 @@ def test_a_destination_with_deeper_parentheses_is_still_checked(tmp_path, url):
     assert out == '[a](plan.md#s(a(b)) "T") and ![i](plan.md)'
 
 
+def test_a_link_inside_a_malformed_outer_destination_is_still_checked(tmp_path):
+    repo = _repo(tmp_path)
+    with pytest.raises(BenchError) as err:
+        rewrite_links("](https://example.com/a(b(c))[bad](missing.md))", "README.md", "index.md",
+                      repo)
+    assert err.value.code == site_source.SITE_LINK.code
+
+
+def test_repeated_link_starts_are_scanned_in_linear_time(tmp_path):
+    import time
+
+    repo = _repo(tmp_path)
+    began = time.perf_counter()
+    assert rewrite_links("](" * 20000, "README.md", "index.md", repo) == "](" * 20000
+    assert time.perf_counter() - began < 1.0
+
+
 @pytest.mark.parametrize("text", ["[a]() x", "[a](b c", "[a](b(c)", "[a](  ) x", "]("])
 def test_text_that_is_not_an_inline_link_is_left_alone(tmp_path, text):
     assert rewrite_links(text, "README.md", "index.md", _repo(tmp_path)) == text

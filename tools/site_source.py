@@ -198,7 +198,9 @@ def _links(line: str, rewrite) -> str:
     while (start := line.find("](", at)) != -1:
         begin = end = start + 2
         depth = 0
-        while end < len(line) and not line[end].isspace():
+        # Another link's start ends the scan: it is not part of this destination (the hostile pass
+        # on keri-bench site-fixes), and stopping there keeps the whole scan linear.
+        while end < len(line) and not line[end].isspace() and not line.startswith("](", end):
             if line[end] == "(":
                 depth += 1
             elif line[end] == ")":
