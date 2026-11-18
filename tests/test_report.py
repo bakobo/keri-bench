@@ -1355,13 +1355,28 @@ def test_an_ordinal_reads_as_english(n, shown):
     assert report._ordinal(n) == shown
 
 
-def test_a_sampled_run_says_its_unsampled_credentials_are_lost_by_construction():
-    """The hostile pass on #8: 9,901 of 10,001 credentials read as lost when only every 101st
-    went past issuance."""
+def sampled(fates: dict, every):
     got = frozen(GOLDEN / "v1" / "singles")
-    assert "by construction" not in report.render_markdown(got)
-    got["run"]["lifecycle"] = {"full_every": 101}
-    assert ("Only every 101st credential was taken past issuance in this run"
-            in report.render_markdown(got))
-    got["run"]["lifecycle"] = {"full_every": 1}
-    assert "by construction" not in report.render_markdown(got)
+    got["run"]["lifecycle"] = {"full_every": every}
+    got["reconciliation"]["credentials"] = {c: {"fate": f} for c, f in fates.items()}
+    return report.render_markdown(got)
+
+
+def test_a_sampled_run_says_which_of_its_lost_credentials_were_never_sampled():
+    """The hostile pass on #8: 9,901 of 10,001 credentials read as lost when only every 101st
+    went past issuance, and a sampled credential's real loss must not hide among them."""
+    assert "by construction" not in report.render_markdown(frozen(GOLDEN / "v1" / "singles"))
+    text = sampled({"c000000": "done", "c000001": "lost", "c000002": "done"}, 2)
+    assert ("Only every 2nd credential was taken past issuance in this run, so 1 of the "
+            "credentials counted as lost were never shown to the verifier and are lost by "
+            "construction, not because they failed; none of those taken through the whole "
+            "lifecycle was lost.") in text
+    text = sampled({"c000000": "done", "c000001": "lost", "c000002": "lost"}, 2)
+    assert "the other 1 were taken through the whole lifecycle and lost." in text
+    text = sampled({"preseed-7": "lost"}, 2)
+    assert "so some of the credentials counted as lost were never shown" in text
+
+
+@pytest.mark.parametrize("every", [1, "2", 2.5, True, None])
+def test_a_sample_that_is_not_a_whole_number_above_one_is_not_described(every):
+    assert "taken past issuance" not in sampled({"c000001": "lost"}, every)

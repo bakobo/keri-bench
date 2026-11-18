@@ -8,7 +8,7 @@ From request to `witnessed`, the median credential took 399 ms and 1 in 100 took
 `witnessed` was reached 0.350 times a second against 0.350 offered, 100% of the offered load.
 A crash on witness_pool.w0 was injected; it was ready again 1502 s after it began, and the next credential succeeded 938 ms after that.
 Checked afterwards, of 3150 credential(s): 24 done, 8 resumed, 3118 lost.
-Only every 101st credential was taken past issuance in this run, so the rest were never shown to the verifier and count as lost here by construction, not because they failed.
+Only every 101st credential was taken past issuance in this run, so 3118 of the credentials counted as lost were never shown to the verifier and are lost by construction, not because they failed; none of those taken through the whole lifecycle was lost.
 There are no warnings.
 
 Durations are rounded to three significant figures; the run's `report.json` keeps them in nanoseconds. [Reading a run report](https://bakobo.github.io/keri-bench/reading-a-report/) explains each section.

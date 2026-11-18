@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import statistics
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
@@ -809,6 +810,36 @@ def _ns(value: int | None) -> str:
     return f"{sign}{_figures(size / 1e9)} s"
 
 
+_CREDENTIAL_INDEX = re.compile(r"c(\d+)")
+
+
+def _sampled_losses(report: dict) -> str | None:
+    """For a run that took only every Nth credential past issuance, how many of its lost
+    credentials are lost by construction (never shown to the verifier) and how many were taken
+    through the whole lifecycle and lost (the hostile pass on #8). The run picks credential cI
+    when I is a multiple of N."""
+    every = (report["run"].get("lifecycle") or {}).get("full_every")
+    if not (isinstance(every, int) and not isinstance(every, bool) and every > 1):
+        return None
+    opening = f"Only every {_ordinal(every)} credential was taken past issuance in this run"
+    by_construction = failed = 0
+    for credential, entry in report["reconciliation"].get("credentials", {}).items():
+        index = _CREDENTIAL_INDEX.fullmatch(credential)
+        if index is None:
+            return (f"{opening}, so some of the credentials counted as lost were never shown to "
+                    f"the verifier; the reconciliation section's counts include them.")
+        if entry.get("fate") == "lost":
+            if int(index.group(1)) % every:
+                by_construction += 1
+            else:
+                failed += 1
+    tail = ("none of those taken through the whole lifecycle was lost" if not failed else
+            f"the other {failed} were taken through the whole lifecycle and lost")
+    return (f"{opening}, so {by_construction} of the credentials counted as lost were never "
+            f"shown to the verifier and are lost by construction, not because they failed; "
+            f"{tail}.")
+
+
 def _ordinal(n: int) -> str:
     suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
     return f"{n}{suffix}"
@@ -862,13 +893,9 @@ def _summary_md(report: dict) -> list[str]:
         fates = ", ".join(f"{counts[k]} {k}" for k in ("done", "resumed", "lost", "unanswered")
                           if k in counts)
         lines.append(f"Checked afterwards, of {counts.get('total', 0)} credential(s): {fates}.")
-        every = (run.get("lifecycle") or {}).get("full_every", 1)
-        if every > 1:
-            # The hostile pass on #8: a sampled run's unsampled credentials are never shown to
-            # the verifier, so reconciliation counts them lost by construction.
-            lines.append(f"Only every {_ordinal(every)} credential was taken past issuance in "
-                         f"this run, so the rest were never shown to the verifier and count as "
-                         f"lost here by construction, not because they failed.")
+        sample = _sampled_losses(report)
+        if sample is not None:
+            lines.append(sample)
     warnings = len(report["warnings"])
     lines.append("There are no warnings." if not warnings else
                  f"There {'is 1 warning' if warnings == 1 else f'are {warnings} warnings'}, "
