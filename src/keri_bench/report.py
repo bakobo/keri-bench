@@ -810,7 +810,7 @@ def _ns(value: int | None) -> str:
     return f"{sign}{_figures(size / 1e9)} s"
 
 
-_CREDENTIAL_INDEX = re.compile(r"c(\d+)")
+_CREDENTIAL_INDEX = re.compile(r"c(\d{1,9})")
 
 
 def _sampled_losses(report: dict) -> str | None:
@@ -836,8 +836,8 @@ def _sampled_losses(report: dict) -> str | None:
     tail = ("none of those taken through the whole lifecycle was lost" if not failed else
             f"the other {failed} were taken through the whole lifecycle and lost")
     return (f"{opening}, so {by_construction} of the credentials counted as lost were never "
-            f"shown to the verifier and are lost by construction, not because they failed; "
-            f"{tail}.")
+            f"shown to the verifier, and reconciliation counts them lost whether or not their "
+            f"issuance succeeded (the Warnings section lists any stage that failed); {tail}.")
 
 
 def _ordinal(n: int) -> str:

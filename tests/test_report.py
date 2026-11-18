@@ -1365,15 +1365,18 @@ def sampled(fates: dict, every):
 def test_a_sampled_run_says_which_of_its_lost_credentials_were_never_sampled():
     """The hostile pass on #8: 9,901 of 10,001 credentials read as lost when only every 101st
     went past issuance, and a sampled credential's real loss must not hide among them."""
-    assert "by construction" not in report.render_markdown(frozen(GOLDEN / "v1" / "singles"))
+    assert "taken past issuance" not in report.render_markdown(frozen(GOLDEN / "v1" / "singles"))
     text = sampled({"c000000": "done", "c000001": "lost", "c000002": "done"}, 2)
     assert ("Only every 2nd credential was taken past issuance in this run, so 1 of the "
-            "credentials counted as lost were never shown to the verifier and are lost by "
-            "construction, not because they failed; none of those taken through the whole "
-            "lifecycle was lost.") in text
+            "credentials counted as lost were never shown to the verifier, and reconciliation "
+            "counts them lost whether or not their issuance succeeded (the Warnings section lists "
+            "any stage that failed); none of those taken through the whole lifecycle was lost."
+            ) in text
     text = sampled({"c000000": "done", "c000001": "lost", "c000002": "lost"}, 2)
     assert "the other 1 were taken through the whole lifecycle and lost." in text
     text = sampled({"preseed-7": "lost"}, 2)
+    assert "so some of the credentials counted as lost were never shown" in text
+    text = sampled({"c" + "1" * 5000: "lost"}, 2)  # the hostile pass on #8: int() would raise
     assert "so some of the credentials counted as lost were never shown" in text
 
 

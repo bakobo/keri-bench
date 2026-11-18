@@ -7,7 +7,7 @@ The harness kept to its own schedule throughout.
 From request to `witnessed`, the median credential took 357 ms and 1 in 100 took longer than 465 ms, over 10001 credential(s).
 `witnessed` was reached 0.350 times a second against 0.350 offered, 100% of the offered load.
 Checked afterwards, of 10001 credential(s): 100 done, 0 resumed, 9901 lost.
-Only every 101st credential was taken past issuance in this run, so 9901 of the credentials counted as lost were never shown to the verifier and are lost by construction, not because they failed; none of those taken through the whole lifecycle was lost.
+Only every 101st credential was taken past issuance in this run, so 9901 of the credentials counted as lost were never shown to the verifier, and reconciliation counts them lost whether or not their issuance succeeded (the Warnings section lists any stage that failed); none of those taken through the whole lifecycle was lost.
 There are no warnings.
 
 Durations are rounded to three significant figures; the run's `report.json` keeps them in nanoseconds. [Reading a run report](https://bakobo.github.io/keri-bench/reading-a-report/) explains each section.
