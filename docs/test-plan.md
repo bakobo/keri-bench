@@ -76,9 +76,9 @@ For each stack, the harness publishes a matrix covering every milestone: the obs
 
 | Area | Scenarios |
 |---|---|
-| Throughput | `issue-steady` and `bulk-steady` at 1 home and N homes, with offered load stepped to saturation |
+| Throughput | `issue-steady` and `bulk-steady` at 1 issuer and N issuers, with offered load stepped to saturation |
 | Persistence | `soak` and `soak-preseeded` (see Soak) |
-| Concurrency | `issue-steady` with K concurrent clients per home, and N homes |
+| Concurrency | `issue-steady` with K concurrent clients per issuer, and N issuers |
 | Restart recovery | `fault-crash-issuer`, `fault-crash-witness`, `fault-crash-state-distribution`, `fault-crash-holder` |
 | Witnessing | `witness-sweep` (witness count, toad), `fault-partition-witness` |
 | TEL replay | `sync-cold`, `fault-crash-state-distribution`, `fault-duplicate-state-batch` |
@@ -117,11 +117,11 @@ Hashing and Merkle census rows read `not measured` until batch commitment exists
 
 ### Knobs
 
-Each role adapter declares a versioned schema of its policy knobs. Examples are the distribution window, witness count and toad, the gap grace, the verifier's freshness bound and poll interval, and the number of homes. A scenario must give every declared knob a value, or `n/a` where the adapter declares that knob not applicable. Anything else is refused (`this.i` 4q4540c4). The resolved knob set and every schema version go into provenance.
+Each role adapter declares a versioned schema of its policy knobs. Examples are the distribution window, witness count and toad, the gap grace, the verifier's freshness bound and poll interval, and the number of issuers. A scenario must give every declared knob a value, or `n/a` where the adapter declares that knob not applicable. Anything else is refused (`this.i` 4q4540c4). The resolved knob set and every schema version go into provenance.
 
 ### Topologies
 
-- **imbu stack.** The imbu issuer uses async operations, so `accepted`, `anchored` and `witnessed` come as `reported` timestamps with a measured offset. The witness pool is three keripy witnesses at toad 2. State distribution is the Bakobo Registrar plus the heti Observer, with imbu's publisher wired. The holder is heti and the verifier is heti, plus a keripy verifier where one exists. It runs at 1 home and at N homes.
+- **imbu stack.** The imbu issuer uses async operations, so `accepted`, `anchored` and `witnessed` come as `reported` timestamps with a measured offset. The witness pool is three keripy witnesses at toad 2. State distribution is the Bakobo Registrar plus the heti Observer, with imbu's publisher wired. The holder is heti and the verifier is heti, plus a keripy verifier where one exists. It runs at 1 issuer and at N issuers.
 - **KERIA stack.** KERIA is driven through signifypy, with the same witnesses and verifier. The report states that client signing is inside KERIA's numbers.
 
 ### Outputs

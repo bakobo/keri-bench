@@ -74,7 +74,10 @@ toggle.name = "Switch to light mode"
 
 # Deliberately few extensions, as on the conformance suite's site: one that gives meaning to another
 # character (magiclink, emoji, caret, tilde, smartsymbols) would change how a committed report reads.
+# abbr is the one exception, and deliberate: the site assembler appends the glossary as
+# abbreviation definitions so every term shows its meaning on hover (this.i 4wnur86k).
 [project.markdown_extensions]
+abbr = {}
 admonition = {}
 attr_list = {}
 tables = {}
