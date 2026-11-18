@@ -181,6 +181,48 @@ def test_a_definition_shaped_line_inside_a_paragraph_is_left_alone(tmp_path):
         "This is a paragraph\n[p]: docs/plan.md\n\n[q]: plan.md\n[r]: plan.md\n")
 
 
+def test_a_definition_after_a_closing_fence_is_checked(tmp_path):
+    """The hostile pass on keri-bench#4's fixes: a closing fence ends its block."""
+    repo = _repo(tmp_path)
+    with pytest.raises(BenchError) as err:
+        rewrite_links("[x][r]\n\n```\ncode\n```\n[r]: missing.md\n", "README.md", "index.md",
+                      repo)
+    assert err.value.code == site_source.SITE_LINK.code
+
+
+@pytest.mark.parametrize("url", ["missing.md#x(a(b))", "missing.md#x((a)b)"])
+def test_a_destination_with_deeper_parentheses_is_still_checked(tmp_path, url):
+    repo = _repo(tmp_path)
+    with pytest.raises(BenchError) as err:
+        rewrite_links(f"[x]({url})", "README.md", "index.md", repo)
+    assert err.value.code == site_source.SITE_LINK.code
+    out = rewrite_links("[a](docs/plan.md#s(a(b)) \"T\") and ![i](docs/plan.md)", "README.md",
+                        "index.md", repo)
+    assert out == '[a](plan.md#s(a(b)) "T") and ![i](plan.md)'
+
+
+def test_a_link_inside_a_malformed_outer_destination_is_still_checked(tmp_path):
+    repo = _repo(tmp_path)
+    with pytest.raises(BenchError) as err:
+        rewrite_links("](https://example.com/a(b(c))[bad](missing.md))", "README.md", "index.md",
+                      repo)
+    assert err.value.code == site_source.SITE_LINK.code
+
+
+def test_repeated_link_starts_are_scanned_in_linear_time(tmp_path):
+    import time
+
+    repo = _repo(tmp_path)
+    began = time.perf_counter()
+    assert rewrite_links("](" * 20000, "README.md", "index.md", repo) == "](" * 20000
+    assert time.perf_counter() - began < 1.0
+
+
+@pytest.mark.parametrize("text", ["[a]() x", "[a](b c", "[a](b(c)", "[a](  ) x", "]("])
+def test_text_that_is_not_an_inline_link_is_left_alone(tmp_path, text):
+    assert rewrite_links(text, "README.md", "index.md", _repo(tmp_path)) == text
+
+
 def test_a_destination_with_balanced_parentheses_is_rewritten(tmp_path):
     repo = _repo(tmp_path)
     out = rewrite_links("[a](docs/plan.md#section(a))", "README.md", "index.md", repo)
@@ -422,6 +464,20 @@ def test_a_run_belongs_to_the_write_up_its_directory_is_named_after():
                             "targets-rerun": "and `results/stock-2026-11-05`",
                             "stock": "see results/stock-2026-11-05/"})
     assert writeup_for("results/stock-2026-11-05", writeups) == ["docs/stock-2026-11.md"]
+
+
+def test_a_write_up_names_a_run_only_up_to_a_hyphen():
+    """The hostile pass on keri-bench#4's fixes: stock-2026-1 is not a name for stock-2026-11-05."""
+    writeups = _writeups(**{"stock-2026-1": "`results/stock-2026-11-05`",
+                            "stock": "`results/stock-2026-11-05`"})
+    assert writeup_for("results/stock-2026-11-05", writeups) == ["docs/stock.md"]
+    writeups = _writeups(**{"stock-2026-11-05": "`results/stock-2026-11-05`"})
+    assert writeup_for("results/stock-2026-11-05", writeups) == ["docs/stock-2026-11-05.md"]
+
+
+def test_a_run_path_inside_a_longer_word_is_not_a_citation():
+    writeups = _writeups(other="This is a non-link: notresults/r", cites="see ../results/r/x")
+    assert writeup_for("results/r", writeups) == ["docs/cites.md"]
 
 
 def test_a_run_no_write_up_is_named_for_belongs_to_every_one_citing_it():

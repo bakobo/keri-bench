@@ -115,8 +115,9 @@ SITE_ARGS = ErrorCode(
     args=("problem",),
 )
 
-# An inline link's destination may hold balanced parentheses one level deep, as CommonMark allows.
-_LINK = re.compile(r"\]\(((?:[^()\s]|\([^()\s]*\))+)((?:\s+\"[^\"]*\")?)\)")
+# An inline link's title, after its destination. The destination itself is scanned by _links,
+# since it may hold balanced parentheses nested to any depth, as CommonMark allows.
+_TITLE_AND_CLOSE = re.compile(r"(\s+\"[^\"]*\")?\)")
 # A reference-style link's definition, `[label]: destination "title"`, at most three spaces in.
 _REFERENCE = re.compile(r"^( {0,3}\[[^\]]+\]:[ \t]*)(<[^>\s]*>|\S+)(.*)$")
 # What docs/ may hold besides markdown: the site's own stylesheets, scripts and images. Anything
@@ -188,6 +189,35 @@ def _rewrite_target(url: str, source: str, target: str, repo: Path, where: str) 
     return posixpath.relpath(new, start) + hash_ + fragment
 
 
+def _links(line: str, rewrite) -> str:
+    """`line` with each inline link's or image's destination replaced by `rewrite(destination)`.
+    A destination runs from the opening parenthesis to the first whitespace or unbalanced closing
+    parenthesis, so it may hold balanced parentheses at any depth (the hostile pass on
+    keri-bench#4 nested them two deep)."""
+    out, at = [], 0
+    while (start := line.find("](", at)) != -1:
+        begin = end = start + 2
+        depth = 0
+        # Another link's start ends the scan: it is not part of this destination (the hostile pass
+        # on keri-bench site-fixes), and stopping there keeps the whole scan linear.
+        while end < len(line) and not line[end].isspace() and not line.startswith("](", end):
+            if line[end] == "(":
+                depth += 1
+            elif line[end] == ")":
+                if depth == 0:
+                    break
+                depth -= 1
+            end += 1
+        tail = _TITLE_AND_CLOSE.match(line, end)
+        if end == begin or depth or tail is None:
+            out.append(line[at:begin])
+            at = begin
+            continue
+        out.append(line[at:begin] + rewrite(line[begin:end]) + tail.group(0))
+        at = tail.end()
+    return "".join(out) + line[at:]
+
+
 def rewrite_links(text: str, source: str, target: str, repo) -> str:
     """Rewrite the inline links and images in the markdown `text`, a file at repository path
     `source` that will live at `target` in the site source. Fenced code blocks are left as they
@@ -199,10 +229,10 @@ def rewrite_links(text: str, source: str, target: str, repo) -> str:
     may_define = True
     for number, line, fenced in _lines_outside_fences(text):
         if not fenced:
-            def link(m, where=f"{source}:{number}"):
-                return f"]({_rewrite_target(m.group(1), source, target, repo, where)}{m.group(2)})"
+            def link(url, where=f"{source}:{number}"):
+                return _rewrite_target(url, source, target, repo, where)
 
-            line = _LINK.sub(link, line)
+            line = _links(line, link)
             reference = may_define and _REFERENCE.match(line.rstrip("\r\n"))
             if reference:
                 url = reference.group(2)
@@ -210,7 +240,8 @@ def rewrite_links(text: str, source: str, target: str, repo) -> str:
                 new = _rewrite_target(bare, source, target, repo, f"{source}:{number}")
                 end = line[len(line.rstrip("\r\n")):]
                 line = f"{reference.group(1)}{new}{reference.group(3)}{end}"
-        may_define = not fenced and (not line.strip() or bool(reference))
+        # A closing fence ends its block, so a definition may follow it (the hostile pass on #4).
+        may_define = fenced or not line.strip() or bool(reference)
         out.append(line)
     return "".join(out)
 
@@ -393,10 +424,15 @@ def _writeups(repo: Path) -> dict[str, tuple[str, str]]:
 def writeup_for(run_dir: str, writeups: dict[str, tuple[str, str]]) -> list[str]:
     """The write-ups that cite the results directory `run_dir` (``results/<name>``): the one whose
     file name the directory's name starts with, longest first, else every one that cites it."""
-    cites = re.compile(re.escape(run_dir) + r"(?=[/`)\s]|$)")
+    # A citation stands as its own path, not inside a longer word (notresults/x) or name.
+    cites = re.compile(r"(?<![\w-])" + re.escape(run_dir) + r"(?=[/`)\s]|$)")
     citing = [path for path, (_, text) in writeups.items() if cites.search(text)]
     name = run_dir.split("/", 1)[1]
-    named = [path for path in citing if name.startswith(posixpath.basename(path)[:-3])]
+    def names_it(path: str) -> bool:
+        stem = posixpath.basename(path)[:-3]
+        return name == stem or name.startswith(stem + "-")
+
+    named = [path for path in citing if names_it(path)]
     if named:
         return [max(named, key=len)]
     return citing
