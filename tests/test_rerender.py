@@ -1,5 +1,5 @@
 """Re-rendering the committed run reports from their report.json (tools/rerender.py, this.i
-6d0jwr9z)."""
+6d0jwr9z), and the two things that must stay true of the committed results afterwards."""
 
 import hashlib
 import json
@@ -66,3 +66,22 @@ def test_a_path_with_no_results_is_refused_not_reported_as_success(tmp_path, cap
     (tmp_path / "empty" / "results").mkdir(parents=True)
     assert rerender.main([str(tmp_path / "empty")]) == 1
     assert "holds no report.json" in capsys.readouterr().err
+
+
+def test_every_committed_report_reads_as_the_renderer_renders_its_json():
+    """A renderer change that leaves the committed reports stale fails here; run
+    scripts/rerender-reports."""
+    stale = [str(source.parent) for source in sorted((REPO / "results").rglob("report.json"))
+             if source.with_name("report.md").read_text()
+             != render_markdown(json.loads(source.read_text()))]
+    assert not stale, stale[:5]
+
+
+def test_every_committed_manifest_line_matches_its_file():
+    wrong = []
+    for manifest in sorted((REPO / "results").rglob(rerender.MANIFEST)):
+        for line in manifest.read_text().splitlines():
+            digest, _, name = line.partition("  ")
+            if sha((manifest.parent / name).read_bytes()) != digest:
+                wrong.append(f"{manifest.parent}/{name}")
+    assert not wrong, wrong[:5]
