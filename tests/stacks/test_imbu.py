@@ -423,6 +423,16 @@ async def test_an_adopted_issuance_reports_every_milestone_imbu_stamped(pauses):
     assert [e.name for e in sink] == ["accepted", "anchored", "witnessed", "published"]
 
 
+@pytest.mark.parametrize("nulled", ["constructed", "registry_updated"])
+async def test_an_issuance_with_one_of_the_two_new_stamps_null_is_refused(pauses, nulled):
+    """The hostile pass on #10: imbu stamps both or, on an adopted issuance, neither."""
+    half = {**DONE, "milestones": {**DONE["milestones"], nulled: None}}
+    issuer, _ = scripted([(202, half, SIGNED)], knobs=WAITING)
+    with pytest.raises(BenchError) as refused:
+        await issuer.issue("c1", {"aid": "Eholder"})
+    assert f"did not stamp {nulled}" in refused.value.message
+
+
 async def test_an_imbu_that_does_not_owe_the_new_stamps_is_refused(pauses):
     """A missing key, unlike a null, means an imbu older than the pin: refused, not skipped."""
     old = {**DONE, "milestones": {k: v for k, v in DONE["milestones"].items()

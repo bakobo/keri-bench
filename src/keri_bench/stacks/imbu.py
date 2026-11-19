@@ -504,13 +504,17 @@ class ImbuIssuer(IssuerAdapter):
                 attrs: dict) -> None:
         """Report every milestone a finished operation owes. One missing or null is refused rather
         than skipped: a done operation has reached them all, and a missing stamp would quietly
-        drop the evidence a measurement needs."""
+        drop the evidence a measurement needs. The one exception is an issuance imbu adopted after
+        an interruption, which carries constructed and registry_updated as null, both of them
+        (this.i 2wventxp): those two are then skipped. A missing key, or only one of the two null,
+        is still refused."""
         milestones = op.get("milestones")
         if not isinstance(milestones, dict):
             raise BenchError(E_SHAPE, f"imbu's finished operation carries milestones "
                              f"{milestones!r}, not an object."[:500])
         for theirs in names:
-            adopted = theirs in UNOWED_WHEN_ADOPTED and theirs in milestones
+            adopted = theirs in UNOWED_WHEN_ADOPTED and all(
+                name in milestones and milestones[name] is None for name in UNOWED_WHEN_ADOPTED)
             if milestones.get(theirs) is None and not adopted:
                 raise BenchError(E_SHAPE, f"imbu's finished operation did not stamp {theirs}, "
                                  f"which imbu owes for every anchoring verb when a publisher is "
