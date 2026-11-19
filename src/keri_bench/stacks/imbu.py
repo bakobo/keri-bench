@@ -13,8 +13,11 @@ What imbu's operation carries, as this adapter reads it:
 - milestones are ``op["milestones"][name]``, RFC 3339 UTC with microseconds, on imbu's wall
   clock, which on the same host is the harness's ``realtime`` domain with a measured offset; a
   milestone owed and not yet reached is null;
-- an issuance owes accepted, anchored, witnessed, published (when a publisher is wired) and
-  finished; imbu stamps no ``constructed`` or ``registry_updated``, so neither is declared here;
+- an issuance owes accepted, constructed, registry_updated, anchored, witnessed, published (when
+  a publisher is wired) and finished (imbu 317ae49, this.i 2wventxp); constructed is when heti
+  had built the ACDC and it passed its schema check, registry_updated the time in the TEL event
+  that commits it to issued; imbu stamps neither for an issuance it adopted after an
+  interruption, so those two alone are skipped when null;
 - the operation is finished when ``state`` is ``done``, and failed when it is ``failed``, with
   ``result.said`` and ``result.grant`` (base64) on success;
 - the client's idempotency key travels as the ``Idempotency-Key`` header;
@@ -63,12 +66,14 @@ from ..procs import free_port
 from ..vocabulary import Role
 from .adapters import IMBU, PYTHON, STARTUP, passcode
 
-VERSION = "5"
+VERSION = "6"
 WALL = 1_000
 """imbu stamps milestones in RFC 3339 with microseconds (imbu operations.now), so a microsecond
 is the resolution claimed for them."""
 
-ISSUE_MILESTONES = ("anchored", "witnessed", "published")
+ISSUE_MILESTONES = ("constructed", "registry_updated", "anchored", "witnessed", "published")
+UNOWED_WHEN_ADOPTED = frozenset({"constructed", "registry_updated"})
+"""What imbu leaves null on an issuance it adopted after an interruption (this.i 2wventxp)."""
 REVOKE_MILESTONES = {"anchored": "revocation_anchored", "witnessed": "revocation_witnessed",
                      "published": "revocation_published"}
 
@@ -505,12 +510,14 @@ class ImbuIssuer(IssuerAdapter):
             raise BenchError(E_SHAPE, f"imbu's finished operation carries milestones "
                              f"{milestones!r}, not an object."[:500])
         for theirs in names:
-            if milestones.get(theirs) is None:
+            adopted = theirs in UNOWED_WHEN_ADOPTED and theirs in milestones
+            if milestones.get(theirs) is None and not adopted:
                 raise BenchError(E_SHAPE, f"imbu's finished operation did not stamp {theirs}, "
                                  f"which imbu owes for every anchoring verb when a publisher is "
                                  f"wired, as this stack's always is (issuer.py).")
         # All read before any is emitted, so a refused operation leaves nothing in the timeline.
-        stamps = {ours: stamp(milestones[theirs]) for theirs, ours in names.items()}
+        stamps = {ours: stamp(milestones[theirs]) for theirs, ours in names.items()
+                  if milestones.get(theirs) is not None}
         for ours, t in stamps.items():
             self.ctx.emit(ours, credentials=[credential], t=t, attrs=attrs)
 
