@@ -6,7 +6,7 @@ from the witness's signed location record when it resolves the OOBI; after that,
 request goes to that address. So this subclass binds each witness on a port the harness chose and
 advertises the harness's proxy in front of it instead, and receipts pass through the fault proxy
 like every other link (this.i 0wcr2rrj). The loop is heti's ``Witnesses.start`` at heti
-12e6f418672eb171322e2080b145eec1c95fef49, with the port, the advertised URL and the home
+093acb35de0a1a8c2b99296645274cd8c0e9b06f, with the port, the advertised URL and the home
 supplied, and it opens each witness's stores through heti's ``open_witness_stores`` so they are
 mapped as heti maps every store (this.i 8ujhdv9k).
 
