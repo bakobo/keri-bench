@@ -1,0 +1,861 @@
+{
+  "calibration": {
+    "budget": {
+      "anchored->witnessed": {
+        "p50_error_ns": 182115,
+        "p99_error_ns": 191941
+      },
+      "constructed->registry_updated": {
+        "p50_error_ns": 193834,
+        "p99_error_ns": 169855
+      },
+      "delivered->stored": {
+        "p50_error_ns": 2298774,
+        "p99_error_ns": 2339107
+      },
+      "proof_generated->verified": {
+        "p50_error_ns": 3924594,
+        "p99_error_ns": 2071879
+      },
+      "registry_updated->anchored": {
+        "p50_error_ns": 164661,
+        "p99_error_ns": 162715
+      },
+      "revocation_anchored->revocation_witnessed": {
+        "p50_error_ns": 166867,
+        "p99_error_ns": 216482
+      },
+      "revocation_requested->revocation_anchored": {
+        "p50_error_ns": 2568766,
+        "p99_error_ns": 2534778
+      },
+      "revocation_witnessed->revocation_published": {
+        "p50_error_ns": -649391,
+        "p99_error_ns": -5051930
+      },
+      "stored->proof_generated": {
+        "p50_error_ns": 2700142,
+        "p99_error_ns": 2136569
+      },
+      "witnessed->published": {
+        "p50_error_ns": 463011,
+        "p99_error_ns": 505113
+      }
+    },
+    "gate": "strict",
+    "harness_commit": "81c2ca53cb47f5ff8420d5aef5c35d81af0fc433",
+    "ok": true,
+    "path": "/home/daniel/code/bakobo/keri-bench/.ignored/runs-argon2/after/calibration/calibration.json",
+    "saturation_relative_error": 0.003984471144443233
+  },
+  "census": "not measured",
+  "drift": {
+    "bucket": 50,
+    "buckets": [
+      {
+        "credentials": 50,
+        "elapsed_s": 25.000208178,
+        "index": 0,
+        "missing": 0,
+        "p50_ns": 397672447,
+        "p99_ns": 547880959,
+        "store_bytes": 905375,
+        "store_credentials": 25
+      }
+    ],
+    "per_credentials": 1000,
+    "preseeded": 0,
+    "slopes": {
+      "p50": {
+        "elapsed": {
+          "measured": false,
+          "reason": "A slope's confidence interval needs at least three points, and 1 were given."
+        },
+        "store_bytes": {
+          "measured": false,
+          "reason": "A slope's confidence interval needs at least three points, and 1 were given."
+        },
+        "store_credentials": {
+          "measured": false,
+          "reason": "A slope's confidence interval needs at least three points, and 1 were given."
+        }
+      },
+      "p99": {
+        "elapsed": {
+          "measured": false,
+          "reason": "A slope's confidence interval needs at least three points, and 1 were given."
+        },
+        "store_bytes": {
+          "measured": false,
+          "reason": "A slope's confidence interval needs at least three points, and 1 were given."
+        },
+        "store_credentials": {
+          "measured": false,
+          "reason": "A slope's confidence interval needs at least three points, and 1 were given."
+        }
+      }
+    },
+    "units": {
+      "elapsed": "per hour",
+      "store_bytes": "per MiB",
+      "store_credentials": "per 1000 credentials"
+    }
+  },
+  "driver": {
+    "backlog": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "lag_limit_ns": 25000000,
+    "ok": true,
+    "p99_lag_ns": 8601599,
+    "reason": null
+  },
+  "failures": {
+    "by_code": {},
+    "by_stage": {},
+    "count": 0,
+    "fault_failed": null
+  },
+  "faults": [],
+  "generator_commit": "81c2ca53cb47f5ff8420d5aef5c35d81af0fc433",
+  "harness_commit": "81c2ca53cb47f5ff8420d5aef5c35d81af0fc433",
+  "incomplete": {
+    "count": 0,
+    "credentials": [],
+    "latency": {
+      "censored": 0,
+      "count": 50,
+      "max": {
+        "lower_bound": false,
+        "value": 547445052
+      },
+      "p50": {
+        "lower_bound": false,
+        "value": 397672447
+      },
+      "p90": {
+        "lower_bound": false,
+        "value": 438566911
+      },
+      "p99": {
+        "lower_bound": false,
+        "value": 547880959
+      },
+      "p99.9": {
+        "lower_bound": false,
+        "value": 547880959
+      }
+    }
+  },
+  "intervals": {
+    "accepted->constructed": {
+      "count": 50,
+      "end": "constructed",
+      "max": 25536000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 15400959,
+      "p90": 21954559,
+      "p99": 25542655,
+      "p99.9": 25542655,
+      "pairs": [],
+      "resolution_ns": 1000,
+      "start": "accepted"
+    },
+    "anchored->witnessed": {
+      "count": 50,
+      "end": "witnessed",
+      "max": 172471000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 107675647,
+      "p90": 128712703,
+      "p99": 172490751,
+      "p99.9": 172490751,
+      "pairs": [
+        "anchor_vs_witness"
+      ],
+      "resolution_ns": 1000,
+      "start": "anchored"
+    },
+    "constructed->registry_updated": {
+      "count": 50,
+      "end": "registry_updated",
+      "max": 304049000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 248381439,
+      "p90": 279445503,
+      "p99": 304087039,
+      "p99.9": 304087039,
+      "pairs": [],
+      "resolution_ns": 1000,
+      "start": "constructed"
+    },
+    "delivered->stored": {
+      "count": 0,
+      "end": "stored",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "delivery_vs_storage"
+      ],
+      "resolution_ns": null,
+      "start": "delivered"
+    },
+    "grant_sent->delivered": {
+      "count": 0,
+      "end": "delivered",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "delivery_vs_storage"
+      ],
+      "resolution_ns": null,
+      "start": "grant_sent"
+    },
+    "proof_generated->verified": {
+      "count": 0,
+      "end": "verified",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "proof_vs_verification"
+      ],
+      "resolution_ns": null,
+      "start": "proof_generated"
+    },
+    "published->sync_increment_applied": {
+      "count": 0,
+      "end": "sync_increment_applied",
+      "measured": false,
+      "missing": 50,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "sync_full_vs_incremental"
+      ],
+      "resolution_ns": null,
+      "start": "published"
+    },
+    "registry_updated->anchored": {
+      "count": 50,
+      "end": "anchored",
+      "max": 31372000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 17219583,
+      "p90": 22642687,
+      "p99": 31375359,
+      "p99.9": 31375359,
+      "pairs": [
+        "anchor_vs_witness"
+      ],
+      "resolution_ns": 1000,
+      "start": "registry_updated"
+    },
+    "requested->accepted": {
+      "count": 50,
+      "end": "accepted",
+      "max": 18881788,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 5414911,
+      "p90": 6967295,
+      "p99": 18890751,
+      "p99.9": 18890751,
+      "pairs": [],
+      "resolution_ns": 1268,
+      "start": "requested"
+    },
+    "requested->anchored": {
+      "count": 50,
+      "end": "anchored",
+      "max": 374974228,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 288620543,
+      "p90": 323747839,
+      "p99": 375128063,
+      "p99.9": 375128063,
+      "pairs": [],
+      "resolution_ns": 1268,
+      "start": "requested"
+    },
+    "requested->constructed": {
+      "count": 50,
+      "end": "constructed",
+      "max": 44418040,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 21102591,
+      "p90": 27639807,
+      "p99": 44433407,
+      "p99.9": 44433407,
+      "pairs": [],
+      "resolution_ns": 1268,
+      "start": "requested"
+    },
+    "requested->published": {
+      "count": 50,
+      "end": "published",
+      "max": 648355028,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 451674111,
+      "p90": 501743615,
+      "p99": 648544255,
+      "p99.9": 648544255,
+      "pairs": [],
+      "resolution_ns": 1268,
+      "start": "requested"
+    },
+    "requested->registry_updated": {
+      "count": 50,
+      "end": "registry_updated",
+      "max": 348467956,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 269746175,
+      "p90": 303038463,
+      "p99": 348651519,
+      "p99.9": 348651519,
+      "pairs": [],
+      "resolution_ns": 1268,
+      "start": "requested"
+    },
+    "requested->witnessed": {
+      "count": 50,
+      "end": "witnessed",
+      "max": 547445052,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 397672447,
+      "p90": 438566911,
+      "p99": 547880959,
+      "p99.9": 547880959,
+      "pairs": [],
+      "resolution_ns": 1268,
+      "start": "requested"
+    },
+    "revocation_published->revocation_recognised": {
+      "count": 0,
+      "end": "revocation_recognised",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "revocation_vs_recognition"
+      ],
+      "resolution_ns": null,
+      "start": "revocation_published"
+    },
+    "revocation_requested->revocation_published": {
+      "count": 0,
+      "end": "revocation_published",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "revocation_vs_recognition"
+      ],
+      "resolution_ns": null,
+      "start": "revocation_requested"
+    },
+    "stored->proof_generated": {
+      "count": 0,
+      "end": "proof_generated",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "proof_vs_verification"
+      ],
+      "resolution_ns": null,
+      "start": "stored"
+    },
+    "sync_full_started->sync_full_done": {
+      "count": 0,
+      "end": "sync_full_done",
+      "measured": false,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "pairs": [
+        "sync_full_vs_incremental"
+      ],
+      "resolution_ns": null,
+      "start": "sync_full_started"
+    },
+    "witnessed->published": {
+      "count": 50,
+      "end": "published",
+      "max": 100910000,
+      "measured": true,
+      "missing": 0,
+      "not_measured": {
+        "count": 0,
+        "reasons": []
+      },
+      "p50": 51183615,
+      "p90": 71172095,
+      "p99": 100925439,
+      "p99.9": 100925439,
+      "pairs": [],
+      "resolution_ns": 1000,
+      "start": "witnessed"
+    }
+  },
+  "measure": "requested->witnessed",
+  "measurement_cost": {
+    "harness_cpu_s": 58.722444,
+    "links": {
+      "holder.api": {
+        "exchanges": 0,
+        "p50_ns": 201719,
+        "p99_ns": 504647,
+        "samples": 200
+      },
+      "issuer.control.0": {
+        "exchanges": 61,
+        "p50_ns": 189817,
+        "p99_ns": 378573,
+        "samples": 200
+      },
+      "state_distribution.observer": {
+        "exchanges": 0,
+        "p50_ns": 187469,
+        "p99_ns": 374033,
+        "samples": 200
+      },
+      "state_distribution.registrar": {
+        "exchanges": 62,
+        "p50_ns": 209947,
+        "p99_ns": 371078,
+        "samples": 200
+      },
+      "verifier.api": {
+        "exchanges": 0,
+        "p50_ns": 221310,
+        "p99_ns": 441598,
+        "samples": 200
+      },
+      "witness_pool.w0": {
+        "exchanges": 142,
+        "p50_ns": 196401,
+        "p99_ns": 381378,
+        "samples": 200
+      },
+      "witness_pool.w1": {
+        "exchanges": 140,
+        "p50_ns": 201270,
+        "p99_ns": 429455,
+        "samples": 200
+      },
+      "witness_pool.w2": {
+        "exchanges": 136,
+        "p50_ns": 194672,
+        "p99_ns": 416904,
+        "samples": 200
+      }
+    }
+  },
+  "observability": {
+    "milestones": {
+      "accepted": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 60,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "anchored": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 60,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "constructed": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 60,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "delivered": {
+        "adapter": "heti.holder",
+        "clock": "harness",
+        "events": 0,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "holder"
+      },
+      "grant_sent": "unobserved",
+      "proof_generated": {
+        "adapter": "heti.holder",
+        "clock": "harness",
+        "events": 0,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "holder"
+      },
+      "published": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 60,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "registry_updated": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 60,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "requested": {
+        "adapter": "harness.driver",
+        "clock": "harness",
+        "events": 60,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "harness.driver"
+      },
+      "revocation_anchored": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 0,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "revocation_published": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 0,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "revocation_recognised": "unobserved",
+      "revocation_requested": {
+        "adapter": "imbu.issuer",
+        "clock": "harness",
+        "events": 0,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "issuer"
+      },
+      "revocation_witnessed": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 0,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      },
+      "stored": {
+        "adapter": "heti.holder",
+        "clock": "harness",
+        "events": 0,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "holder"
+      },
+      "sync_full_done": {
+        "adapter": "heti.verifier",
+        "clock": "harness",
+        "events": 0,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "verifier"
+      },
+      "sync_full_started": {
+        "adapter": "heti.verifier",
+        "clock": "harness",
+        "events": 0,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "verifier"
+      },
+      "sync_increment_applied": "unobserved",
+      "verified": {
+        "adapter": "heti.verifier",
+        "clock": "harness",
+        "events": 0,
+        "method": "observed",
+        "resolution_ns": 1,
+        "role": "verifier"
+      },
+      "witnessed": {
+        "adapter": "imbu.issuer",
+        "clock": "realtime",
+        "events": 60,
+        "method": "reported",
+        "resolution_ns": 1000,
+        "role": "issuer"
+      }
+    },
+    "pairs": {
+      "anchor_vs_witness": {
+        "gap": null,
+        "measurable": true
+      },
+      "construction_vs_registry": {
+        "gap": null,
+        "measurable": true
+      },
+      "delivery_vs_storage": {
+        "gap": "No adapter in this run observes grant_sent.",
+        "measurable": false
+      },
+      "normal_vs_faulted": {
+        "gap": "No fault was scheduled in this run, so there is no faulted performance to set beside normal performance.",
+        "measurable": false
+      },
+      "proof_vs_verification": {
+        "gap": "stored is declared, but no stored event appeared in this run. proof_generated is declared, but no proof_generated event appeared in this run. verified is declared, but no verified event appeared in this run.",
+        "measurable": false
+      },
+      "revocation_vs_recognition": {
+        "gap": "No adapter in this run observes revocation_recognised.",
+        "measurable": false
+      },
+      "sync_full_vs_incremental": {
+        "gap": "No adapter in this run observes sync_increment_applied.",
+        "measurable": false
+      }
+    }
+  },
+  "reconciliation": "not measured",
+  "refused": false,
+  "refused_reason": null,
+  "report_schema": 1,
+  "run": {
+    "duration_s": 60.0,
+    "host_load": {
+      "before": [
+        1.93,
+        3.55,
+        7.26
+      ],
+      "end": [
+        2.62,
+        3.38,
+        6.89
+      ],
+      "window": [
+        1.94,
+        3.47,
+        7.17
+      ]
+    },
+    "kind": "single-host, application-boundary faults (this.i 0wcr2rrj)",
+    "lag_limit_ms": 25.0,
+    "measure": [
+      "requested",
+      "witnessed"
+    ],
+    "rate": 1.0,
+    "repetition": 1,
+    "scenario": "probe-capacity-1home",
+    "soak": {
+      "bucket": 50,
+      "per_credentials": 1000,
+      "sample_s": 30.0,
+      "stop_credentials": null
+    },
+    "stages": [
+      "issue"
+    ],
+    "warmup_s": 10.0
+  },
+  "scenario_sha256": "5886fd5f9583c5868f2a9513e389ac68009902cb1915c437723d189a6af2230c",
+  "throughput": {
+    "milestones": {
+      "accepted": {
+        "count": 49,
+        "per_s": 0.9999896456582339,
+        "unconvertible": 0
+      },
+      "anchored": {
+        "count": 49,
+        "per_s": 0.9999896456582339,
+        "unconvertible": 0
+      },
+      "constructed": {
+        "count": 49,
+        "per_s": 0.9999896456582339,
+        "unconvertible": 0
+      },
+      "published": {
+        "count": 49,
+        "per_s": 0.9999896456582339,
+        "unconvertible": 0
+      },
+      "registry_updated": {
+        "count": 49,
+        "per_s": 0.9999896456582339,
+        "unconvertible": 0
+      },
+      "requested": {
+        "count": 50,
+        "per_s": 1.0203975976104427,
+        "unconvertible": 0
+      },
+      "witnessed": {
+        "count": 49,
+        "per_s": 0.9999896456582339,
+        "unconvertible": 0
+      }
+    },
+    "offered_per_s": 1.0,
+    "pairs": {
+      "construction_vs_registry": {
+        "constructed": 0.9999896456582339,
+        "registry_updated": 0.9999896456582339
+      }
+    },
+    "window_ns": 49000507368
+  },
+  "timeline_schema": 1,
+  "vocabulary_version": 1,
+  "warnings": [],
+  "window": {
+    "credentials": 50,
+    "end_ns": 703249711984766,
+    "measured_from_ns": 703200711477398,
+    "start_ns": 703190711477398,
+    "warmup_ns": 10000000000
+  }
+}
