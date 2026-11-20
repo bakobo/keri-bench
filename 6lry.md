@@ -3,3 +3,4 @@ kind: debt
 tags: review-deferred
 created: 2026-11-20T20:42Z
 
+- 2026-11-20T20:43Z Copilot on #12 also noted that run.sh does not copy the 3.5 and 4.0 runs into its results directory or manifest (it relied on targets.sh, which stops before them); they were copied by hand. The reusable driver should collect every rate it runs.
