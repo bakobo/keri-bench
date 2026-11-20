@@ -32,6 +32,7 @@ nav = [
     { "Against Utah's targets, October 2026" = "targets-2026-10.md" },
     { "Against Utah's targets: the rerun" = "targets-2026-10-rerun.md" },
     { "Stock and witness outage, November 2026" = "stock-2026-11.md" },
+    { "One issuer after the argon2 fix, November 2026" = "argon2-2026-11.md" },
   ] },
   { "Harness" = [
     { "Test plan" = "test-plan.md" },
