@@ -9,7 +9,8 @@ The test plan defines each milestone by the event that counts and leaves stack-s
 | `requested` | harness driver | observed, harness | The scheduled send time. |
 | `accepted` | `imbu.issuer` | reported, realtime | The time imbu's operation records accepting the request (imbu 670a3d8 and later stamp it itself; since adapter version 4). |
 | `anchored` | `imbu.issuer` | reported, realtime | The time imbu's operation resource records, RFC 3339 with microseconds (imbu `src/imbu/operations.py`). |
-| `constructed`, `registry_updated` | none | unobserved | imbu's operation stamps neither, so pair 1's split before anchoring is a named gap. |
+| `constructed` | `imbu.issuer` | reported, realtime | When heti had built the credential's ACDC and it passed its schema check, as imbu's operation records it (imbu 317ae49 and later; since adapter version 6, `this.i` 2wventxp). imbu leaves it null on an issuance it adopted after an interruption, and the adapter then reports nothing for it. |
+| `registry_updated` | `imbu.issuer` | reported, realtime | The time heti wrote into the blinded update that commits the credential to issued in its own registry, the TEL event's own timestamp, as imbu's operation records it. Between `constructed` and this sit heti's argon2 blind and its wait for any earlier act still short of toad, so under concurrency the interval is not pure CPU. Null, and not reported, on an adopted issuance, as above. |
 | `witnessed` | `imbu.issuer`, filed under the witness pool | reported, realtime | Receipts reached toad, as imbu's operation records it (`this.i` 0ys878gy). |
 | `published` | `imbu.issuer`, filed under state distribution | reported, realtime | The Registrar acknowledged the snapshot (its 2xx means the snapshot is the new head), as imbu records it. |
 | `grant_sent` | harness relay | observed, harness | imbu returns the grant to its caller and delivers nothing itself, so the harness relays it. The channel is named `harness-relay`. |

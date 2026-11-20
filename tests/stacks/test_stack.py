@@ -187,6 +187,12 @@ async def test_the_sedi_bulk_ceremony_issues_a_pair_per_copy_and_the_management_
     assert len(published) == 2
     assert {e.attrs["credentials"] for e in published} == {4}
     assert {e.attrs["client"] for e in published} == {0, 1}
+    # imbu 317ae49 stamps the latest of each across a ceremony's credentials (this.i 2wventxp).
+    for name in ("constructed", "registry_updated"):
+        stamped = [e for e in events if e.name == name]
+        assert len(stamped) == 2, name
+        assert {e.attrs["credentials"] for e in stamped} == {4}
+        assert {e.attrs["client"] for e in stamped} == {0, 1}
     assert report["intervals"]["requested->published"]["measured"] is True
     pool, = report["census"]["issuer"]["pool"]
     assert pool["registries"] == 8 and pool["finished_ns"] > pool["accepted_ns"]

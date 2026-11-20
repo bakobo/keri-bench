@@ -27,7 +27,8 @@ class FakeImbu:
         self.outcome = "done"
         self.requests = []
         self.resolves_to = "Eholder"
-        self.issued_milestones = {"accepted": 1, "anchored": 3_000,
+        self.issued_milestones = {"accepted": 1, "constructed": 1_500, "registry_updated": 2_000,
+                                  "anchored": 3_000,
                                   "witnessed": "1970-01-01T00:00:00.000004+00:00",
                                   "published": 5_500, "finished": 6_000}
 
@@ -100,12 +101,14 @@ async def test_issue_and_revoke_report_imbus_own_times(stand_in):
     got = [(e.name, e.t, e.method, e.clock, e.role) for e in sink]
     # accepted is imbu's own stamp, as every other milestone is (this.i 5k8z0pxe).
     assert got[0] == ("accepted", 1, "reported", W, "issuer")
-    assert got[1:4] == [("anchored", 3_000, "reported", W, "issuer"),
+    assert got[1:6] == [("constructed", 1_500, "reported", W, "issuer"),
+                        ("registry_updated", 2_000, "reported", W, "issuer"),
+                        ("anchored", 3_000, "reported", W, "issuer"),
                         ("witnessed", 4_000, "reported", W, "witness_pool"),
                         ("published", 5_500, "reported", W, "state_distribution")]
-    assert [e.name for e in sink[4:]] == ["revocation_requested", "revocation_anchored",
+    assert [e.name for e in sink[6:]] == ["revocation_requested", "revocation_anchored",
                                           "revocation_witnessed", "revocation_published"]
-    assert [e.t for e in sink[5:]] == [5_000, 7_000, 9_000]
+    assert [e.t for e in sink[7:]] == [5_000, 7_000, 9_000]
     assert sink[1].attrs["said"] == "Esaid"
     assert issuer.ctx.shared["said"] == {"c1": "Esaid"}
 
@@ -349,7 +352,9 @@ def test_each_home_s_signer_arguments_follow_its_knobs():
 # --- Prefer: wait, the answer budget's refusals, and the budget as knobs (this.i 5k8z0pxe) ---
 
 SIGNED = {"Signature": "sig1=:x:"}
-DONE = {"id": "op-1", "state": "done", "milestones": {"accepted": 1, "anchored": 3_000, "witnessed": 4_000,
+DONE = {"id": "op-1", "state": "done", "milestones": {"accepted": 1, "constructed": 1_000,
+                                                     "registry_updated": 2_000,
+                                                     "anchored": 3_000, "witnessed": 4_000,
                                          "published": 5_000, "finished": 6_000},
         "result": {"said": "Esaid"}}
 PENDING = {"id": "op-1", "state": "pending", "milestones": {"accepted": 1}}
@@ -402,8 +407,40 @@ async def test_a_waiting_client_asks_imbu_to_hold_its_answer_and_needs_no_poll(p
     assert [(m, p) for m, p, _ in fake.sent] == [("POST", "v1/imbu/issuances")]
     assert fake.sent[0][2]["Prefer"] == "wait=25"
     assert issuer.homes[0].signed == 1
-    assert [e.name for e in sink] == ["accepted", "anchored", "witnessed", "published"]
+    assert [e.name for e in sink] == ["accepted", "constructed", "registry_updated", "anchored",
+                                      "witnessed", "published"]
     assert pauses == []
+
+
+async def test_an_adopted_issuance_reports_every_milestone_imbu_stamped(pauses):
+    """this.i 2wventxp: imbu stamps neither constructed nor registry_updated on an issuance it
+    adopted after an interruption, so those two alone may be null; the rest are still reported."""
+    adopted = {**DONE, "milestones": {**DONE["milestones"], "constructed": None,
+                                      "registry_updated": None}}
+    sink = []
+    issuer, _ = scripted([(202, adopted, SIGNED)], knobs=WAITING, sink=sink)
+    await issuer.issue("c1", {"aid": "Eholder"})
+    assert [e.name for e in sink] == ["accepted", "anchored", "witnessed", "published"]
+
+
+@pytest.mark.parametrize("nulled", ["constructed", "registry_updated"])
+async def test_an_issuance_with_one_of_the_two_new_stamps_null_is_refused(pauses, nulled):
+    """The hostile pass on #10: imbu stamps both or, on an adopted issuance, neither."""
+    half = {**DONE, "milestones": {**DONE["milestones"], nulled: None}}
+    issuer, _ = scripted([(202, half, SIGNED)], knobs=WAITING)
+    with pytest.raises(BenchError) as refused:
+        await issuer.issue("c1", {"aid": "Eholder"})
+    assert f"did not stamp {nulled}" in refused.value.message
+
+
+async def test_an_imbu_that_does_not_owe_the_new_stamps_is_refused(pauses):
+    """A missing key, unlike a null, means an imbu older than the pin: refused, not skipped."""
+    old = {**DONE, "milestones": {k: v for k, v in DONE["milestones"].items()
+                                  if k not in ("constructed", "registry_updated")}}
+    issuer, _ = scripted([(202, old, SIGNED)], knobs=WAITING)
+    with pytest.raises(BenchError) as refused:
+        await issuer.issue("c1", {"aid": "Eholder"})
+    assert "did not stamp constructed" in refused.value.message
 
 
 async def test_a_waiting_client_reads_a_still_pending_operation_again_at_once(pauses):
