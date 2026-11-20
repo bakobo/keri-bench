@@ -1,0 +1,59 @@
+2026-11-20T12:14:46-07:00 kelun systemd[1535]: Started keri-bench-argon2.service - [systemd-run] /home/daniel/code/bakobo/keri-bench/.ignored/rerun-argon2.sh.
+2026-11-20T12:14:46-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:14:46Z waiting for the bench-host lock
+2026-11-20T12:14:46-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:14:46Z lock held; waiting for 1-minute load < 2
+2026-11-20T12:14:46-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:14:46Z load 15.05
+2026-11-20T12:15:46-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:15:46Z load 14.77
+2026-11-20T12:16:46-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:16:46Z load 14.09
+2026-11-20T12:17:46-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:17:46Z load 15.69
+2026-11-20T12:18:46-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:18:46Z load 14.51
+2026-11-20T12:19:46-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:19:46Z load 14.33
+2026-11-20T12:20:46-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:20:46Z load 12.83
+2026-11-20T12:21:46-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:21:46Z load 12.78
+2026-11-20T12:22:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:22:47Z load 13.14
+2026-11-20T12:23:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:23:47Z load 12.71
+2026-11-20T12:24:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:24:47Z load 13.60
+2026-11-20T12:25:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:25:47Z load 14.60
+2026-11-20T12:26:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:26:47Z load 14.81
+2026-11-20T12:27:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:27:47Z load 15.23
+2026-11-20T12:28:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:28:47Z load 14.66
+2026-11-20T12:29:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:29:47Z load 13.01
+2026-11-20T12:30:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:30:47Z load 7.87
+2026-11-20T12:31:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:31:47Z load 7.30
+2026-11-20T12:32:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:32:47Z load 7.44
+2026-11-20T12:33:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:33:47Z load 6.79
+2026-11-20T12:34:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:34:47Z load 6.57
+2026-11-20T12:35:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:35:47Z load 6.69
+2026-11-20T12:36:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:36:47Z load 7.47
+2026-11-20T12:37:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:37:47Z load 7.81
+2026-11-20T12:38:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:38:47Z load 6.54
+2026-11-20T12:39:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:39:47Z load 6.02
+2026-11-20T12:40:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:40:47Z load 4.52
+2026-11-20T12:41:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:41:47Z load 2.43
+2026-11-20T12:42:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:42:47Z load 4.00
+2026-11-20T12:43:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:43:47Z load 7.35
+2026-11-20T12:44:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:44:47Z load 5.31
+2026-11-20T12:45:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:45:47Z load 2.98
+2026-11-20T12:46:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:46:47Z load 2.67
+2026-11-20T12:47:47-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:47:47Z quiet at load 1.40
+2026-11-20T12:49:23-07:00 kelun rerun-argon2.sh[2686263]: {"ok": true, "saturation": {"ok": true, "cap": 50.0, "achieved_at_saturation": 50.19922355722216, "offered": 70.0, "relative_error": 0.003984471144443233}}
+2026-11-20T12:49:23-07:00 kelun rerun-argon2.sh[2686252]: 2026-11-20T19:49:23Z start probe-capacity-1home
+2026-11-20T12:50:44-07:00 kelun rerun-argon2.sh[2689121]: {"refused": false}
+2026-11-20T12:52:00-07:00 kelun rerun-argon2.sh[2691891]: {"refused": false}
+2026-11-20T12:53:18-07:00 kelun rerun-argon2.sh[2693943]: {"refused": false}
+2026-11-20T12:54:36-07:00 kelun rerun-argon2.sh[2696506]: {"refused": false}
+2026-11-20T12:54:36-07:00 kelun rerun-argon2.sh[2686252]: 2026-11-20T19:54:36Z end probe-capacity-1home
+2026-11-20T12:55:53-07:00 kelun rerun-argon2.sh[2698715]: {"refused": false}
+2026-11-20T12:57:11-07:00 kelun rerun-argon2.sh[2700681]: {"refused": false}
+2026-11-20T12:57:12-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T19:57:12Z done after
+2026-11-20T12:58:48-07:00 kelun rerun-argon2.sh[2703387]: {"ok": true, "saturation": {"ok": true, "cap": 50.0, "achieved_at_saturation": 49.99365123007547, "offered": 50.0, "relative_error": -0.00012697539849057193}}
+2026-11-20T12:58:49-07:00 kelun rerun-argon2.sh[2703365]: 2026-11-20T19:58:49Z start probe-capacity-1home
+2026-11-20T13:00:09-07:00 kelun rerun-argon2.sh[2707705]: {"refused": false}
+2026-11-20T13:01:27-07:00 kelun rerun-argon2.sh[2710929]: {"refused": false}
+2026-11-20T13:03:00-07:00 kelun rerun-argon2.sh[2713646]: {"refused": false}
+2026-11-20T13:05:06-07:00 kelun rerun-argon2.sh[2716058]: {"refused": false}
+2026-11-20T13:05:06-07:00 kelun rerun-argon2.sh[2703365]: 2026-11-20T20:05:06Z end probe-capacity-1home
+2026-11-20T13:07:33-07:00 kelun rerun-argon2.sh[2720199]: {"refused": false}
+2026-11-20T13:10:07-07:00 kelun rerun-argon2.sh[2723998]: {"refused": false}
+2026-11-20T13:10:07-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T20:10:07Z done before
+2026-11-20T13:10:07-07:00 kelun rerun-argon2.sh[2327235]: 2026-11-20T20:10:07Z all done
+2026-11-20T13:10:07-07:00 kelun systemd[1535]: keri-bench-argon2.service: Consumed 34min 26.940s CPU time over 55min 21.365s wall clock time, 895.1M memory peak.
